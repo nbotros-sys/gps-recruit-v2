@@ -1,5 +1,6 @@
 
 "use client"
+import CandidateAvatar from "@/components/CandidateAvatar"
 import { useState, useEffect } from "react"
 import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Star,
   ExternalLink, CheckCircle, AlertCircle, MessageSquare, FileText, Save, Briefcase } from "lucide-react"
