@@ -12,7 +12,7 @@ export default function JobDetailPage() {
   const [applying, setApplying] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [form, setForm] = useState({ name: "", email: "", phone: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "+20 " })
   const [submitting, setSubmitting] = useState(false)
   const supabase = createClient()
 
