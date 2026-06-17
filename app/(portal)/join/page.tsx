@@ -149,8 +149,8 @@ export default function JoinPage() {
         {/* Step 1: Details */}
         {step === "info" && (
           <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Tell us about yourself</h2>
-            <p style={{ color: "#888", fontSize: "13px", marginBottom: "24px" }}>Takes 60 seconds. No account needed to submit.</p>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Welcome to GPS Talent</h2>
+            <p style={{ color: "#888", fontSize: "13px", marginBottom: "24px" }}>Tell us a little about yourself so we can match you to the right opportunities.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Full Name *</label>
@@ -205,8 +205,8 @@ export default function JoinPage() {
         {/* Step 2: CV Upload */}
         {step === "cv" && (
           <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Upload your CV</h2>
-            <p style={{ color: "#888", fontSize: "13px", marginBottom: "28px" }}>PDF or Word. Our AI will read it intelligently — the more detail the better.</p>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Almost there — upload your CV</h2>
+            <p style={{ color: "#888", fontSize: "13px", marginBottom: "28px" }}>PDF or Word. Our AI reads it deeply — the more detail, the better we can match you.</p>
 
             {file ? (
               <div style={{ background: "#f0faf8", border: "1.5px solid #A8D5D1", borderRadius: "14px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
