@@ -3,17 +3,20 @@ import { NextRequest, NextResponse } from "next/server"
 export async function POST(req: NextRequest) {
   const { candidate_background, mandate_context, platform, tone } = await req.json()
 
-  const toneGuide = {
+  const toneGuides: Record<string, string> = {
     professional: "formal, respectful, concise — appropriate for executive-level outreach",
     friendly: "warm, personable, conversational — feels human not template-like",
     direct: "brief and to the point — 3-4 sentences max, no fluff"
-  }[tone] || "professional"
+  }
 
-  const platformGuide = {
+  const platformGuides: Record<string, string> = {
     linkedin: "LinkedIn InMail (300 word limit, starts with a connection observation)",
     email: "email (subject line + body, can be longer, more context)",
     whatsapp: "WhatsApp message (very short, casual, ends with a question)"
-  }[platform] || "LinkedIn InMail"
+  }
+
+  const toneGuide = toneGuides[tone] || toneGuides["professional"]
+  const platformGuide = platformGuides[platform] || platformGuides["linkedin"]
 
   const prompt = `You are a senior recruitment consultant at GPS, a respected Egyptian executive search firm. Write 3 distinct outreach messages to approach a passive candidate.
 
