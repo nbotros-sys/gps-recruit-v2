@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useEffect } from "react"
 import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Star,
@@ -24,6 +25,188 @@ const STAGE_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-600",
 }
 
+function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, onClose: () => void, onNoteSaved: (id: string, notes: string) => void }) {
+  const [tab, setTab] = useState<"overview" | "cv" | "notes">("overview")
+  const [notes, setNotes] = useState(candidate.notes || "")
+  const [savingNotes, setSavingNotes] = useState(false)
+  const supabase = createClient()
+  const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
+
+  async function saveNotes() {
+    setSavingNotes(true)
+    await supabase.from("candidates").update({ notes }).eq("id", candidate.id)
+    onNoteSaved(candidate.id, notes)
+    setSavingNotes(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: "rgba(0,0,0,0.45)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+              style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
+              {candidate.name?.charAt(0)?.toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{candidate.name}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {candidate.current_title}{candidate.current_company ? ` @ ${candidate.current_company}` : ""}
+              </p>
+              <div className="flex items-center gap-3 mt-1.5">
+                {candidate.email && (
+                  <a href={`mailto:${candidate.email}`} className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal transition-colors">
+                    <Mail size={11} /> {candidate.email}
+                  </a>
+                )}
+                {candidate.phone && (
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <Phone size={11} /> {candidate.phone}
+                  </span>
+                )}
+                {candidate.location && (
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <MapPin size={11} /> {candidate.location}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`badge ${SOURCE_COLORS[candidate.source] || "bg-gray-100 text-gray-600"} text-xs`}>{candidate.source}</span>
+            <Link href={`/internal/candidates/${candidate.id}`}
+              className="p-1.5 text-gray-400 hover:text-teal transition-colors rounded-lg hover:bg-gray-50" title="Full profile">
+              <ExternalLink size={15} />
+            </Link>
+            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 px-6 pt-3 pb-0 flex-shrink-0 border-b border-gray-100">
+          {[
+            { id: "overview", icon: Briefcase, label: "Overview" },
+            { id: "cv", icon: FileText, label: "CV" },
+            { id: "notes", icon: MessageSquare, label: "Notes" },
+          ].map(({ id, icon: Icon, label }) => (
+            <button key={id} onClick={() => setTab(id as any)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px
+                ${tab === id ? "border-teal text-teal" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto p-6">
+
+          {/* Overview */}
+          {tab === "overview" && (
+            <div className="space-y-5">
+              {candidate.applications?.length === 0 || !candidate.applications ? (
+                <div className="text-center py-10">
+                  <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
+                  <p className="text-gray-400 text-sm">Not assigned to any mandates yet.</p>
+                </div>
+              ) : (
+                candidate.applications.map((app: any) => (
+                  <div key={app.id} className="border border-gray-100 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Link href={`/internal/mandates/${app.mandate?.id}`}
+                        className="font-semibold text-gray-900 hover:text-teal transition-colors flex items-center gap-1.5 text-sm">
+                        {app.mandate?.title} <ExternalLink size={12} className="text-gray-400" />
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        {app.ai_score && (
+                          <div className="flex items-center gap-1">
+                            <Star size={12} className="text-amber-400 fill-amber-400" />
+                            <span className="text-sm font-bold" style={{ color: scoreColor(app.ai_score) }}>{app.ai_score}/100</span>
+                          </div>
+                        )}
+                        <span className={`badge ${STAGE_COLORS[app.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>{app.stage}</span>
+                      </div>
+                    </div>
+                    {app.ai_score && (
+                      <div className="h-1.5 bg-gray-100 rounded-full">
+                        <div className="h-full rounded-full" style={{ width: `${app.ai_score}%`, background: scoreColor(app.ai_score) }} />
+                      </div>
+                    )}
+                    {app.ai_summary && (
+                      <p className="text-sm text-gray-600 leading-relaxed">{app.ai_summary}</p>
+                    )}
+                    {(app.ai_strengths?.length > 0 || app.ai_concerns?.length > 0) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {app.ai_strengths?.length > 0 && (
+                          <div className="bg-green-50 rounded-xl p-3">
+                            <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths</div>
+                            <ul className="space-y-1">
+                              {app.ai_strengths.map((s: string, i: number) => (
+                                <li key={i} className="text-xs text-green-800 flex gap-1.5"><span className="flex-shrink-0">•</span>{s}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {app.ai_concerns?.length > 0 && (
+                          <div className="bg-amber-50 rounded-xl p-3">
+                            <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1"><AlertCircle size={11} /> Areas to probe</div>
+                            <ul className="space-y-1">
+                              {app.ai_concerns.map((c: string, i: number) => (
+                                <li key={i} className="text-xs text-amber-800 flex gap-1.5"><span className="flex-shrink-0">•</span>{c}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* CV */}
+          {tab === "cv" && (
+            <div>
+              {candidate.cv_text ? (
+                <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5">
+                  {candidate.cv_text}
+                </pre>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText size={32} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-gray-400 text-sm">No CV stored for this candidate.</p>
+                  <p className="text-gray-300 text-xs mt-1">CV text is captured automatically via Bulk CV Upload.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Notes */}
+          {tab === "notes" && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">Private notes — only visible to GPS team</p>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={10}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
+                placeholder="Add your notes about this candidate...&#10;&#10;e.g. Spoke on 17 June — strong FP&A, open to a move in 3 months. Salary expectation: 45k EGP." />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">{notes.length} characters</span>
+                <button onClick={saveNotes} disabled={savingNotes}
+                  className="btn-primary flex items-center gap-2 text-sm">
+                  <Save size={13} /> {savingNotes ? "Saving..." : "Save notes"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,9 +214,6 @@ export default function CandidatesPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState<any>(null)
-  const [notes, setNotes] = useState("")
-  const [savingNotes, setSavingNotes] = useState(false)
-  const [drawerTab, setDrawerTab] = useState<"overview" | "cv">("overview")
   const [form, setForm] = useState({
     name: "", email: "", phone: "", current_title: "", current_company: "",
     location: "", source: "direct", linkedin_url: "", notes: ""
@@ -52,12 +232,6 @@ export default function CandidatesPage() {
 
   useEffect(() => { load() }, [])
 
-  function openDrawer(c: any) {
-    setSelected(c)
-    setNotes(c.notes || "")
-    setDrawerTab("overview")
-  }
-
   async function addCandidate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -68,15 +242,6 @@ export default function CandidatesPage() {
       load()
     }
     setSaving(false)
-  }
-
-  async function saveNotes() {
-    if (!selected) return
-    setSavingNotes(true)
-    await supabase.from("candidates").update({ notes }).eq("id", selected.id)
-    setCandidates(prev => prev.map(c => c.id === selected.id ? { ...c, notes } : c))
-    setSelected({ ...selected, notes })
-    setSavingNotes(false)
   }
 
   const filtered = candidates.filter(c =>
@@ -113,7 +278,6 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      {/* List */}
       <div className="space-y-2">
         {loading ? (
           <div className="text-center py-16 text-gray-400">Loading...</div>
@@ -128,9 +292,8 @@ export default function CandidatesPage() {
             const score = bestScore(c)
             const mandateCount = c.applications?.length || 0
             return (
-              <button key={c.id} onClick={() => openDrawer(c)}
-                className={`w-full text-left card flex items-center justify-between hover:shadow-md transition-all cursor-pointer group py-4
-                  ${selected?.id === c.id ? "ring-2 ring-teal/30 border-teal/20" : ""}`}>
+              <button key={c.id} onClick={() => setSelected(c)}
+                className="w-full text-left card flex items-center justify-between hover:shadow-md transition-all cursor-pointer group py-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
                     style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
@@ -149,9 +312,7 @@ export default function CandidatesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  {mandateCount > 0 && (
-                    <span className="text-xs text-gray-400">{mandateCount} mandate{mandateCount > 1 ? "s" : ""}</span>
-                  )}
+                  {mandateCount > 0 && <span className="text-xs text-gray-400">{mandateCount} mandate{mandateCount > 1 ? "s" : ""}</span>}
                   {score && (
                     <div className="flex items-center gap-1">
                       <Star size={12} className="text-amber-400 fill-amber-400" />
@@ -159,7 +320,7 @@ export default function CandidatesPage() {
                     </div>
                   )}
                   <span className={`badge ${SOURCE_COLORS[c.source] || SOURCE_COLORS.other} text-xs`}>{c.source}</span>
-                  <ChevronRight size={15} className={`transition-colors ${selected?.id === c.id ? "text-teal" : "text-gray-300 group-hover:text-teal"}`} />
+                  <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
                 </div>
               </button>
             )
@@ -167,165 +328,16 @@ export default function CandidatesPage() {
         )}
       </div>
 
-      {/* ── CANDIDATE DRAWER ── */}
+      {/* Candidate modal */}
       {selected && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelected(null)} />
-          <div className="fixed right-0 top-0 h-full w-[440px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-start justify-between p-5 border-b border-gray-100 flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
-                  {selected.name?.charAt(0)?.toUpperCase()}
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">{selected.name}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {selected.current_title}{selected.current_company ? ` @ ${selected.current_company}` : ""}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Link href={`/internal/candidates/${selected.id}`}
-                  className="p-1.5 text-gray-400 hover:text-teal transition-colors rounded-lg hover:bg-gray-50" title="Open full profile">
-                  <ExternalLink size={15} />
-                </Link>
-                <button onClick={() => setSelected(null)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Drawer tabs */}
-            <div className="flex gap-1 px-4 pt-3 pb-0 flex-shrink-0">
-              {[{ id: "overview", label: "Overview" }, { id: "cv", label: "CV" }].map(({ id, label }) => (
-                <button key={id} onClick={() => setDrawerTab(id as any)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                    ${drawerTab === id ? "bg-teal/10 text-teal" : "text-gray-500 hover:text-gray-700"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-
-              {drawerTab === "overview" && (
-                <>
-                  {/* Contact */}
-                  <div className="space-y-2">
-                    {selected.email && (
-                      <a href={`mailto:${selected.email}`} className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-teal transition-colors">
-                        <Mail size={13} className="text-gray-400 flex-shrink-0" />{selected.email}
-                      </a>
-                    )}
-                    {selected.phone && (
-                      <div className="flex items-center gap-2.5 text-sm text-gray-600">
-                        <Phone size={13} className="text-gray-400 flex-shrink-0" />{selected.phone}
-                      </div>
-                    )}
-                    {selected.location && (
-                      <div className="flex items-center gap-2.5 text-sm text-gray-600">
-                        <MapPin size={13} className="text-gray-400 flex-shrink-0" />{selected.location}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className={`badge ${SOURCE_COLORS[selected.source] || "bg-gray-100 text-gray-600"} text-xs`}>{selected.source}</span>
-                    </div>
-                  </div>
-
-                  {/* Mandates */}
-                  {selected.applications?.length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                        <Briefcase size={11} /> Mandates ({selected.applications.length})
-                      </div>
-                      <div className="space-y-2">
-                        {selected.applications.map((app: any) => (
-                          <div key={app.id} className="bg-gray-50 rounded-xl p-3">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <Link href={`/internal/mandates/${app.mandate?.id}`}
-                                className="text-sm font-medium text-gray-900 hover:text-teal transition-colors truncate">
-                                {app.mandate?.title}
-                              </Link>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {app.ai_score && (
-                                  <span className="text-xs font-bold" style={{ color: scoreColor(app.ai_score) }}>{app.ai_score}/100</span>
-                                )}
-                                <span className={`badge ${STAGE_COLORS[app.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>{app.stage}</span>
-                              </div>
-                            </div>
-                            {app.ai_summary && (
-                              <p className="text-xs text-gray-500 leading-relaxed mt-1">{app.ai_summary}</p>
-                            )}
-                            {(app.ai_strengths?.length > 0 || app.ai_concerns?.length > 0) && (
-                              <div className="grid grid-cols-2 gap-2 mt-2">
-                                {app.ai_strengths?.length > 0 && (
-                                  <div className="bg-green-50 rounded-lg p-2">
-                                    <div className="text-xs font-semibold text-green-700 mb-1 flex items-center gap-1"><CheckCircle size={10} /> Strengths</div>
-                                    <ul className="space-y-0.5">
-                                      {app.ai_strengths.slice(0, 2).map((s: string, i: number) => (
-                                        <li key={i} className="text-xs text-green-800 flex gap-1"><span>•</span>{s}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                {app.ai_concerns?.length > 0 && (
-                                  <div className="bg-amber-50 rounded-lg p-2">
-                                    <div className="text-xs font-semibold text-amber-700 mb-1 flex items-center gap-1"><AlertCircle size={10} /> Concerns</div>
-                                    <ul className="space-y-0.5">
-                                      {app.ai_concerns.slice(0, 2).map((c: string, i: number) => (
-                                        <li key={i} className="text-xs text-amber-800 flex gap-1"><span>•</span>{c}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <MessageSquare size={11} /> Recruiter Notes
-                    </div>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
-                      placeholder="Add notes about this candidate..." />
-                    <button onClick={saveNotes} disabled={savingNotes}
-                      className="mt-2 btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
-                      <Save size={13} /> {savingNotes ? "Saving..." : "Save notes"}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {drawerTab === "cv" && (
-                <div>
-                  <div className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide flex items-center gap-1.5">
-                    <FileText size={11} /> CV Text
-                  </div>
-                  {selected.cv_text ? (
-                    <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-4">
-                      {selected.cv_text}
-                    </pre>
-                  ) : (
-                    <div className="text-center py-10">
-                      <FileText size={28} className="mx-auto mb-2 text-gray-200" />
-                      <p className="text-gray-400 text-sm">No CV stored for this candidate.</p>
-                      <p className="text-gray-300 text-xs mt-1">CV text is captured via Bulk CV Upload.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+        <CandidateModal
+          candidate={selected}
+          onClose={() => setSelected(null)}
+          onNoteSaved={(id, notes) => {
+            setCandidates(prev => prev.map(c => c.id === id ? { ...c, notes } : c))
+            setSelected((prev: any) => ({ ...prev, notes }))
+          }}
+        />
       )}
 
       {/* Add modal */}
