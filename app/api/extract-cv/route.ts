@@ -15,11 +15,16 @@ export async function POST(req: NextRequest) {
   try {
     if (fileName.endsWith(".txt")) {
       text = buffer.toString("utf-8")
-    } else if (fileName.endsWith(".pdf") || fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
-      // Use Claude vision to extract text from the file
-      const base64 = buffer.toString("base64")
-      const mediaType = fileName.endsWith(".pdf") ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
+    } else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
+      // Use mammoth to extract text from Word documents
+      const mammoth = require("mammoth")
+      const result = await mammoth.extractRawText({ buffer })
+      text = result.value || ""
+
+    } else if (fileName.endsWith(".pdf")) {
+      // Send PDF to Claude as base64 document for extraction
+      const base64 = buffer.toString("base64")
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -39,7 +44,7 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: "text",
-                text: "Extract all text content from this CV/resume document. Return ONLY the raw text, preserving structure but no formatting marks. Include all sections: contact info, experience, education, skills."
+                text: "Extract all text from this CV/resume. Return ONLY the plain text content with no commentary. Include name, contact info, work experience, education, and skills."
               }
             ]
           }]
@@ -47,12 +52,11 @@ export async function POST(req: NextRequest) {
       })
       const data = await response.json()
       text = data.content?.[0]?.text || ""
-    } else {
-      text = buffer.toString("utf-8")
     }
   } catch (e) {
-    text = buffer.toString("utf-8")
+    console.error("Extraction error:", e)
+    text = ""
   }
 
-  return NextResponse.json({ text, filename: file.name })
+  return NextResponse.json({ text: text.trim(), filename: file.name })
 }
