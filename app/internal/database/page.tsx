@@ -1,4 +1,5 @@
 "use client"
+import CandidateAvatar from "@/components/CandidateAvatar"
 import { useState, useRef } from "react"
 import { Upload, FileText, X, Loader2, CheckCircle, AlertCircle, Users, Zap, Brain } from "lucide-react"
 import { createClient } from "@/lib/supabase"
