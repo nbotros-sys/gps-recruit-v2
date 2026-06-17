@@ -4,7 +4,6 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const file = formData.get("file") as File
-
     if (!file) return NextResponse.json({ text: "", filename: "unknown" })
 
     const bytes = await file.arrayBuffer()
@@ -22,8 +21,11 @@ export async function POST(req: NextRequest) {
         text = result.value || ""
       } catch (e) {
         console.error("mammoth error:", e)
-        text = buffer.toString("utf-8").replace(/[^ -~
-	]/g, " ")
+        // Fall back to raw text, strip non-printable chars safely
+        text = buffer.toString("utf-8").split("").filter(c => {
+          const code = c.charCodeAt(0)
+          return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9
+        }).join("")
       }
 
     } else if (fileName.endsWith(".pdf")) {
@@ -65,7 +67,6 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ text: text.trim(), filename: file.name })
-
   } catch (err) {
     console.error("Extract CV error:", err)
     return NextResponse.json({ text: "", filename: "unknown" })
