@@ -20,7 +20,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </a>
           <nav className="flex items-center gap-6">
             <a href="/jobs" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Open Roles</a>
-            <a href="/join" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Join Network</a>
             <div className="flex items-center gap-2">
               <a href="/login"
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
@@ -49,7 +48,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </div>
             <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
               <a href="/jobs" className="text-white/50 hover:text-white transition-colors">Open Roles</a>
-              <a href="/join" className="text-white/50 hover:text-white transition-colors">Join Network</a>
+              <a href="/join" className="text-white/50 hover:text-white transition-colors">Register</a>
               <a href="/login" className="text-white/50 hover:text-white transition-colors">Sign in</a>
             </div>
           </div>
