@@ -256,13 +256,17 @@ export default function MandateDetail() {
                       draggable
                       onDragStart={() => setDraggingApp(app.id)}
                       onDragEnd={() => setDraggingApp(null)}
-                      className={`bg-white rounded-xl p-3 border cursor-grab active:cursor-grabbing transition-all
-                        ${draggingApp === app.id ? "opacity-40 shadow-lg scale-95" : "border-gray-100 shadow-sm hover:shadow-md"}`}
+                      className={`bg-white rounded-xl p-3 border transition-all
+                        ${draggingApp === app.id ? "opacity-40 shadow-lg scale-95 cursor-grabbing" : "border-gray-100 shadow-sm hover:shadow-md hover:border-teal/20"}`}
                     >
                       <div className="flex items-start gap-2">
-                        <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm text-gray-900 truncate">{(app as any).candidate?.name || "Unknown"}</div>
+                        <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/internal/candidates/${(app as any).candidate?.id}`}
+                            onClick={e => e.stopPropagation()}
+                            className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block">
+                            {(app as any).candidate?.name || "Unknown"}
+                          </Link>
                           {(app as any).candidate?.current_title && (
                             <div className="text-xs text-gray-400 truncate mt-0.5">{(app as any).candidate.current_title}</div>
                           )}
@@ -277,7 +281,6 @@ export default function MandateDetail() {
                           )}
                         </div>
                       </div>
-                      {/* Quick stage move buttons */}
                       <div className="mt-2 pt-2 border-t border-gray-50 flex gap-1">
                         {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
                           <button key={s} onClick={() => moveStage(app.id, s)}
