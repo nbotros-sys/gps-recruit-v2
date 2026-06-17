@@ -20,6 +20,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </a>
           <nav className="flex items-center gap-6">
             <a href="/jobs" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Open Roles</a>
+            <a href="/how-it-works" className="text-white/60 hover:text-white text-sm transition-colors font-medium">How it works</a>
             <div className="flex items-center gap-2">
               <a href="/login"
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
