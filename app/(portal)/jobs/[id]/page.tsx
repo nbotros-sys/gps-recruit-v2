@@ -50,29 +50,59 @@ export default function JobDetailPage() {
       const profile = await profileRes.json()
       const score = await scoreRes.json()
 
-      const { data: candidate } = await supabase.from("candidates").insert([{
-        name: form.name || profile.name,
-        email: form.email,
-        phone: form.phone || profile.phone,
-        current_title: profile.current_title,
-        current_company: profile.current_company,
-        location: profile.location,
-        cv_text: cvText || "",
-        tags: profile.tags || [],
-        source: "direct",
-        notes: profile.summary || "",
-      }]).select().single()
+      // Check if candidate already exists by email
+      let candidateId: string | null = null
+      const { data: existing } = await supabase
+        .from("candidates")
+        .select("id")
+        .eq("email", form.email)
+        .single()
 
-      if (candidate) {
-        await supabase.from("applications").insert([{
-          candidate_id: candidate.id,
-          mandate_id: id,
-          stage: "new",
-          ai_score: score.score,
-          ai_summary: score.summary,
-          ai_strengths: Array.isArray(score.strengths) ? score.strengths : [],
-          ai_concerns: Array.isArray(score.concerns) ? score.concerns : [],
-        }])
+      if (existing) {
+        candidateId = existing.id
+        // Update CV if re-applying
+        await supabase.from("candidates").update({
+          cv_text: cvText || "",
+          tags: profile.tags || [],
+          notes: profile.summary || "",
+          current_title: profile.current_title,
+        }).eq("id", existing.id)
+      } else {
+        const { data: newCand } = await supabase.from("candidates").insert([{
+          name: form.name || profile.name,
+          email: form.email,
+          phone: form.phone || profile.phone,
+          current_title: profile.current_title,
+          current_company: profile.current_company,
+          location: profile.location,
+          cv_text: cvText || "",
+          tags: profile.tags || [],
+          source: "direct",
+          notes: profile.summary || "",
+        }]).select().single()
+        if (newCand) candidateId = newCand.id
+      }
+
+      if (candidateId) {
+        // Check if already applied to this mandate
+        const { data: existingApp } = await supabase
+          .from("applications")
+          .select("id")
+          .eq("candidate_id", candidateId)
+          .eq("mandate_id", id)
+          .single()
+
+        if (!existingApp) {
+          await supabase.from("applications").insert([{
+            candidate_id: candidateId,
+            mandate_id: id,
+            stage: "new",
+            ai_score: score.score,
+            ai_summary: score.summary,
+            ai_strengths: Array.isArray(score.strengths) ? score.strengths : [],
+            ai_concerns: Array.isArray(score.concerns) ? score.concerns : [],
+          }])
+        }
       }
       setSubmitted(true)
     } catch (err) { console.error(err) }
