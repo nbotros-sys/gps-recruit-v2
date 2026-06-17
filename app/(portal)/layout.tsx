@@ -24,11 +24,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 style={{ color: "white", borderColor: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.08)" }}>
                 Sign in
               </a>
-              <a href="/send-cv"
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
-                style={{ color: "white", borderColor: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.08)" }}>
-                Send CV
-              </a>
               <a href="/join"
                 className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
                 style={{ background: "#028090", color: "white" }}>
