@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 
+function toArray(val: any): string[] {
+  if (Array.isArray(val)) return val
+  if (typeof val === "string" && val.trim()) return [val]
+  return []
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { cvs, job_description, mandate_title } = await req.json()
@@ -9,7 +15,6 @@ export async function POST(req: NextRequest) {
 
     const results = []
 
-    // Process sequentially to avoid overwhelming the API
     for (const cv of cvs) {
       try {
         const prompt = `You are an expert recruitment consultant. Evaluate this candidate for the role.
@@ -24,11 +29,11 @@ ${(cv.text || "").slice(0, 2500)}
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
-  "name": "<extract candidate full name from CV, or 'Unknown'>",
+  "name": "<extract candidate full name from CV, or Unknown>",
   "email": "<extract email from CV or null>",
   "phone": "<extract phone from CV or null>",
-  "current_title": "<extract current/most recent job title or null>",
-  "current_company": "<extract current/most recent employer or null>",
+  "current_title": "<extract current job title or null>",
+  "current_company": "<extract current employer or null>",
   "location": "<extract city/country or null>",
   "score": <integer 0-100>,
   "summary": "<2 sentence assessment>",
@@ -51,38 +56,47 @@ Respond ONLY with valid JSON (no markdown, no backticks):
           }),
         })
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`)
-        }
+        if (!response.ok) throw new Error(`API ${response.status}`)
 
         const data = await response.json()
         const text = data.content?.[0]?.text || "{}"
         const clean = text.replace(/```json|```/g, "").trim()
         const parsed = JSON.parse(clean)
-        results.push({ ...parsed, filename: cv.filename, cv_text: cv.text || "" })
+
+        // Always normalise to arrays — AI sometimes returns a string
+        results.push({
+          filename: cv.filename,
+          cv_text: cv.text || "",
+          name: parsed.name || cv.filename.replace(/\.[^.]+$/, ""),
+          email: parsed.email || null,
+          phone: parsed.phone || null,
+          current_title: parsed.current_title || null,
+          current_company: parsed.current_company || null,
+          location: parsed.location || null,
+          score: typeof parsed.score === "number" ? parsed.score : 0,
+          summary: parsed.summary || "",
+          strengths: toArray(parsed.strengths),
+          concerns: toArray(parsed.concerns),
+          recommendation: parsed.recommendation || "Pass",
+        })
 
       } catch (err) {
-        // If one CV fails, add a placeholder and continue
-        console.error(`Failed to score ${cv.filename}:`, err)
+        console.error(`Failed scoring ${cv.filename}:`, err)
         results.push({
           filename: cv.filename,
           cv_text: cv.text || "",
           name: cv.filename.replace(/\.[^.]+$/, ""),
-          email: null,
-          phone: null,
-          current_title: null,
-          current_company: null,
-          location: null,
+          email: null, phone: null, current_title: null,
+          current_company: null, location: null,
           score: 0,
-          summary: "Could not process this CV. Please try scoring it individually.",
+          summary: "Could not process this CV. Try scoring it individually.",
           strengths: [],
           concerns: ["Processing failed — try the single CV scorer for this file"],
-          recommendation: "Pass"
+          recommendation: "Pass",
         })
       }
     }
 
-    // Sort by score descending
     results.sort((a, b) => (b.score || 0) - (a.score || 0))
     return NextResponse.json({ results })
 
