@@ -26,8 +26,8 @@ export default function InternalLayout({ children }: { children: React.ReactNode
         <div className={`flex items-center ${collapsed ? "justify-center py-4 px-2" : "px-5 py-4"} border-b border-white/5`}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9 flex-shrink-0">
-                <Image src="/gps-logo.png" alt="GPS" fill sizes="36px" className="object-contain" />
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <Image src="/gps-logo.png" alt="GPS" fill sizes="40px" className="object-contain" />
               </div>
               <div>
                 <div className="text-white font-semibold text-sm tracking-wide">GPS</div>
@@ -35,8 +35,8 @@ export default function InternalLayout({ children }: { children: React.ReactNode
               </div>
             </div>
           ) : (
-            <div className="relative w-8 h-8">
-              <Image src="/gps-logo.png" alt="GPS" fill sizes="32px" className="object-contain" />
+            <div className="relative w-9 h-9">
+              <Image src="/gps-logo.png" alt="GPS" fill sizes="36px" className="object-contain" />
             </div>
           )}
         </div>
