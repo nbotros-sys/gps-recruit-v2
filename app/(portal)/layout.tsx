@@ -3,7 +3,7 @@ import "../globals.css"
 
 export const metadata: Metadata = {
   title: "GPS Talent — Egypt's Intelligent Talent Network",
-  description: "GPS connects Egypt's best professionals with the right opportunities. AI-matched. Human-led.",
+  description: "GPS connects professionals across Egypt with the right opportunities. AI-matched. Human-led.",
 }
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
