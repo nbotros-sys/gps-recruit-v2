@@ -104,10 +104,22 @@ export default function DatabaseImportPage() {
           updated_at: new Date().toISOString(),
         }
 
+        let savedId = existingId
         if (existingId) {
           await supabase.from("candidates").update(candidateData).eq("id", existingId)
         } else {
-          await supabase.from("candidates").insert([candidateData])
+          const { data: inserted } = await supabase.from("candidates").insert([candidateData]).select("id").single()
+          if (inserted) savedId = inserted.id
+        }
+
+        // Attempt photo extraction from docx
+        if (savedId && files[i].name.match(/\.docx?$/i)) {
+          try {
+            const photoForm = new FormData()
+            photoForm.append("file", files[i])
+            photoForm.append("candidateId", savedId)
+            await fetch("/api/extract-photo", { method: "POST", body: photoForm })
+          } catch (e) { console.log("No photo found") }
         }
 
         updateResult(i, {
