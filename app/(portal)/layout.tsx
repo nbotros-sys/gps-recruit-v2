@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase"
+import CandidateAvatar from "@/components/CandidateAvatar"
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
@@ -16,7 +17,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       if (user) {
         const { data: cand } = await supabase
           .from("candidates")
-          .select("name, current_title")
+          .select("name, current_title, avatar_url")
           .eq("email", user.email)
           .single()
         setCandidate(cand)
@@ -71,9 +72,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   <button
                     onClick={() => setMenuOpen(!menuOpen)}
                     style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "99px", padding: "6px 14px 6px 6px", cursor: "pointer" }}>
-                    <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg, #028090, #3D5A4E)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "12px", fontWeight: 700, flexShrink: 0 }}>
-                      {initials}
-                    </div>
+                    <CandidateAvatar name={candidate?.name || user?.email || "?"} avatarUrl={candidate?.avatar_url} size={30} />
                     <span style={{ color: "white", fontSize: "13px", fontWeight: 600 }}>{firstName || "My Account"}</span>
                     <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>▾</span>
                   </button>
