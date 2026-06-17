@@ -5,7 +5,8 @@ import Link from "next/link"
 import {
   ArrowLeft, MapPin, DollarSign, Brain, Upload,
   X, Star, AlertCircle, CheckCircle, Loader2,
-  LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical
+  LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
+  Mail, Phone, ExternalLink, Edit3, Save, MessageSquare
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
@@ -60,6 +61,9 @@ export default function MandateDetail() {
   const [dragOver, setDragOver] = useState(false)
   const [addingAll, setAddingAll] = useState(false)
   const [draggingApp, setDraggingApp] = useState<string | null>(null)
+  const [selectedApp, setSelectedApp] = useState<any>(null)
+  const [candidateNotes, setCandidateNotes] = useState("")
+  const [savingNotes, setSavingNotes] = useState(false)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -262,11 +266,11 @@ export default function MandateDetail() {
                       <div className="flex items-start gap-2">
                         <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
                         <div className="min-w-0 flex-1">
-                          <Link href={`/internal/candidates/${(app as any).candidate?.id}`}
-                            onClick={e => e.stopPropagation()}
-                            className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block">
+                          <button
+                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.notes || "") }}
+                            className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
                             {(app as any).candidate?.name || "Unknown"}
-                          </Link>
+                          </button>
                           {(app as any).candidate?.current_title && (
                             <div className="text-xs text-gray-400 truncate mt-0.5">{(app as any).candidate.current_title}</div>
                           )}
@@ -302,6 +306,179 @@ export default function MandateDetail() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── CANDIDATE DRAWER ── */}
+      {selectedApp && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelectedApp(null)} />
+          {/* Drawer */}
+          <div className="fixed right-0 top-0 h-full w-[420px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between p-5 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
+                  {selectedApp.candidate?.name?.charAt(0)?.toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{selectedApp.candidate?.name}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {selectedApp.candidate?.current_title}
+                    {selectedApp.candidate?.current_company ? ` @ ${selectedApp.candidate.current_company}` : ""}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link href={`/internal/candidates/${selectedApp.candidate?.id}`}
+                  className="p-1.5 text-gray-400 hover:text-teal transition-colors rounded-lg hover:bg-gray-50"
+                  title="Open full profile">
+                  <ExternalLink size={15} />
+                </Link>
+                <button onClick={() => setSelectedApp(null)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Contact info */}
+              <div className="space-y-2">
+                {selectedApp.candidate?.email && (
+                  <a href={`mailto:${selectedApp.candidate.email}`}
+                    className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-teal transition-colors">
+                    <Mail size={13} className="text-gray-400 flex-shrink-0" />
+                    {selectedApp.candidate.email}
+                  </a>
+                )}
+                {selectedApp.candidate?.phone && (
+                  <div className="flex items-center gap-2.5 text-sm text-gray-600">
+                    <Phone size={13} className="text-gray-400 flex-shrink-0" />
+                    {selectedApp.candidate.phone}
+                  </div>
+                )}
+                {selectedApp.candidate?.location && (
+                  <div className="flex items-center gap-2.5 text-sm text-gray-600">
+                    <MapPin size={13} className="text-gray-400 flex-shrink-0" />
+                    {selectedApp.candidate.location}
+                  </div>
+                )}
+              </div>
+
+              {/* Stage + score */}
+              <div className="flex items-center gap-3">
+                <span className={`badge capitalize text-xs ${STAGE_COLORS[selectedApp.stage] || "bg-gray-100 text-gray-600"}`}>
+                  {selectedApp.stage}
+                </span>
+                {selectedApp.ai_score && (
+                  <div className="flex items-center gap-1.5">
+                    <Star size={12} className="text-amber-400 fill-amber-400" />
+                    <span className="text-sm font-bold" style={{ color: scoreColor(selectedApp.ai_score) }}>
+                      {selectedApp.ai_score}/100
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Move stage */}
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Move to stage</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {STAGES.filter(s => s !== selectedApp.stage).map(s => (
+                    <button key={s} onClick={async () => {
+                      await moveStage(selectedApp.id, s)
+                      setSelectedApp({ ...selectedApp, stage: s })
+                    }}
+                      className={`badge ${STAGE_COLORS[s]} capitalize text-xs cursor-pointer hover:opacity-75 transition-opacity`}>
+                      {STAGE_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI score bar */}
+              {selectedApp.ai_score && (
+                <div>
+                  <div className="h-1.5 bg-gray-100 rounded-full mb-1">
+                    <div className="h-full rounded-full" style={{ width: `${selectedApp.ai_score}%`, background: scoreColor(selectedApp.ai_score) }} />
+                  </div>
+                </div>
+              )}
+
+              {/* AI summary */}
+              {selectedApp.ai_summary && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">AI Assessment</div>
+                  <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-3">{selectedApp.ai_summary}</p>
+                </div>
+              )}
+
+              {/* Strengths + Concerns */}
+              {(selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedApp.ai_strengths?.length > 0 && (
+                    <div className="bg-green-50 rounded-xl p-3">
+                      <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths</div>
+                      <ul className="space-y-1">
+                        {selectedApp.ai_strengths.map((s: string, i: number) => (
+                          <li key={i} className="text-xs text-green-800 flex gap-1.5"><span className="flex-shrink-0">•</span>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selectedApp.ai_concerns?.length > 0 && (
+                    <div className="bg-amber-50 rounded-xl p-3">
+                      <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1"><AlertCircle size={11} /> Areas to probe</div>
+                      <ul className="space-y-1">
+                        {selectedApp.ai_concerns.map((c: string, i: number) => (
+                          <li key={i} className="text-xs text-amber-800 flex gap-1.5"><span className="flex-shrink-0">•</span>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Recruiter notes */}
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                  <MessageSquare size={11} /> Recruiter Notes
+                </div>
+                <textarea
+                  value={candidateNotes}
+                  onChange={e => setCandidateNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
+                  placeholder="Add notes about this candidate..."
+                />
+                <button
+                  onClick={async () => {
+                    setSavingNotes(true)
+                    await supabase.from("candidates").update({ notes: candidateNotes }).eq("id", selectedApp.candidate?.id)
+                    setSavingNotes(false)
+                  }}
+                  disabled={savingNotes}
+                  className="mt-2 btn-primary w-full flex items-center justify-center gap-2 text-sm py-2">
+                  <Save size={13} /> {savingNotes ? "Saving..." : "Save notes"}
+                </button>
+              </div>
+
+              {/* CV snippet */}
+              {selectedApp.candidate?.cv_text && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <FileText size={11} /> CV Preview
+                  </div>
+                  <pre className="text-xs text-gray-500 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-3 max-h-48 overflow-y-auto">
+                    {selectedApp.candidate.cv_text.slice(0, 800)}...
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── BULK UPLOAD ── */}
