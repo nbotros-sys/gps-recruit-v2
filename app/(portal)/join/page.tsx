@@ -10,7 +10,7 @@ export default function JoinPage() {
   const [step, setStep] = useState<"info" | "cv" | "done">("info")
   const [file, setFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", phone: "", function: "", level: "", location: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "+20 ", function: "", level: "", location: "" })
   const [error, setError] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
