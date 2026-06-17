@@ -5,12 +5,16 @@ import Link from "next/link"
 import {
   ArrowLeft, MapPin, DollarSign, Brain, Upload,
   X, Star, AlertCircle, CheckCircle, Loader2,
-  LayoutGrid, FileText, Zap, UserPlus, Users
+  LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
 const STAGES = ["new", "screening", "interview", "shortlisted", "offered", "placed"]
+const STAGE_LABELS: Record<string, string> = {
+  new: "New", screening: "Screening", interview: "Interview",
+  shortlisted: "Shortlisted", offered: "Offered", placed: "Placed"
+}
 const STAGE_COLORS: Record<string, string> = {
   new: "bg-gray-100 text-gray-600",
   screening: "bg-blue-100 text-blue-700",
@@ -23,6 +27,12 @@ const STAGE_COLORS: Record<string, string> = {
 type BulkResult = {
   filename: string
   name: string
+  email: string | null
+  phone: string | null
+  current_title: string | null
+  current_company: string | null
+  location: string | null
+  cv_text: string
   score: number
   summary: string
   strengths: string[]
@@ -49,6 +59,8 @@ export default function MandateDetail() {
   const [bulkStatus, setBulkStatus] = useState("")
   const [dragOver, setDragOver] = useState(false)
   const [addingAll, setAddingAll] = useState(false)
+  const [draggingApp, setDraggingApp] = useState<string | null>(null)
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
@@ -59,12 +71,17 @@ export default function MandateDetail() {
       .from("applications")
       .select("*, candidate:candidates(*)")
       .eq("mandate_id", id)
-      .order("created_at", { ascending: false })
+      .order("ai_score", { ascending: false })
     setApplications(apps || [])
     setLoading(false)
   }
 
   useEffect(() => { loadData() }, [id])
+
+  async function moveStage(appId: string, newStage: string) {
+    await supabase.from("applications").update({ stage: newStage }).eq("id", appId)
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, stage: newStage as any } : a))
+  }
 
   async function scoreCV() {
     if (!cvText || !mandate) return
@@ -106,7 +123,7 @@ export default function MandateDetail() {
         cvs.push({ filename: files[i].name, text: data.text || "" })
       } catch { cvs.push({ filename: files[i].name, text: "" }) }
     }
-    setBulkStatus(`Scoring all ${files.length} candidates...`); setBulkProgress(65)
+    setBulkStatus(`AI scoring all ${files.length} candidates...`); setBulkProgress(65)
     try {
       const res = await fetch("/api/bulk-score", {
         method: "POST",
@@ -124,21 +141,34 @@ export default function MandateDetail() {
     if (!mandate || r.added || r.adding) return
     setBulkResults(prev => prev.map((item, i) => i === idx ? { ...item, adding: true } : item))
     try {
+      const safeName = r.name === "Unknown" ? r.filename.replace(/\.[^.]+$/, "") : r.name
+      const safeEmail = r.email || `${safeName.toLowerCase().replace(/\s+/g, ".")}.${Date.now()}@pending.com`
+
       const { data: candidate, error: candError } = await supabase
         .from("candidates")
         .insert([{
-          name: r.name === "Unknown" ? r.filename.replace(/\.[^.]+$/, "") : r.name,
-          email: `${(r.name === "Unknown" ? r.filename.replace(/\.[^.]+$/, "") : r.name).toLowerCase().replace(/\s+/g, ".")}@pending.com`,
-          source: "direct", tags: [],
-          notes: `Bulk uploaded for ${mandate.title}. AI Score: ${r.score}/100`
+          name: safeName,
+          email: safeEmail,
+          phone: r.phone,
+          current_title: r.current_title,
+          current_company: r.current_company,
+          location: r.location,
+          cv_text: r.cv_text,
+          source: "direct",
+          tags: [],
+          notes: `Added from bulk upload for ${mandate.title}`
         }])
         .select().single()
+
       if (candError) throw candError
+
       const { error: appError } = await supabase.from("applications").insert([{
         candidate_id: candidate.id, mandate_id: id, stage: "new",
-        ai_score: r.score, ai_summary: r.summary, ai_strengths: r.strengths, ai_concerns: r.concerns,
+        ai_score: r.score, ai_summary: r.summary,
+        ai_strengths: r.strengths, ai_concerns: r.concerns,
       }])
       if (appError) throw appError
+
       setBulkResults(prev => prev.map((item, i) => i === idx ? { ...item, adding: false, added: true } : item))
       loadData()
     } catch {
@@ -200,32 +230,68 @@ export default function MandateDetail() {
         ))}
       </div>
 
-      {/* ── PIPELINE ── */}
+      {/* ── PIPELINE with drag & drop ── */}
       {tab === "pipeline" && (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
             {STAGES.map(stage => (
-              <div key={stage} className="w-56 flex-shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`badge ${STAGE_COLORS[stage]} capitalize text-xs`}>{stage}</span>
+              <div key={stage}
+                className={`w-56 flex-shrink-0 rounded-2xl p-2 transition-colors ${dragOverStage === stage ? "bg-teal/5 ring-2 ring-teal/20" : "bg-gray-50"}`}
+                onDragOver={e => { e.preventDefault(); setDragOverStage(stage) }}
+                onDragLeave={() => setDragOverStage(null)}
+                onDrop={async e => {
+                  e.preventDefault()
+                  setDragOverStage(null)
+                  if (draggingApp) await moveStage(draggingApp, stage)
+                  setDraggingApp(null)
+                }}
+              >
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className={`badge ${STAGE_COLORS[stage]} text-xs`}>{STAGE_LABELS[stage]}</span>
                   <span className="text-xs text-gray-400 font-medium">{byStage(stage).length}</span>
                 </div>
-                <div className="space-y-2 min-h-[100px]">
+                <div className="space-y-2 min-h-[80px]">
                   {byStage(stage).map(app => (
-                    <div key={app.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-                      <div className="font-medium text-sm text-gray-900">{(app as any).candidate?.name || "Unknown"}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{(app as any).candidate?.current_title}</div>
-                      {app.ai_score && (
-                        <div className="mt-2 flex items-center gap-1">
-                          <Star size={11} className="text-amber-400 fill-amber-400" />
-                          <span className="text-xs font-semibold" style={{ color: scoreColor(app.ai_score) }}>{app.ai_score}/100</span>
+                    <div key={app.id}
+                      draggable
+                      onDragStart={() => setDraggingApp(app.id)}
+                      onDragEnd={() => setDraggingApp(null)}
+                      className={`bg-white rounded-xl p-3 border cursor-grab active:cursor-grabbing transition-all
+                        ${draggingApp === app.id ? "opacity-40 shadow-lg scale-95" : "border-gray-100 shadow-sm hover:shadow-md"}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm text-gray-900 truncate">{(app as any).candidate?.name || "Unknown"}</div>
+                          {(app as any).candidate?.current_title && (
+                            <div className="text-xs text-gray-400 truncate mt-0.5">{(app as any).candidate.current_title}</div>
+                          )}
+                          {(app as any).candidate?.current_company && (
+                            <div className="text-xs text-gray-300 truncate">{(app as any).candidate.current_company}</div>
+                          )}
+                          {app.ai_score && (
+                            <div className="mt-2 flex items-center gap-1">
+                              <Star size={10} className="text-amber-400 fill-amber-400" />
+                              <span className="text-xs font-semibold" style={{ color: scoreColor(app.ai_score) }}>{app.ai_score}/100</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      {/* Quick stage move buttons */}
+                      <div className="mt-2 pt-2 border-t border-gray-50 flex gap-1">
+                        {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
+                          <button key={s} onClick={() => moveStage(app.id, s)}
+                            className="text-xs text-gray-300 hover:text-teal transition-colors truncate">
+                            → {STAGE_LABELS[s]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   {byStage(stage).length === 0 && (
-                    <div className="border-2 border-dashed border-gray-100 rounded-xl h-16 flex items-center justify-center">
-                      <span className="text-xs text-gray-300">Empty</span>
+                    <div className={`border-2 border-dashed rounded-xl h-16 flex items-center justify-center transition-colors
+                      ${dragOverStage === stage ? "border-teal/40 bg-teal/5" : "border-gray-200"}`}>
+                      <span className="text-xs text-gray-300">Drop here</span>
                     </div>
                   )}
                 </div>
@@ -235,20 +301,17 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ── BULK UPLOAD — two column layout, always visible ── */}
+      {/* ── BULK UPLOAD ── */}
       {tab === "bulk" && (
         <div className="grid grid-cols-5 gap-5 items-start">
-
-          {/* LEFT: upload panel — always visible */}
           <div className="col-span-2 space-y-4">
-            {/* Drop zone */}
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleFileDrop}
               onClick={() => !bulkProcessing && fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all
-                ${dragOver ? "border-teal bg-teal/5 scale-[1.01]" : "border-gray-200 hover:border-teal/40 hover:bg-gray-50"}
+                ${dragOver ? "border-teal bg-teal/5" : "border-gray-200 hover:border-teal/40 hover:bg-gray-50"}
                 ${bulkProcessing ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
             >
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} className="hidden" />
@@ -260,12 +323,11 @@ export default function MandateDetail() {
               <p className="text-gray-300 text-xs mt-2">PDF, Word, TXT · Multiple files</p>
             </div>
 
-            {/* File list */}
             {files.length > 0 && (
               <div className="card p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-900">{files.length} file{files.length > 1 ? "s" : ""} queued</span>
-                  <button onClick={() => setFiles([])} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Clear</button>
+                  <button onClick={() => setFiles([])} className="text-xs text-gray-400 hover:text-red-500">Clear</button>
                 </div>
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {files.map((f, i) => (
@@ -281,7 +343,6 @@ export default function MandateDetail() {
                     </div>
                   ))}
                 </div>
-
                 {bulkProcessing ? (
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center gap-2">
@@ -294,15 +355,13 @@ export default function MandateDetail() {
                     <p className="text-xs text-gray-400 text-center">{bulkProgress}%</p>
                   </div>
                 ) : (
-                  <button onClick={runBulkScore}
-                    className="btn-primary w-full py-2.5 flex items-center justify-center gap-2">
+                  <button onClick={runBulkScore} className="btn-primary w-full py-2.5 flex items-center justify-center gap-2">
                     <Zap size={14} /> Score {files.length} CV{files.length > 1 ? "s" : ""}
                   </button>
                 )}
               </div>
             )}
 
-            {/* Summary stats — show when results exist */}
             {bulkResults.length > 0 && (
               <div className="card p-4 space-y-3">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Batch summary</div>
@@ -328,17 +387,14 @@ export default function MandateDetail() {
                 {proceed > 0 && bulkResults.filter(r => r.recommendation === "Proceed" && !r.added).length > 0 && (
                   <button onClick={addAllProceed} disabled={addingAll}
                     className="btn-primary w-full flex items-center justify-center gap-2 text-sm">
-                    {addingAll
-                      ? <><Loader2 size={13} className="animate-spin" /> Adding...</>
-                      : <><Users size={13} /> Add all {proceed} Proceed</>
-                    }
+                    {addingAll ? <><Loader2 size={13} className="animate-spin" /> Adding...</> : <><Users size={13} /> Add all {proceed} Proceed</>}
                   </button>
                 )}
               </div>
             )}
           </div>
 
-          {/* RIGHT: results — each CV fully expanded */}
+          {/* Results */}
           <div className="col-span-3 space-y-3">
             {bulkResults.length === 0 && !bulkProcessing && (
               <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -351,43 +407,32 @@ export default function MandateDetail() {
             )}
 
             {bulkResults.map((r, i) => (
-              <div key={i}
-                className={`bg-white rounded-2xl border overflow-hidden
-                  ${r.added ? "border-teal/30" : "border-gray-100 shadow-sm"}`}
-              >
-                {/* Card header */}
+              <div key={i} className={`bg-white rounded-2xl border overflow-hidden ${r.added ? "border-teal/30" : "border-gray-100 shadow-sm"}`}>
                 <div className="p-4 flex items-center gap-3">
-                  {/* Rank bubble */}
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ background: scoreColor(r.score) }}>
-                    {i + 1}
-                  </div>
-
-                  {/* Name + file */}
+                    style={{ background: scoreColor(r.score) }}>{i + 1}</div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 text-sm">{r.name}</div>
-                    <div className="text-xs text-gray-400 truncate">{r.filename}</div>
+                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                      {r.current_title && <span>{r.current_title}</span>}
+                      {r.current_company && <span className="text-gray-300">@ {r.current_company}</span>}
+                    </div>
+                    <div className="text-xs text-gray-300 flex items-center gap-2 mt-0.5">
+                      {r.email && <span>{r.email}</span>}
+                      {r.phone && <span>· {r.phone}</span>}
+                      {r.location && <span>· {r.location}</span>}
+                    </div>
                   </div>
-
-                  {/* Score */}
                   <div className="text-right flex-shrink-0">
                     <div className="text-xl font-bold leading-none" style={{ color: scoreColor(r.score) }}>{r.score}</div>
                     <div className="text-xs text-gray-400">/100</div>
                   </div>
-
-                  {/* Recommendation */}
                   <span className={`badge text-xs font-semibold px-2.5 py-1 flex-shrink-0
-                    ${r.recommendation === "Proceed" ? "bg-teal/10 text-teal" :
-                      r.recommendation === "Maybe" ? "bg-amber-100 text-amber-700" :
-                      "bg-gray-100 text-gray-500"}`}>
+                    ${r.recommendation === "Proceed" ? "bg-teal/10 text-teal" : r.recommendation === "Maybe" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
                     {r.recommendation === "Proceed" ? "✓ Proceed" : r.recommendation === "Maybe" ? "~ Maybe" : "✕ Pass"}
                   </span>
-
-                  {/* Add button */}
                   {r.added ? (
-                    <span className="flex items-center gap-1 text-teal text-xs font-medium flex-shrink-0">
-                      <CheckCircle size={13} /> Added
-                    </span>
+                    <span className="flex items-center gap-1 text-teal text-xs font-medium flex-shrink-0"><CheckCircle size={13} /> Added</span>
                   ) : (
                     <button onClick={() => addToPipeline(i)} disabled={r.adding}
                       className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all disabled:opacity-50">
@@ -396,46 +441,28 @@ export default function MandateDetail() {
                     </button>
                   )}
                 </div>
-
-                {/* Score bar */}
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-2">
                   <div className="h-1.5 bg-gray-100 rounded-full">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${r.score}%`, background: scoreColor(r.score) }} />
+                    <div className="h-full rounded-full" style={{ width: `${r.score}%`, background: scoreColor(r.score) }} />
                   </div>
                 </div>
-
-                {/* Summary */}
                 <div className="px-4 pb-3">
                   <p className="text-sm text-gray-600 leading-relaxed">{r.summary}</p>
                 </div>
-
-                {/* Strengths + Concerns — always visible */}
                 <div className="grid grid-cols-2 gap-3 px-4 pb-4">
                   {r.strengths?.length > 0 && (
                     <div className="bg-green-50 rounded-xl p-3">
-                      <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
-                        <CheckCircle size={11} /> Strengths
-                      </div>
+                      <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5"><CheckCircle size={11} /> Strengths</div>
                       <ul className="space-y-1">
-                        {r.strengths.map((s, j) => (
-                          <li key={j} className="text-xs text-green-800 flex gap-2 leading-relaxed">
-                            <span className="flex-shrink-0 mt-0.5">•</span>{s}
-                          </li>
-                        ))}
+                        {r.strengths.map((s, j) => <li key={j} className="text-xs text-green-800 flex gap-2"><span className="flex-shrink-0">•</span>{s}</li>)}
                       </ul>
                     </div>
                   )}
                   {r.concerns?.length > 0 && (
                     <div className="bg-amber-50 rounded-xl p-3">
-                      <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5">
-                        <AlertCircle size={11} /> Areas to probe
-                      </div>
+                      <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5"><AlertCircle size={11} /> Areas to probe</div>
                       <ul className="space-y-1">
-                        {r.concerns.map((c, j) => (
-                          <li key={j} className="text-xs text-amber-800 flex gap-2 leading-relaxed">
-                            <span className="flex-shrink-0 mt-0.5">•</span>{c}
-                          </li>
-                        ))}
+                        {r.concerns.map((c, j) => <li key={j} className="text-xs text-amber-800 flex gap-2"><span className="flex-shrink-0">•</span>{c}</li>)}
                       </ul>
                     </div>
                   )}
@@ -496,7 +523,7 @@ export default function MandateDetail() {
                 </div>
               </div>
             ) : scoreResult?.error ? (
-              <div className="card border-red-100"><p className="text-red-500 text-sm">{scoreResult.error}</p></div>
+              <div className="card"><p className="text-red-500 text-sm">{scoreResult.error}</p></div>
             ) : (
               <div className="card border-dashed text-center py-20">
                 <Brain size={36} className="mx-auto mb-3 text-gray-200" />
