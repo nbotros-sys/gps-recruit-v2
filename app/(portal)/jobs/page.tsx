@@ -50,7 +50,7 @@ export default function JobsPage() {
               <span style={{ color: "#A8D5D1" }}>Not just any role.</span>
             </h1>
             <p className="text-white/60 text-xl leading-relaxed mb-10 max-w-xl">
-              GPS connects Egypt's senior professionals with opportunities that genuinely match their expertise. AI-matched. Personally reviewed. Confidential.
+              GPS connects professionals across Egypt with opportunities that genuinely match their skills and ambitions. AI-matched. Personally reviewed. Confidential.
             </p>
             <div className="flex items-center gap-4">
               <a href="#roles"
@@ -79,7 +79,7 @@ export default function JobsPage() {
             {
               icon: Sparkles,
               title: "AI-matched intelligence",
-              desc: "Our AI reads every CV deeply — not just keywords. It understands what you actually do and finds roles where you'd genuinely excel."
+              desc: "Our AI reads every CV deeply — not just keywords. It understands what you actually do and finds roles where you'd genuinely thrive."
             },
             {
               icon: Users,
