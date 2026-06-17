@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
-  const { cvs, job_description, mandate_title } = await req.json()
-  if (!cvs?.length || !job_description) return NextResponse.json({ error: "Missing data" }, { status: 400 })
+  try {
+    const { cvs, job_description, mandate_title } = await req.json()
+    if (!cvs?.length || !job_description) {
+      return NextResponse.json({ error: "Missing data" }, { status: 400 })
+    }
 
-  const results = await Promise.all(
-    cvs.map(async (cv: { filename: string; text: string }) => {
-      const prompt = `You are an expert recruitment consultant. Evaluate this candidate for the role.
+    const results = []
+
+    // Process sequentially to avoid overwhelming the API
+    for (const cv of cvs) {
+      try {
+        const prompt = `You are an expert recruitment consultant. Evaluate this candidate for the role.
 
 ROLE: ${mandate_title}
 
 JOB DESCRIPTION:
-${job_description}
+${job_description.slice(0, 2000)}
 
 CANDIDATE CV:
-${cv.text.slice(0, 3000)}
+${(cv.text || "").slice(0, 2500)}
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
@@ -31,7 +37,6 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "recommendation": "<Proceed|Maybe|Pass>"
 }`
 
-      try {
         const response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -45,17 +50,44 @@ Respond ONLY with valid JSON (no markdown, no backticks):
             messages: [{ role: "user", content: prompt }],
           }),
         })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
         const data = await response.json()
         const text = data.content?.[0]?.text || "{}"
         const clean = text.replace(/```json|```/g, "").trim()
         const parsed = JSON.parse(clean)
-        return { ...parsed, filename: cv.filename, cv_text: cv.text }
-      } catch {
-        return { filename: cv.filename, cv_text: cv.text, name: "Unknown", email: null, phone: null, current_title: null, current_company: null, location: null, score: 0, summary: "Failed to parse", strengths: [], concerns: [], recommendation: "Pass" }
-      }
-    })
-  )
+        results.push({ ...parsed, filename: cv.filename, cv_text: cv.text || "" })
 
-  results.sort((a: any, b: any) => b.score - a.score)
-  return NextResponse.json({ results })
+      } catch (err) {
+        // If one CV fails, add a placeholder and continue
+        console.error(`Failed to score ${cv.filename}:`, err)
+        results.push({
+          filename: cv.filename,
+          cv_text: cv.text || "",
+          name: cv.filename.replace(/\.[^.]+$/, ""),
+          email: null,
+          phone: null,
+          current_title: null,
+          current_company: null,
+          location: null,
+          score: 0,
+          summary: "Could not process this CV. Please try scoring it individually.",
+          strengths: [],
+          concerns: ["Processing failed — try the single CV scorer for this file"],
+          recommendation: "Pass"
+        })
+      }
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => (b.score || 0) - (a.score || 0))
+    return NextResponse.json({ results })
+
+  } catch (err) {
+    console.error("Bulk score error:", err)
+    return NextResponse.json({ error: "Bulk scoring failed", results: [] }, { status: 500 })
+  }
 }
