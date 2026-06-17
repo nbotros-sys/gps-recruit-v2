@@ -1,0 +1,221 @@
+"use client"
+import { useState } from "react"
+import { Search, Brain, Loader2, User, MapPin, Briefcase, Star, ChevronRight } from "lucide-react"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase"
+
+export default function DatabaseSearchPage() {
+  const [query, setQuery] = useState("")
+  const [searching, setSearching] = useState(false)
+  const [results, setResults] = useState<any[]>([])
+  const [explanation, setExplanation] = useState("")
+  const [searched, setSearched] = useState(false)
+  const supabase = createClient()
+
+  const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
+
+  async function search() {
+    if (!query.trim()) return
+    setSearching(true)
+    setResults([])
+    setExplanation("")
+    setSearched(false)
+
+    // Load all candidates with their CV text and applications
+    const { data: candidates } = await supabase
+      .from("candidates")
+      .select("*, applications(ai_score, stage, mandate:mandates(title))")
+      .order("created_at", { ascending: false })
+
+    if (!candidates?.length) {
+      setExplanation("No candidates in the database yet.")
+      setSearching(false)
+      setSearched(true)
+      return
+    }
+
+    // Build a compact summary of each candidate for AI to reason over
+    const summaries = candidates.map(c => ({
+      id: c.id,
+      name: c.name,
+      title: c.current_title,
+      company: c.current_company,
+      location: c.location,
+      source: c.source,
+      cv_snippet: c.cv_text?.slice(0, 800) || "",
+      best_score: c.applications?.length
+        ? Math.max(...c.applications.map((a: any) => a.ai_score || 0))
+        : null,
+      mandates: c.applications?.map((a: any) => a.mandate?.title).filter(Boolean) || [],
+    }))
+
+    const prompt = `You are a senior recruitment consultant at GPS. Search the candidate database for: "${query}"
+
+DATABASE (${summaries.length} candidates):
+${JSON.stringify(summaries, null, 1)}
+
+Find the best matching candidates for this query. Consider: job title, company, skills in CV, location, experience level.
+
+Respond ONLY with valid JSON (no markdown):
+{
+  "explanation": "<1-2 sentences: what you searched for and how many matches you found>",
+  "matches": [
+    { "id": "<candidate id>", "relevance": <integer 0-100>, "reason": "<one sentence why they match>" }
+  ]
+}
+
+Return up to 10 matches, sorted by relevance. Only include genuinely relevant candidates.`
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      })
+      const data = await res.json()
+      const text = data.content?.[0]?.text || "{}"
+      const clean = text.replace(/```json|```/g, "").trim()
+      const parsed = JSON.parse(clean)
+
+      setExplanation(parsed.explanation || "")
+
+      // Merge AI matches with full candidate data
+      const matched = (parsed.matches || [])
+        .map((m: any) => {
+          const cand = candidates.find(c => c.id === m.id)
+          return cand ? { ...cand, relevance: m.relevance, reason: m.reason } : null
+        })
+        .filter(Boolean)
+
+      setResults(matched)
+    } catch {
+      setExplanation("Search failed. Please try again.")
+    }
+
+    setSearching(false)
+    setSearched(true)
+  }
+
+  const EXAMPLE_QUERIES = [
+    "CFO with manufacturing experience",
+    "Payroll specialist in Cairo",
+    "HR manager with 10+ years experience",
+    "Finance director fluent in English",
+    "Candidates previously at multinationals",
+  ]
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">AI Database Search</h1>
+        <p className="text-gray-400 text-sm mt-0.5">Search your entire candidate database in plain English.</p>
+      </div>
+
+      {/* Search bar */}
+      <div className="card p-4">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && search()}
+              placeholder="e.g. CFO candidates with manufacturing background in Cairo..."
+              className="w-full pl-9 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
+            />
+          </div>
+          <button onClick={search} disabled={!query.trim() || searching}
+            className="btn-primary px-6 flex items-center gap-2">
+            {searching ? <Loader2 size={15} className="animate-spin" /> : <Brain size={15} />}
+            {searching ? "Searching..." : "Search"}
+          </button>
+        </div>
+
+        {/* Example queries */}
+        {!searched && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="text-xs text-gray-400 mr-1 mt-1">Try:</span>
+            {EXAMPLE_QUERIES.map(q => (
+              <button key={q} onClick={() => setQuery(q)}
+                className="text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:border-teal/40 hover:text-teal transition-colors">
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Results */}
+      {searching && (
+        <div className="card text-center py-12">
+          <Loader2 size={28} className="animate-spin mx-auto mb-3 text-teal" />
+          <p className="text-gray-500 text-sm">AI is scanning your candidate database...</p>
+        </div>
+      )}
+
+      {searched && !searching && (
+        <>
+          {explanation && (
+            <div className="flex items-start gap-3 px-1">
+              <Brain size={15} className="text-teal mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-600">{explanation}</p>
+            </div>
+          )}
+
+          {results.length === 0 ? (
+            <div className="card text-center py-12">
+              <User size={32} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-gray-500">No matching candidates found.</p>
+              <p className="text-gray-400 text-sm mt-1">Try a broader search or different keywords.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm font-semibold text-gray-900">{results.length} candidate{results.length > 1 ? "s" : ""} found</span>
+                <span className="text-xs text-gray-400">ranked by relevance</span>
+              </div>
+              {results.map((c, i) => (
+                <Link key={c.id} href={`/internal/candidates/${c.id}`}
+                  className="card flex items-center gap-4 hover:shadow-md transition-all group">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                    style={{ background: `hsl(${160 - i * 10}, 50%, 40%)` }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors">{c.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
+                      {c.location && <span className="ml-2 text-gray-400">· {c.location}</span>}
+                    </div>
+                    <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {c.best_score > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Star size={12} className="text-amber-400 fill-amber-400" />
+                        <span className="text-xs font-semibold" style={{ color: scoreColor(c.best_score) }}>{c.best_score}</span>
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <div className="text-sm font-bold" style={{ color: scoreColor(c.relevance) }}>{c.relevance}%</div>
+                      <div className="text-[10px] text-gray-400">match</div>
+                    </div>
+                    <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
