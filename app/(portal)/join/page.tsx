@@ -4,7 +4,7 @@ import { Upload, X, CheckCircle, Loader2, Sparkles, Users, Shield, Brain } from 
 import { createClient } from "@/lib/supabase"
 
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","Other"]
-const LEVELS = ["Mid-level (3–7 years)","Senior (7–12 years)","Manager / Team Lead","Director","VP / GM","C-Level (CEO, CFO, COO...)"]
+const LEVELS = ["Entry level (0–2 years)","Junior (2–4 years)","Mid-level (4–7 years)","Senior (7–12 years)","Manager / Team Lead","Director","VP / GM","C-Level (CEO, CFO, COO...)"]
 
 export default function JoinPage() {
   const [file, setFile] = useState<File | null>(null)
@@ -87,7 +87,7 @@ export default function JoinPage() {
             <span style={{ color: "#A8D5D1" }}>intelligent talent network</span>
           </h1>
           <p className="text-white/60 text-lg max-w-xl leading-relaxed">
-            Submit your profile once. GPS does the rest — matching you to the right opportunities as they arise, not spamming you with everything.
+            Submit your profile once. GPS does the rest — matching you to the right opportunities as they arise, whether you're just starting out or leading teams.
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function JoinPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Why GPS Talent</h2>
               <div className="space-y-5">
                 {[
-                  { icon: Brain, title: "Deep AI matching", desc: "Our AI reads your CV like a senior consultant — understanding your real expertise, not just your job title." },
+                  { icon: Brain, title: "Deep AI matching", desc: "Our AI reads your CV intelligently — understanding your real expertise and potential, not just your job title." },
                   { icon: Users, title: "Human-led decisions", desc: "Every outreach comes from a GPS consultant who has personally reviewed your profile." },
                   { icon: Shield, title: "Complete discretion", desc: "Senior professionals need confidentiality. We never share your details without your explicit consent." },
                   { icon: Sparkles, title: "Quality over quantity", desc: "We'll only reach out when there's a genuinely relevant opportunity. No noise." },
@@ -123,7 +123,7 @@ export default function JoinPage() {
               <img src="/gps-logo.png" alt="GPS" className="w-10 h-10 object-contain mb-4" />
               <p className="text-white font-semibold mb-1">GPS — Your Trusted HR Partner</p>
               <p className="text-white/70 text-sm leading-relaxed">
-                One of Egypt's leading executive search and HR consultancy firms, placing senior professionals across Egypt and the MENA region.
+                One of Egypt's leading HR consultancy and recruitment firms, placing professionals at every level across Egypt and the MENA region.
               </p>
             </div>
           </div>
