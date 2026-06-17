@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Briefcase, Users, Building2, TrendingUp, ArrowRight, Clock, CheckCircle } from "lucide-react"
+import { Briefcase, Users, TrendingUp, Building2, ArrowRight } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 export default function Dashboard() {
@@ -15,34 +15,20 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const [
-        { count: mandateCount },
-        { count: candidateCount },
-        { count: placementCount },
-        { count: clientCount },
-        { data: pipelineData },
-        { data: mandates },
-        { data: candidates },
+        { count: mc }, { count: cc }, { count: pc }, { count: lc },
+        { data: pd }, { data: mandates }, { data: candidates }
       ] = await Promise.all([
         supabase.from("mandates").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("candidates").select("*", { count: "exact", head: true }),
         supabase.from("applications").select("*", { count: "exact", head: true }).eq("stage", "placed"),
         supabase.from("clients").select("*", { count: "exact", head: true }),
         supabase.from("applications").select("stage"),
-        supabase.from("mandates").select("id, title, client_name, status, location").order("created_at", { ascending: false }).limit(5),
-        supabase.from("candidates").select("id, name, current_title, source, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5),
+        supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6),
       ])
-
-      setStats({
-        mandates: mandateCount || 0,
-        candidates: candidateCount || 0,
-        placements: placementCount || 0,
-        clients: clientCount || 0,
-      })
-
+      setStats({ mandates: mc || 0, candidates: cc || 0, placements: pc || 0, clients: lc || 0 })
       const counts: Record<string, number> = {}
-      for (const app of pipelineData || []) {
-        counts[app.stage] = (counts[app.stage] || 0) + 1
-      }
+      for (const a of pd || []) counts[a.stage] = (counts[a.stage] || 0) + 1
       setPipeline(counts)
       setRecentMandates(mandates || [])
       setRecentCandidates(candidates || [])
@@ -57,24 +43,17 @@ export default function Dashboard() {
     { label: "Placements", value: stats.placements, icon: TrendingUp, color: "bg-purple-100 text-purple-600", href: "/internal/candidates" },
     { label: "Active Clients", value: stats.clients, icon: Building2, color: "bg-amber-100 text-amber-600", href: "/internal/clients" },
   ]
-
   const stages = ["new", "screening", "interview", "shortlisted", "offered", "placed"]
   const stageColors: Record<string, string> = {
-    new: "bg-gray-100 text-gray-600",
-    screening: "bg-blue-100 text-blue-700",
-    interview: "bg-purple-100 text-purple-700",
-    shortlisted: "bg-teal/10 text-teal",
-    offered: "bg-amber-100 text-amber-700",
-    placed: "bg-green-100 text-green-700",
+    new: "bg-gray-100 text-gray-600", screening: "bg-blue-100 text-blue-700",
+    interview: "bg-purple-100 text-purple-700", shortlisted: "bg-teal/10 text-teal",
+    offered: "bg-amber-100 text-amber-700", placed: "bg-green-100 text-green-700",
+  }
+  const STATUS_COLORS: Record<string, string> = {
+    active: "bg-green-100 text-green-700", on_hold: "bg-amber-100 text-amber-700",
+    closed: "bg-gray-100 text-gray-500", filled: "bg-blue-100 text-blue-700",
   }
   const total = Object.values(pipeline).reduce((a, b) => a + b, 0)
-
-  const STATUS_COLORS: Record<string, string> = {
-    active: "bg-green-100 text-green-700",
-    on_hold: "bg-amber-100 text-amber-700",
-    closed: "bg-gray-100 text-gray-500",
-    filled: "bg-blue-100 text-blue-700",
-  }
 
   return (
     <div className="space-y-6">
@@ -89,13 +68,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {statCards.map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href} className="card flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-              <Icon size={20} />
-            </div>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}><Icon size={20} /></div>
             <div>
               <div className="text-2xl font-bold text-gray-900">{loading ? "—" : value}</div>
               <div className="text-xs text-gray-500 mt-0.5">{label}</div>
@@ -104,11 +80,10 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Pipeline overview */}
       <div className="card">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold text-gray-900">Pipeline Overview</h2>
-          <span className="text-xs text-gray-400">{total} total candidates in pipeline</span>
+          <span className="text-xs text-gray-400">{total} candidates in pipeline</span>
         </div>
         <div className="grid grid-cols-6 gap-3">
           {stages.map(stage => {
@@ -119,7 +94,7 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-gray-900">{loading ? "—" : count}</div>
                 <span className={`badge ${stageColors[stage]} capitalize mt-1 text-xs`}>{stage}</span>
                 <div className="mt-2 h-1.5 rounded-full bg-gray-100">
-                  <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-teal" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             )
@@ -127,26 +102,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Two column */}
       <div className="grid grid-cols-2 gap-5">
-        {/* Recent Mandates */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Mandates</h2>
-            <Link href="/internal/mandates" className="text-teal text-xs flex items-center gap-1 hover:underline">
-              View all <ArrowRight size={12} />
-            </Link>
+            <Link href="/internal/mandates" className="text-teal text-xs flex items-center gap-1 hover:underline">View all <ArrowRight size={12} /></Link>
           </div>
-          {loading ? (
-            <div className="text-center py-8 text-gray-300 text-sm">Loading...</div>
-          ) : recentMandates.length === 0 ? (
-            <div className="text-center py-8">
-              <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
-              <p className="text-gray-400 text-sm">No mandates yet</p>
-              <Link href="/internal/mandates" className="btn-primary mt-3 inline-block text-xs">Create one</Link>
-            </div>
+          {recentMandates.length === 0 ? (
+            <div className="text-center py-8"><p className="text-gray-400 text-sm">No mandates yet</p></div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {recentMandates.map(m => (
                 <Link key={m.id} href={`/internal/mandates/${m.id}`}
                   className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors group">
@@ -155,46 +120,39 @@ export default function Dashboard() {
                       <Briefcase size={13} className="text-teal" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{m.title}</div>
-                      {m.client_name && <div className="text-xs text-gray-400 truncate">{m.client_name}</div>}
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-teal truncate transition-colors">{m.title}</div>
+                      {m.client_name && <div className="text-xs text-gray-400">{m.client_name}</div>}
                     </div>
                   </div>
-                  <span className={`badge ${STATUS_COLORS[m.status] || "bg-gray-100 text-gray-500"} text-xs flex-shrink-0 ml-2`}>{m.status}</span>
+                  <span className={`badge ${STATUS_COLORS[m.status] || "bg-gray-100"} text-xs flex-shrink-0 ml-2`}>{m.status}</span>
                 </Link>
               ))}
             </div>
           )}
         </div>
 
-        {/* Recent Candidates */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Candidates</h2>
-            <Link href="/internal/candidates" className="text-teal text-xs flex items-center gap-1 hover:underline">
-              View all <ArrowRight size={12} />
-            </Link>
+            <Link href="/internal/candidates" className="text-teal text-xs flex items-center gap-1 hover:underline">View all <ArrowRight size={12} /></Link>
           </div>
-          {loading ? (
-            <div className="text-center py-8 text-gray-300 text-sm">Loading...</div>
-          ) : recentCandidates.length === 0 ? (
-            <div className="text-center py-8">
-              <Users size={28} className="mx-auto mb-2 text-gray-200" />
-              <p className="text-gray-400 text-sm">No candidates yet</p>
-            </div>
+          {recentCandidates.length === 0 ? (
+            <div className="text-center py-8"><p className="text-gray-400 text-sm">No candidates yet</p></div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {recentCandidates.map(c => (
-                <div key={c.id} className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <Link key={c.id} href={`/internal/candidates/${c.id}`}
+                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors group">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                     style={{ background: "#028090" }}>
                     {c.name?.charAt(0)?.toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">{c.name}</div>
-                    {c.current_title && <div className="text-xs text-gray-400 truncate">{c.current_title}</div>}
+                    <div className="text-sm font-medium text-gray-900 group-hover:text-teal truncate transition-colors">{c.name}</div>
+                    {c.current_title && <div className="text-xs text-gray-400 truncate">{c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}</div>}
                   </div>
                   <span className="text-xs text-gray-300 flex-shrink-0">{c.source}</span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
