@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
+import CandidateAvatar from "@/components/CandidateAvatar"
 import { createClient } from "@/lib/supabase"
 import { Loader2, Briefcase, LogOut, CheckCircle, Clock, MessageSquare, Star, MapPin, ArrowRight } from "lucide-react"
 import Link from "next/link"
@@ -31,7 +32,7 @@ export default function AccountPage() {
 
       const { data: cand } = await supabase
         .from("candidates")
-        .select("*")
+        .select("*, avatar_url")
         .eq("email", user.email)
         .single()
 
@@ -67,12 +68,18 @@ export default function AccountPage() {
     <div style={{ maxWidth: "760px", margin: "0 auto", padding: "48px 24px" }}>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "40px" }}>
-        <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>
-            Welcome back, {firstName}
-          </h1>
-          <p style={{ color: "#888", fontSize: "14px" }}>{user?.email}</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "40px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <CandidateAvatar name={candidate?.name || user?.email || "?"} avatarUrl={candidate?.avatar_url} size={64} />
+          <div>
+            <h1 style={{ fontSize: "24px", fontWeight: 800, color: "#111", marginBottom: "4px" }}>
+              Welcome back, {firstName}
+            </h1>
+            {candidate?.current_title && (
+              <p style={{ color: "#028090", fontSize: "14px", fontWeight: 600, marginBottom: "2px" }}>{candidate.current_title}</p>
+            )}
+            <p style={{ color: "#aaa", fontSize: "13px" }}>{user?.email}</p>
+          </div>
         </div>
         <button onClick={logout} style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: "13px", fontWeight: 600 }}>
           <LogOut size={14} /> Sign out
