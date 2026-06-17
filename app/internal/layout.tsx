@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Briefcase, Users, Building2,
@@ -25,13 +26,19 @@ export default function InternalLayout({ children }: { children: React.ReactNode
         className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 flex flex-col transition-all duration-200`}
         style={{ background: "#0d2b30" }}
       >
-        {/* Logo */}
-        <div className={`flex items-center ${collapsed ? "justify-center py-5 px-2" : "px-5 py-5"} border-b border-white/5`}>
+        {/* Logo area */}
+        <div className={`flex items-center ${collapsed ? "justify-center py-4 px-2" : "px-5 py-4"} border-b border-white/5`}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "#028090" }}>
-                <span className="text-white font-bold text-sm tracking-tight">G</span>
+              <div className="relative w-9 h-9 flex-shrink-0">
+                <Image
+                  src="/gps-logo.png"
+                  alt="GPS"
+                  fill
+                  sizes="36px"
+                  className="object-contain"
+                  style={{ imageRendering: "auto" }}
+                />
               </div>
               <div>
                 <div className="text-white font-semibold text-sm tracking-wide">GPS</div>
@@ -39,9 +46,14 @@ export default function InternalLayout({ children }: { children: React.ReactNode
               </div>
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: "#028090" }}>
-              <span className="text-white font-bold text-sm">G</span>
+            <div className="relative w-8 h-8">
+              <Image
+                src="/gps-logo.png"
+                alt="GPS"
+                fill
+                sizes="32px"
+                className="object-contain"
+              />
             </div>
           )}
         </div>
@@ -66,7 +78,7 @@ export default function InternalLayout({ children }: { children: React.ReactNode
           })}
         </nav>
 
-        {/* Collapse */}
+        {/* Bottom */}
         <div className="p-2 border-t border-white/5">
           <button onClick={() => setCollapsed(!collapsed)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-white/25 hover:text-white/50 hover:bg-white/5 transition-all w-full text-xs ${collapsed ? "justify-center" : ""}`}>
