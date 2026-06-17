@@ -61,10 +61,7 @@ export default function SendCVPage() {
       // Send magic link — this is the registration prompt email
       await supabase.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { name }
-        }
+        options: { shouldCreateUser: true, data: { name } }
       })
 
       setSubmitted(true)
@@ -84,12 +81,12 @@ export default function SendCVPage() {
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#111", marginBottom: "12px" }}>CV received</h1>
         <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "24px" }}>
           Thank you, <strong>{name}</strong>. Your CV is now in the GPS Talent Network.<br />
-          We've sent a link to <strong>{email}</strong> — click it to access your account and track your profile.
+          We've sent a sign-in code to <strong>{email}</strong> — click it to access your account and track your profile.
         </p>
         <div style={{ background: "#f0faf8", border: "1px solid #A8D5D1", borderRadius: "16px", padding: "20px 24px", textAlign: "left", marginBottom: "28px" }}>
           <p style={{ fontSize: "13px", fontWeight: 700, color: "#111", marginBottom: "10px" }}>What happens next</p>
           {[
-            "Check your email for a sign-in link",
+            "Check your email for a 6-digit sign-in code — use it at gps-recruit-v2.vercel.app/login",
             "GPS consultants will review your CV personally",
             "We'll reach out when the right opportunity appears",
           ].map(s => (
