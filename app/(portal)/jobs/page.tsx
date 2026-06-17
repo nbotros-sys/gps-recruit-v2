@@ -25,16 +25,16 @@ export default function JobsPage() {
   return (
     <div>
       {/* ── HERO ── */}
-      <section style={{ background: "#F4F8F7", borderBottom: "1px solid #ddeee9" }}>
+      <section style={{ background: "linear-gradient(160deg, #0a1f24 0%, #0d2b30 60%, #1a3d35 100%)", borderBottom: "none" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 40px 72px" }}>
 
           {/* Logo + brand row */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "40px" }}>
             <img src="/gps-logo.png" alt="GPS" style={{ width: "52px", height: "52px", objectFit: "contain" }} />
-            <div style={{ width: "1px", height: "40px", background: "#c5ddd9" }} />
+            <div style={{ width: "1px", height: "40px", background: "rgba(255,255,255,0.2)" }} />
             <div>
-              <div style={{ fontWeight: 800, fontSize: "18px", color: "#111", lineHeight: 1.1 }}>GPS</div>
-              <div style={{ fontSize: "11px", color: "#888", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Talent Network · Egypt</div>
+              <div style={{ fontWeight: 800, fontSize: "18px", color: "white", lineHeight: 1.1 }}>GPS</div>
+              <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Talent Network · Egypt</div>
             </div>
           </div>
 
@@ -42,17 +42,17 @@ export default function JobsPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "48px", alignItems: "flex-end" }}>
             <div>
               {/* AI badge */}
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#028090", color: "white", fontSize: "11px", fontWeight: 700, padding: "6px 14px", borderRadius: "99px", letterSpacing: "0.06em", marginBottom: "22px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(168,213,209,0.2)", color: "#A8D5D1", fontSize: "11px", fontWeight: 700, padding: "6px 14px", borderRadius: "99px", letterSpacing: "0.06em", marginBottom: "22px" }}>
                 <span>✦</span> AI-Matched Recruitment
               </div>
 
-              <h1 style={{ fontSize: "58px", fontWeight: 900, color: "#111", lineHeight: 1.0, letterSpacing: "-0.02em", marginBottom: "18px" }}>
+              <h1 style={{ fontSize: "58px", fontWeight: 900, color: "white", lineHeight: 1.0, letterSpacing: "-0.02em", marginBottom: "18px" }}>
                 Your next<br />
                 opportunity<br />
                 <span style={{ color: "#028090" }}>starts here.</span>
               </h1>
 
-              <p style={{ fontSize: "17px", color: "#666", lineHeight: 1.65, maxWidth: "500px", marginBottom: "32px" }}>
+              <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.65)", lineHeight: 1.65, maxWidth: "500px", marginBottom: "32px" }}>
                 Where the right people find the right jobs. GPS matches professionals across Egypt to opportunities that genuinely fit — intelligently, personally, confidentially.
               </p>
 
@@ -60,7 +60,7 @@ export default function JobsPage() {
                 <a href="#roles" style={{ background: "#028090", color: "white", padding: "14px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", display: "inline-block" }}>
                   See open roles
                 </a>
-                <a href="/join" style={{ background: "transparent", color: "#3D5A4E", padding: "13px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", border: "1.5px solid #A8D5D1", display: "inline-block" }}>
+                <a href="/join" style={{ background: "transparent", color: "rgba(255,255,255,0.85)", padding: "13px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.3)", display: "inline-block" }}>
                   Join the network →
                 </a>
               </div>
@@ -73,13 +73,13 @@ export default function JobsPage() {
                 { icon: "◎", label: "Personally reviewed", desc: "Real people, real decisions" },
                 { icon: "◈", label: "Fully confidential", desc: "Never shared without consent" },
               ].map(({ icon, label, desc }) => (
-                <div key={label} style={{ background: "white", border: "1px solid #ddeee9", borderRadius: "14px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: "#e6f5f3", borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color: "#028090", flexShrink: 0 }}>
+                <div key={label} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: "rgba(2,128,144,0.4)", borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color: "#A8D5D1", flexShrink: 0 }}>
                     {icon}
                   </div>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#111" }}>{label}</div>
-                    <div style={{ fontSize: "11px", color: "#888", marginTop: "1px" }}>{desc}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "white" }}>{label}</div>
+                    <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginTop: "1px" }}>{desc}</div>
                   </div>
                 </div>
               ))}
