@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { MapPin, DollarSign, ArrowRight, Users, Brain, Briefcase } from "lucide-react"
+import { MapPin, ArrowRight, Briefcase, Sparkles, Users, Shield } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import Link from "next/link"
 
@@ -13,7 +13,7 @@ export default function JobsPage() {
     async function load() {
       const { data } = await supabase
         .from("mandates")
-        .select("id, title, client_name, location, salary_range, job_description, created_at")
+        .select("id, title, client_name, location, job_description, created_at")
         .eq("status", "active")
         .order("created_at", { ascending: false })
       setMandates(data || [])
@@ -23,101 +23,173 @@ export default function JobsPage() {
   }, [])
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-16 space-y-16">
-      {/* Hero */}
-      <div className="text-center space-y-6">
-        <div className="inline-flex items-center gap-2 bg-teal/10 text-teal text-xs font-semibold px-4 py-2 rounded-full">
-          <Brain size={13} /> AI-Matched Recruitment
-        </div>
-        <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-          Find the role that's<br />
-          <span style={{ color: "#028090" }}>actually right for you</span>
-        </h1>
-        <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          GPS doesn't just post jobs. We match Egypt's best professionals to the right opportunities — using AI to go beyond the CV and find the real fit.
-        </p>
-        <div className="flex items-center justify-center gap-4">
-          <a href="#roles" className="btn-primary px-8 py-3 text-base">See open roles</a>
-          <a href="/join" className="btn-secondary px-8 py-3 text-base">Join talent network</a>
-        </div>
-      </div>
+    <div>
+      {/* Hero — dark, full width */}
+      <section style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0d2b30 50%, #1a3d35 100%)" }}
+        className="relative overflow-hidden">
+        {/* Subtle hexagon pattern in background */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 20 L55 40 L30 55 L5 40 L5 20 Z' fill='none' stroke='%23028090' stroke-width='1'/%3E%3C/svg%3E")`,
+          backgroundSize: "60px 60px"
+        }} />
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-6">
-        {[
-          { value: "AI-first", label: "Every CV read deeply, not just scanned" },
-          { value: "Confidential", label: "Your profile shared only with your consent" },
-          { value: "Personal", label: "We reach out when the right role appears" },
-        ].map(({ value, label }) => (
-          <div key={label} className="card text-center py-6">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
-            <div className="text-sm text-gray-500">{label}</div>
+        <div className="relative max-w-6xl mx-auto px-8 py-28">
+          <div className="max-w-3xl">
+            {/* GPS logo large in hero */}
+            <div className="flex items-center gap-4 mb-10">
+              <img src="/gps-logo.png" alt="GPS" className="w-16 h-16 object-contain" />
+              <div className="h-12 w-px bg-white/20" />
+              <div>
+                <div className="text-white/60 text-sm font-medium tracking-widest uppercase">GPS Talent Network</div>
+                <div className="text-white/40 text-xs mt-0.5">Egypt · MENA Region</div>
+              </div>
+            </div>
+
+            <h1 className="text-6xl font-bold text-white leading-[1.1] mb-6">
+              The right role.<br />
+              <span style={{ color: "#A8D5D1" }}>Not just any role.</span>
+            </h1>
+            <p className="text-white/60 text-xl leading-relaxed mb-10 max-w-xl">
+              GPS connects Egypt's senior professionals with opportunities that genuinely match their expertise. AI-matched. Personally reviewed. Confidential.
+            </p>
+            <div className="flex items-center gap-4">
+              <a href="#roles"
+                className="px-8 py-4 rounded-xl font-semibold text-white transition-all text-base"
+                style={{ background: "#028090" }}>
+                See open roles
+              </a>
+              <a href="/join"
+                className="px-8 py-4 rounded-xl font-semibold transition-all text-base border"
+                style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.8)", background: "rgba(255,255,255,0.05)" }}>
+                Join the network →
+              </a>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Roles */}
-      <div id="roles" className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Open roles</h2>
-          <span className="text-sm text-gray-400">{mandates.length} active</span>
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-16"
+          style={{ background: "linear-gradient(to bottom, transparent, #F4F8F7)" }} />
+      </section>
+
+      {/* Three pillars */}
+      <section className="max-w-6xl mx-auto px-8 py-20">
+        <div className="grid grid-cols-3 gap-6">
+          {[
+            {
+              icon: Sparkles,
+              title: "AI-matched intelligence",
+              desc: "Our AI reads every CV deeply — not just keywords. It understands what you actually do and finds roles where you'd genuinely excel."
+            },
+            {
+              icon: Users,
+              title: "Personally reviewed",
+              desc: "Every profile is reviewed by our team before we reach out. You'll only hear from us when there's a real reason to talk."
+            },
+            {
+              icon: Shield,
+              title: "Completely confidential",
+              desc: "Your information is never shared without your explicit consent. Discretion is at the core of how GPS operates."
+            },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: "#028090" }}>
+                <Icon size={18} className="text-white" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Roles section */}
+      <section id="roles" className="max-w-6xl mx-auto px-8 pb-20">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Open roles</h2>
+            <p className="text-gray-500 mt-1">Active mandates — all reviewed by GPS consultants</p>
+          </div>
+          <span className="text-sm text-gray-400">{loading ? "..." : mandates.length} active</span>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-400">Loading roles...</div>
+          <div className="text-center py-20 text-gray-400">Loading roles...</div>
         ) : mandates.length === 0 ? (
-          <div className="card text-center py-16">
-            <Briefcase size={36} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-gray-500 mb-2">No active roles right now.</p>
-            <p className="text-gray-400 text-sm mb-6">Join our talent network and we'll reach out when something fits.</p>
-            <a href="/join" className="btn-primary">Join the network</a>
+          <div className="bg-white rounded-2xl border border-gray-100 text-center py-20 shadow-sm">
+            <Briefcase size={36} className="mx-auto mb-4 text-gray-200" />
+            <p className="text-gray-500 font-medium mb-2">No active roles right now</p>
+            <p className="text-gray-400 text-sm mb-8">Join our network and we'll reach out when something fits.</p>
+            <a href="/join"
+              className="px-8 py-3 rounded-xl font-semibold text-white text-sm"
+              style={{ background: "#028090" }}>
+              Join GPS Talent Network
+            </a>
           </div>
         ) : (
           <div className="space-y-3">
-            {mandates.map(m => (
+            {mandates.map((m, i) => (
               <Link key={m.id} href={`/jobs/${m.id}`}
-                className="card flex items-center justify-between hover:shadow-md transition-all group cursor-pointer">
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between p-5 hover:shadow-md hover:border-teal/20 transition-all group cursor-pointer block">
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#028090" }}>
-                    <Briefcase size={18} className="text-white" />
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-white text-sm"
+                    style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
+                    {(i + 1).toString().padStart(2, "0")}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors">{m.title}</div>
+                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors text-base">{m.title}</div>
                     <div className="text-sm text-gray-400 flex items-center gap-3 mt-0.5">
                       {m.location && <span className="flex items-center gap-1"><MapPin size={12} />{m.location}</span>}
-                      <span className="text-gray-300">·</span>
+                      <span className="text-gray-200">·</span>
                       <span>GPS — Your Trusted HR Partner</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-sm text-teal font-medium group-hover:underline flex items-center gap-1">
-                    Apply <ArrowRight size={14} />
+                  <span className="text-xs px-3 py-1 rounded-full font-medium"
+                    style={{ background: "#e6f5f3", color: "#028090" }}>
+                    Active
                   </span>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:translate-x-1"
+                    style={{ background: "#028090" }}>
+                    <ArrowRight size={14} className="text-white" />
+                  </div>
                 </div>
               </Link>
             ))}
           </div>
         )}
+      </section>
 
-        {/* Talent pool CTA */}
-        <div className="rounded-2xl p-8 text-white mt-8"
+      {/* Talent network CTA banner */}
+      <section className="max-w-6xl mx-auto px-8 pb-24">
+        <div className="rounded-3xl overflow-hidden relative"
           style={{ background: "linear-gradient(135deg, #028090 0%, #3D5A4E 100%)" }}>
-          <div className="flex items-center justify-between">
+          {/* Hex pattern */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 20 L55 40 L30 55 L5 40 L5 20 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundSize: "60px 60px"
+          }} />
+          <div className="relative flex items-center justify-between px-12 py-10">
             <div>
-              <h3 className="text-xl font-bold mb-2">Don't see a match?</h3>
-              <p className="text-white/80 text-sm max-w-md">
-                Join our talent network. We work on new mandates every week — and we reach out to people in our network first, before posting publicly.
+              <div className="flex items-center gap-3 mb-3">
+                <img src="/gps-logo.png" alt="GPS" className="w-8 h-8 object-contain" />
+                <span className="text-white/80 text-sm font-medium tracking-wide">GPS Talent Network</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Don't see the right role?</h3>
+              <p className="text-white/70 max-w-lg">
+                Join our talent network. GPS works on new mandates every week and always reaches out to our network first — before posting publicly.
               </p>
             </div>
             <a href="/join"
-              className="flex-shrink-0 bg-white text-teal font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm">
-              Join the network →
+              className="flex-shrink-0 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+              style={{ background: "white", color: "#028090" }}>
+              Join GPS Talent →
             </a>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
