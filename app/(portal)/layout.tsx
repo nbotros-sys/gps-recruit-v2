@@ -12,11 +12,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <header style={{ background: "#0a1f24" }} className="sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-8 h-18 flex items-center justify-between py-4">
           <a href="/jobs" className="flex items-center gap-3">
-            <img src="/gps-logo.png" alt="GPS" className="w-10 h-10 object-contain" />
-            <div>
-              <div className="text-white font-bold text-base tracking-wide leading-tight">GPS</div>
-              <div className="text-white/40 text-[10px] tracking-widest uppercase font-medium leading-tight">Talent Network</div>
-            </div>
+            <img src="/gps-logo.png" alt="GPS" className="w-11 h-11 object-contain" />
+            <div className="text-white/40 text-[10px] tracking-widest uppercase font-medium">Talent Network</div>
           </a>
           <nav className="flex items-center gap-6">
             <a href="/jobs" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Open Roles</a>
@@ -41,11 +38,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="max-w-6xl mx-auto px-8 py-12">
           <div className="flex items-start justify-between mb-10">
             <div className="flex items-center gap-3">
-              <img src="/gps-logo.png" alt="GPS" className="w-10 h-10 object-contain" />
-              <div>
-                <div className="text-white font-bold text-base">GPS</div>
-                <div className="text-white/40 text-xs">Your Trusted HR Partner</div>
-              </div>
+              <img src="/gps-logo-full.png" alt="GPS — Your Trusted HR Partner" className="h-16 object-contain" style={{ filter: "brightness(0) invert(1)", opacity: 0.85 }} />
             </div>
             <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
               <a href="/jobs" className="text-white/50 hover:text-white transition-colors">Open Roles</a>
