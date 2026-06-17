@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code")
   const token_hash = searchParams.get("token_hash")
   const type = searchParams.get("type") as any
-  const next = searchParams.get("next") ?? "/account"
 
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -27,28 +26,26 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  // Handle PKCE code flow
+  // PKCE code flow (most common for magic links)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      if (type === "recovery") {
-        return NextResponse.redirect(`${origin}/auth/update-password`)
-      }
+      if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
       return NextResponse.redirect(`${origin}/account`)
     }
   }
 
-  // Handle token_hash flow (magic links and OTP)
-  if (token_hash && type) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash, type })
+  // token_hash flow
+  if (token_hash) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: type || "magiclink",
+    })
     if (!error) {
-      if (type === "recovery") {
-        return NextResponse.redirect(`${origin}/auth/update-password`)
-      }
+      if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
       return NextResponse.redirect(`${origin}/account`)
     }
   }
 
-  // Something went wrong
   return NextResponse.redirect(`${origin}/auth/error?error=auth_failed`)
 }
