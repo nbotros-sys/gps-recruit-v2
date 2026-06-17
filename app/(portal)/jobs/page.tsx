@@ -24,136 +24,116 @@ export default function JobsPage() {
 
   return (
     <div>
-      {/* Hero — dark, full width */}
-      <section style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0d2b30 50%, #1a3d35 100%)" }}
-        className="relative overflow-hidden">
-        {/* Subtle hexagon pattern in background */}
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 20 L55 40 L30 55 L5 40 L5 20 Z' fill='none' stroke='%23028090' stroke-width='1'/%3E%3C/svg%3E")`,
-          backgroundSize: "60px 60px"
-        }} />
+      {/* ── HERO ── */}
+      <section style={{ background: "#F4F8F7", borderBottom: "1px solid #ddeee9" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 40px 72px" }}>
 
-        <div className="relative max-w-6xl mx-auto px-8 py-28">
-          <div className="max-w-3xl">
-            {/* GPS logo large in hero */}
-            <div className="flex items-center gap-4 mb-10">
-              <img src="/gps-logo.png" alt="GPS" className="w-16 h-16 object-contain" />
-              <div className="h-12 w-px bg-white/20" />
-              <div>
-                <div className="text-white/60 text-sm font-medium tracking-widest uppercase">GPS Talent Network</div>
-                <div className="text-white/40 text-xs mt-0.5">Egypt · MENA Region</div>
+          {/* Logo + brand row */}
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "40px" }}>
+            <img src="/gps-logo.png" alt="GPS" style={{ width: "52px", height: "52px", objectFit: "contain" }} />
+            <div style={{ width: "1px", height: "40px", background: "#c5ddd9" }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: "18px", color: "#111", lineHeight: 1.1 }}>GPS</div>
+              <div style={{ fontSize: "11px", color: "#888", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Talent Network · Egypt</div>
+            </div>
+          </div>
+
+          {/* Main headline + CTA */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "48px", alignItems: "flex-end" }}>
+            <div>
+              {/* AI badge */}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#028090", color: "white", fontSize: "11px", fontWeight: 700, padding: "6px 14px", borderRadius: "99px", letterSpacing: "0.06em", marginBottom: "22px" }}>
+                <span>✦</span> AI-Matched Recruitment
+              </div>
+
+              <h1 style={{ fontSize: "58px", fontWeight: 900, color: "#111", lineHeight: 1.0, letterSpacing: "-0.02em", marginBottom: "18px" }}>
+                Your next<br />
+                opportunity<br />
+                <span style={{ color: "#028090" }}>starts here.</span>
+              </h1>
+
+              <p style={{ fontSize: "17px", color: "#666", lineHeight: 1.65, maxWidth: "500px", marginBottom: "32px" }}>
+                Where the right people find the right jobs. GPS matches professionals across Egypt to opportunities that genuinely fit — intelligently, personally, confidentially.
+              </p>
+
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <a href="#roles" style={{ background: "#028090", color: "white", padding: "14px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", display: "inline-block" }}>
+                  See open roles
+                </a>
+                <a href="/join" style={{ background: "transparent", color: "#3D5A4E", padding: "13px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", border: "1.5px solid #A8D5D1", display: "inline-block" }}>
+                  Join the network →
+                </a>
               </div>
             </div>
 
-            <h1 className="text-6xl font-bold text-white leading-[1.1] mb-6">
-              The right role.<br />
-              <span style={{ color: "#A8D5D1" }}>Not just any role.</span>
-            </h1>
-            <p className="text-white/60 text-xl leading-relaxed mb-10 max-w-xl">
-              GPS connects professionals across Egypt with opportunities that genuinely match their skills and ambitions. AI-matched. Personally reviewed. Confidential.
-            </p>
-            <div className="flex items-center gap-4">
-              <a href="#roles"
-                className="px-8 py-4 rounded-xl font-semibold text-white transition-all text-base"
-                style={{ background: "#028090" }}>
-                See open roles
-              </a>
-              <a href="/join"
-                className="px-8 py-4 rounded-xl font-semibold transition-all text-base border"
-                style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.8)", background: "rgba(255,255,255,0.05)" }}>
-                Join the network →
-              </a>
+            {/* Right side: 3 pillars stacked */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "260px" }}>
+              {[
+                { icon: "✦", label: "AI-matched", desc: "Every CV read deeply" },
+                { icon: "◎", label: "Personally reviewed", desc: "Real people, real decisions" },
+                { icon: "◈", label: "Fully confidential", desc: "Never shared without consent" },
+              ].map(({ icon, label, desc }) => (
+                <div key={label} style={{ background: "white", border: "1px solid #ddeee9", borderRadius: "14px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: "#e6f5f3", borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color: "#028090", flexShrink: 0 }}>
+                    {icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#111" }}>{label}</div>
+                    <div style={{ fontSize: "11px", color: "#888", marginTop: "1px" }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-16"
-          style={{ background: "linear-gradient(to bottom, transparent, #F4F8F7)" }} />
       </section>
 
-      {/* Three pillars */}
-      <section className="max-w-6xl mx-auto px-8 py-20">
-        <div className="grid grid-cols-3 gap-6">
-          {[
-            {
-              icon: Sparkles,
-              title: "AI-matched intelligence",
-              desc: "Our AI reads every CV deeply — not just keywords. It understands what you actually do and finds roles where you'd genuinely thrive."
-            },
-            {
-              icon: Users,
-              title: "Personally reviewed",
-              desc: "Every profile is reviewed by our team before we reach out. You'll only hear from us when there's a real reason to talk."
-            },
-            {
-              icon: Shield,
-              title: "Completely confidential",
-              desc: "Your information is never shared without your explicit consent. Discretion is at the core of how GPS operates."
-            },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: "#028090" }}>
-                <Icon size={18} className="text-white" />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Roles section */}
-      <section id="roles" className="max-w-6xl mx-auto px-8 pb-20">
-        <div className="flex items-end justify-between mb-8">
+      {/* ── ROLES ── */}
+      <section id="roles" style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 40px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "28px" }}>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Open roles</h2>
-            <p className="text-gray-500 mt-1">Active mandates — all reviewed by GPS consultants</p>
+            <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#111" }}>Open roles</h2>
+            <p style={{ color: "#888", fontSize: "14px", marginTop: "4px" }}>Active mandates — all reviewed by GPS consultants</p>
           </div>
-          <span className="text-sm text-gray-400">{loading ? "..." : mandates.length} active</span>
+          <span style={{ fontSize: "13px", color: "#aaa" }}>{loading ? "..." : mandates.length} active</span>
         </div>
 
         {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading roles...</div>
+          <div style={{ textAlign: "center", padding: "80px 0", color: "#aaa" }}>Loading roles...</div>
         ) : mandates.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 text-center py-20 shadow-sm">
-            <Briefcase size={36} className="mx-auto mb-4 text-gray-200" />
-            <p className="text-gray-500 font-medium mb-2">No active roles right now</p>
-            <p className="text-gray-400 text-sm mb-8">Join our network and we'll reach out when something fits.</p>
-            <a href="/join"
-              className="px-8 py-3 rounded-xl font-semibold text-white text-sm"
-              style={{ background: "#028090" }}>
+          <div style={{ background: "white", border: "1px solid #e8e8e8", borderRadius: "20px", textAlign: "center", padding: "80px 40px" }}>
+            <div style={{ fontSize: "36px", marginBottom: "12px" }}>◎</div>
+            <p style={{ color: "#666", fontWeight: 600, marginBottom: "8px" }}>No active roles right now</p>
+            <p style={{ color: "#aaa", fontSize: "13px", marginBottom: "24px" }}>Join our network and we'll reach out when something fits.</p>
+            <a href="/join" style={{ background: "#028090", color: "white", padding: "12px 28px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", textDecoration: "none", display: "inline-block" }}>
               Join GPS Talent Network
             </a>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {mandates.map((m, i) => (
-              <Link key={m.id} href={`/jobs/${m.id}`}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between p-5 hover:shadow-md hover:border-teal/20 transition-all group cursor-pointer block">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-white text-sm"
-                    style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
-                    {(i + 1).toString().padStart(2, "0")}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors text-base">{m.title}</div>
-                    <div className="text-sm text-gray-400 flex items-center gap-3 mt-0.5">
-                      {m.location && <span className="flex items-center gap-1"><MapPin size={12} />{m.location}</span>}
-                      <span className="text-gray-200">·</span>
-                      <span>GPS — Your Trusted HR Partner</span>
+              <Link key={m.id} href={`/jobs/${m.id}`} style={{ textDecoration: "none" }}>
+                <div style={{ background: "white", border: "1px solid #e8f4f2", borderRadius: "16px", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "all 0.15s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#028090"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(2,128,144,0.08)" }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#e8f4f2"; (e.currentTarget as HTMLElement).style.boxShadow = "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: 0 }}>
+                    <div style={{ width: "44px", height: "44px", background: "linear-gradient(135deg, #028090, #3D5A4E)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "14px", flexShrink: 0 }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: "15px", color: "#111" }}>{m.title}</div>
+                      <div style={{ fontSize: "13px", color: "#888", marginTop: "3px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        {m.location && <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>📍 {m.location}</span>}
+                        {m.location && <span style={{ color: "#ddd" }}>·</span>}
+                        <span>GPS — Your Trusted HR Partner</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-xs px-3 py-1 rounded-full font-medium"
-                    style={{ background: "#e6f5f3", color: "#028090" }}>
-                    Active
-                  </span>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:translate-x-1"
-                    style={{ background: "#028090" }}>
-                    <ArrowRight size={14} className="text-white" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+                    <span style={{ background: "#e6f5f3", color: "#028090", fontSize: "11px", fontWeight: 700, padding: "4px 12px", borderRadius: "99px" }}>Active</span>
+                    <div style={{ width: "32px", height: "32px", background: "#028090", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "white", fontSize: "14px" }}>→</span>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -162,32 +142,23 @@ export default function JobsPage() {
         )}
       </section>
 
-      {/* Talent network CTA banner */}
-      <section className="max-w-6xl mx-auto px-8 pb-24">
-        <div className="rounded-3xl overflow-hidden relative"
-          style={{ background: "linear-gradient(135deg, #028090 0%, #3D5A4E 100%)" }}>
-          {/* Hex pattern */}
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 20 L55 40 L30 55 L5 40 L5 20 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`,
-            backgroundSize: "60px 60px"
-          }} />
-          <div className="relative flex items-center justify-between px-12 py-10">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <img src="/gps-logo.png" alt="GPS" className="w-8 h-8 object-contain" />
-                <span className="text-white/80 text-sm font-medium tracking-wide">GPS Talent Network</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Don't see the right role?</h3>
-              <p className="text-white/70 max-w-lg">
-                Join our talent network. GPS works on new mandates every week and always reaches out to our network first — before posting publicly.
-              </p>
+      {/* ── TALENT NETWORK CTA ── */}
+      <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 40px 80px" }}>
+        <div style={{ background: "linear-gradient(135deg, #028090 0%, #3D5A4E 100%)", borderRadius: "24px", padding: "48px 52px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "32px", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25 3 L47 16 L47 34 L25 47 L3 34 L3 16 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize: "50px 50px" }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+              <img src="/gps-logo.png" alt="GPS" style={{ width: "32px", height: "32px", objectFit: "contain" }} />
+              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: 600 }}>GPS Talent Network</span>
             </div>
-            <a href="/join"
-              className="flex-shrink-0 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:opacity-90"
-              style={{ background: "white", color: "#028090" }}>
-              Join GPS Talent →
-            </a>
+            <h3 style={{ fontSize: "26px", fontWeight: 800, color: "white", marginBottom: "10px" }}>Don't see the right role?</h3>
+            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", maxWidth: "480px", lineHeight: 1.6 }}>
+              Join our network. GPS works on new mandates every week and always reaches out to our talent network first — before posting publicly.
+            </p>
           </div>
+          <a href="/join" style={{ background: "white", color: "#028090", padding: "16px 32px", borderRadius: "14px", fontWeight: 800, fontSize: "15px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap", position: "relative" }}>
+            Join GPS Talent →
+          </a>
         </div>
       </section>
     </div>
