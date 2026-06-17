@@ -3,15 +3,13 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import {
-  LayoutDashboard, Briefcase, Users, Building2,
-  Zap, Bell, ChevronRight
-} from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search } from "lucide-react"
 
 const nav = [
   { href: "/internal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/internal/mandates", icon: Briefcase, label: "Mandates" },
   { href: "/internal/candidates", icon: Users, label: "Candidates" },
+  { href: "/internal/search", icon: Search, label: "AI Search" },
   { href: "/internal/clients", icon: Building2, label: "Clients" },
   { href: "/internal/sourcing", icon: Zap, label: "AI Sourcing" },
 ]
@@ -22,23 +20,13 @@ export default function InternalLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="flex h-screen bg-cream overflow-hidden">
-      <aside
-        className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 flex flex-col transition-all duration-200`}
-        style={{ background: "#0d2b30" }}
-      >
-        {/* Logo area */}
+      <aside className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 flex flex-col transition-all duration-200`}
+        style={{ background: "#0d2b30" }}>
         <div className={`flex items-center ${collapsed ? "justify-center py-4 px-2" : "px-5 py-4"} border-b border-white/5`}>
           {!collapsed ? (
             <div className="flex items-center gap-3">
               <div className="relative w-9 h-9 flex-shrink-0">
-                <Image
-                  src="/gps-logo.png"
-                  alt="GPS"
-                  fill
-                  sizes="36px"
-                  className="object-contain"
-                  style={{ imageRendering: "auto" }}
-                />
+                <Image src="/gps-logo.png" alt="GPS" fill sizes="36px" className="object-contain" />
               </div>
               <div>
                 <div className="text-white font-semibold text-sm tracking-wide">GPS</div>
@@ -47,18 +35,11 @@ export default function InternalLayout({ children }: { children: React.ReactNode
             </div>
           ) : (
             <div className="relative w-8 h-8">
-              <Image
-                src="/gps-logo.png"
-                alt="GPS"
-                fill
-                sizes="32px"
-                className="object-contain"
-              />
+              <Image src="/gps-logo.png" alt="GPS" fill sizes="32px" className="object-contain" />
             </div>
           )}
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 py-3 px-2 space-y-0.5">
           {nav.map(({ href, icon: Icon, label }) => {
             const active = pathname.startsWith(href)
@@ -66,11 +47,7 @@ export default function InternalLayout({ children }: { children: React.ReactNode
               <Link key={href} href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150
                   ${collapsed ? "justify-center" : ""}
-                  ${active
-                    ? "bg-white/10 text-white font-medium"
-                    : "text-white/45 hover:text-white/80 hover:bg-white/5"
-                  }`}
-              >
+                  ${active ? "bg-white/10 text-white font-medium" : "text-white/45 hover:text-white/80 hover:bg-white/5"}`}>
                 <Icon size={16} className="flex-shrink-0" />
                 {!collapsed && <span>{label}</span>}
               </Link>
@@ -78,7 +55,6 @@ export default function InternalLayout({ children }: { children: React.ReactNode
           })}
         </nav>
 
-        {/* Bottom */}
         <div className="p-2 border-t border-white/5">
           <button onClick={() => setCollapsed(!collapsed)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-white/25 hover:text-white/50 hover:bg-white/5 transition-all w-full text-xs ${collapsed ? "justify-center" : ""}`}>
@@ -88,7 +64,6 @@ export default function InternalLayout({ children }: { children: React.ReactNode
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 flex-shrink-0">
           <p className="text-sm font-medium text-gray-400">
