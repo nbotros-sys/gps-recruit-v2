@@ -47,7 +47,7 @@ export default function MandateDetail() {
   const { id } = useParams()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<"pipeline" | "bulk" | "ai">("pipeline")
+  const [tab, setTab] = useState<"pipeline" | "bulk" | "ai" | "insight">("pipeline")
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
@@ -65,6 +65,8 @@ export default function MandateDetail() {
   const [candidateNotes, setCandidateNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
   const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "notes">("overview")
+  const [insightData, setInsightData] = useState<any>(null)
+  const [insightLoading, setInsightLoading] = useState(false)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -82,6 +84,48 @@ export default function MandateDetail() {
   }
 
   useEffect(() => { loadData() }, [id])
+
+  async function loadInsight() {
+    if (!mandate) return
+    setInsightLoading(true)
+    try {
+      const res = await fetch("/api/mandate-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mandate_id: id,
+          job_description: mandate.job_description,
+          mandate_title: mandate.title,
+        })
+      })
+      const data = await res.json()
+      setInsightData(data)
+    } catch { setInsightData({ error: "Failed to load insight" }) }
+    setInsightLoading(false)
+  }
+
+  async function addFromInsight(candidate: any) {
+    if (!mandate) return
+    try {
+      const { error } = await supabase.from("applications").insert([{
+        candidate_id: candidate.id,
+        mandate_id: id,
+        stage: "new",
+        ai_score: candidate.score,
+        ai_summary: candidate.reason,
+        ai_strengths: [],
+        ai_concerns: [],
+      }])
+      if (!error) {
+        setInsightData((prev: any) => ({
+          ...prev,
+          strong_matches: prev.strong_matches.filter((c: any) => c.id !== candidate.id),
+          possible_matches: prev.possible_matches.filter((c: any) => c.id !== candidate.id),
+        }))
+        loadData()
+      }
+    } catch (e) { console.error(e) }
+  }
 
   async function moveStage(appId: string, newStage: string) {
     await supabase.from("applications").update({ stage: newStage }).eq("id", appId)
@@ -226,6 +270,7 @@ export default function MandateDetail() {
           { id: "pipeline", icon: LayoutGrid, label: `Pipeline${applications.length > 0 ? ` (${applications.length})` : ""}` },
           { id: "bulk", icon: Upload, label: "Bulk CV Upload" },
           { id: "ai", icon: Brain, label: "Score Single CV" },
+          { id: "insight", icon: Users, label: "Talent Pool" },
         ].map(({ id: tid, icon: Icon, label }) => (
           <button key={tid} onClick={() => setTab(tid as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
@@ -639,6 +684,156 @@ export default function MandateDetail() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── TALENT POOL INSIGHT ── */}
+      {tab === "insight" && (
+        <div className="space-y-5 max-w-4xl">
+          {!insightData && !insightLoading && (
+            <div className="card text-center py-16">
+              <Users size={40} className="mx-auto mb-4 text-gray-200" />
+              <h3 className="font-semibold text-gray-900 mb-2">Scan your talent pool</h3>
+              <p className="text-gray-400 text-sm max-w-md mx-auto mb-6">
+                AI will review every candidate in your database and identify who fits this role — before you post anywhere.
+              </p>
+              <button onClick={loadInsight}
+                className="btn-primary flex items-center gap-2 mx-auto">
+                <Brain size={15} /> Scan database now
+              </button>
+            </div>
+          )}
+
+          {insightLoading && (
+            <div className="card text-center py-16">
+              <Loader2 size={28} className="animate-spin mx-auto mb-3 text-teal" />
+              <p className="text-gray-500 text-sm">AI is reviewing your talent pool...</p>
+              <p className="text-gray-400 text-xs mt-1">This takes 20–30 seconds</p>
+            </div>
+          )}
+
+          {insightData && !insightLoading && (
+            <>
+              {/* Summary */}
+              <div className="card">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Brain size={16} className="text-teal" />
+                    <h3 className="font-semibold text-gray-900">Talent Pool Report</h3>
+                  </div>
+                  <button onClick={loadInsight} className="text-xs text-gray-400 hover:text-teal transition-colors">
+                    Refresh
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">{insightData.summary}</p>
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  <div className="bg-gray-50 rounded-xl p-3 text-center">
+                    <div className="text-xl font-bold text-gray-900">{insightData.total_available || 0}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">In database</div>
+                  </div>
+                  <div className="bg-teal/5 rounded-xl p-3 text-center">
+                    <div className="text-xl font-bold text-teal">{insightData.strong_matches?.length || 0}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Strong matches</div>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-3 text-center">
+                    <div className="text-xl font-bold text-amber-600">{insightData.possible_matches?.length || 0}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Possible matches</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Strong matches */}
+              {insightData.strong_matches?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Strong matches</h3>
+                    {insightData.strong_matches.length > 1 && (
+                      <button onClick={() => insightData.strong_matches.forEach((c: any) => addFromInsight(c))}
+                        className="btn-primary text-sm flex items-center gap-2">
+                        <UserPlus size={13} /> Add all {insightData.strong_matches.length} to pipeline
+                      </button>
+                    )}
+                  </div>
+                  {insightData.strong_matches.map((c: any) => (
+                    <div key={c.id} className="card flex items-center gap-4">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                        style={{ background: "#028090" }}>
+                        {c.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
+                          {c.location ? ` · ${c.location}` : ""}
+                        </div>
+                        <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
+                        {c.tags?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {c.tags.slice(0, 4).map((tag: string, i: number) => (
+                              <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-teal">{c.score}</div>
+                          <div className="text-xs text-gray-400">/100</div>
+                        </div>
+                        <button onClick={() => addFromInsight(c)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all">
+                          <UserPlus size={12} /> Add to pipeline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Possible matches */}
+              {insightData.possible_matches?.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Possible matches</h3>
+                  {insightData.possible_matches.map((c: any) => (
+                    <div key={c.id} className="card flex items-center gap-4 opacity-90">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                        style={{ background: "#d97706" }}>
+                        {c.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
+                        </div>
+                        <div className="text-xs text-amber-600 mt-1 italic">{c.reason}</div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-amber-600">{c.score}</div>
+                          <div className="text-xs text-gray-400">/100</div>
+                        </div>
+                        <button onClick={() => addFromInsight(c)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 text-xs font-medium hover:bg-amber-50 transition-all">
+                          <UserPlus size={12} /> Add to pipeline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {insightData.strong_matches?.length === 0 && insightData.possible_matches?.length === 0 && (
+                <div className="card text-center py-12">
+                  <Users size={32} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-gray-500">No matches found in your current database.</p>
+                  <p className="text-gray-400 text-sm mt-1">Import more CVs to grow your talent pool.</p>
+                  <a href="/internal/database" className="btn-primary mt-4 inline-flex items-center gap-2 text-sm">
+                    <Upload size={14} /> Import CVs
+                  </a>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
