@@ -64,6 +64,7 @@ export default function MandateDetail() {
   const [selectedApp, setSelectedApp] = useState<any>(null)
   const [candidateNotes, setCandidateNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
+  const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "notes">("overview")
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -267,7 +268,7 @@ export default function MandateDetail() {
                         <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
                         <div className="min-w-0 flex-1">
                           <button
-                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.notes || "") }}
+                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.notes || ""); setDrawerTab("overview") }}
                             className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
                             {(app as any).candidate?.name || "Unknown"}
                           </button>
