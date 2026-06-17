@@ -1,4 +1,5 @@
 "use client"
+import CandidateAvatar from "@/components/CandidateAvatar"
 import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
@@ -775,10 +776,7 @@ export default function MandateDetail() {
                   </div>
                   {insightData.strong_matches.map((c: any) => (
                     <div key={c.id} className="card flex items-center gap-4">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                        style={{ background: "#028090" }}>
-                        {c.name?.charAt(0)?.toUpperCase()}
-                      </div>
+                      <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
@@ -815,10 +813,7 @@ export default function MandateDetail() {
                   <h3 className="font-semibold text-gray-900">Possible matches</h3>
                   {insightData.possible_matches.map((c: any) => (
                     <div key={c.id} className="card flex items-center gap-4 opacity-90">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                        style={{ background: "#d97706" }}>
-                        {c.name?.charAt(0)?.toUpperCase()}
-                      </div>
+                      <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
