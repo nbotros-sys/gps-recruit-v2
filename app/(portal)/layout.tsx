@@ -18,15 +18,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <div className="text-white/40 text-[10px] tracking-widest uppercase font-medium leading-tight">Talent Network</div>
             </div>
           </a>
-          <nav className="flex items-center gap-8">
+          <nav className="flex items-center gap-6">
             <a href="/jobs" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Open Roles</a>
             <a href="/join" className="text-white/60 hover:text-white text-sm transition-colors font-medium">Join Network</a>
-            <a href="/login" className="text-white/60 hover:text-white text-sm transition-colors font-medium">My Applications</a>
-            <a href="/join"
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-              style={{ background: "#028090", color: "white" }}>
-              Upload CV
-            </a>
+            <div className="flex items-center gap-2">
+              <a href="/login"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
+                style={{ color: "white", borderColor: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.08)" }}>
+                Sign in
+              </a>
+              <a href="/join"
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                style={{ background: "#028090", color: "white" }}>
+                Register →
+              </a>
+            </div>
           </nav>
         </div>
       </header>
@@ -44,7 +50,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
               <a href="/jobs" className="text-white/50 hover:text-white transition-colors">Open Roles</a>
               <a href="/join" className="text-white/50 hover:text-white transition-colors">Join Network</a>
-              <a href="/login" className="text-white/50 hover:text-white transition-colors">My Applications</a>
+              <a href="/login" className="text-white/50 hover:text-white transition-colors">Sign in</a>
             </div>
           </div>
           <div className="border-t border-white/10 pt-6 flex items-center justify-between">
