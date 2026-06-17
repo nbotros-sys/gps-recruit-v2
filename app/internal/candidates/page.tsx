@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Plus, Search, Users, MapPin, Mail, Phone, Tag, X, ChevronRight, Loader2 } from "lucide-react"
+import { Plus, Search, Users, MapPin, Mail, Phone, Tag, X, ChevronRight, Loader2, Star } from "lucide-react"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase"
 import type { Candidate } from "@/lib/types"
 
@@ -14,10 +15,9 @@ const SOURCE_COLORS: Record<string, string> = {
 }
 
 export default function CandidatesPage() {
-  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [candidates, setCandidates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [selected, setSelected] = useState<Candidate | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
@@ -28,7 +28,10 @@ export default function CandidatesPage() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from("candidates").select("*").order("created_at", { ascending: false })
+    const { data } = await supabase
+      .from("candidates")
+      .select("*, applications(id, stage, ai_score, mandate:mandates(title))")
+      .order("created_at", { ascending: false })
     setCandidates(data || [])
     setLoading(false)
   }
@@ -39,16 +42,26 @@ export default function CandidatesPage() {
     e.preventDefault()
     setSaving(true)
     const { error } = await supabase.from("candidates").insert([{ ...form, tags: [] }])
-    if (!error) { setShowAdd(false); setForm({ name: "", email: "", phone: "", current_title: "", current_company: "", location: "", source: "direct", linkedin_url: "", notes: "" }); load() }
+    if (!error) {
+      setShowAdd(false)
+      setForm({ name: "", email: "", phone: "", current_title: "", current_company: "", location: "", source: "direct", linkedin_url: "", notes: "" })
+      load()
+    }
     setSaving(false)
   }
 
   const filtered = candidates.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.current_title || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.current_company || "").toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.current_title?.toLowerCase().includes(search.toLowerCase()) ||
+    c.current_company?.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase())
   )
+
+  const bestScore = (c: any) => {
+    const scores = (c.applications || []).map((a: any) => a.ai_score).filter(Boolean)
+    return scores.length > 0 ? Math.max(...scores) : null
+  }
+  const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
 
   return (
     <div className="space-y-6">
@@ -71,83 +84,60 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      <div className="flex gap-6">
-        {/* List */}
-        <div className="flex-1 space-y-2">
-          {loading ? (
-            <div className="text-center py-16 text-gray-400">Loading candidates...</div>
-          ) : filtered.length === 0 ? (
-            <div className="card text-center py-16">
-              <Users size={40} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 mb-4">No candidates yet.</p>
-              <button onClick={() => setShowAdd(true)} className="btn-primary">Add your first candidate</button>
-            </div>
-          ) : (
-            filtered.map(c => (
-              <button key={c.id} onClick={() => setSelected(c === selected ? null : c)}
-                className={`w-full text-left card hover:shadow-md transition-all flex items-center justify-between ${selected?.id === c.id ? "ring-2 ring-teal" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-                    style={{ background: "#028090" }}>
-                    {c.name.charAt(0).toUpperCase()}
+      {/* Candidate list — each row links to full profile */}
+      <div className="space-y-2">
+        {loading ? (
+          <div className="text-center py-16 text-gray-400">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="card text-center py-16">
+            <Users size={40} className="mx-auto mb-3 text-gray-300" />
+            <p className="text-gray-500 mb-4">No candidates yet.</p>
+            <button onClick={() => setShowAdd(true)} className="btn-primary">Add your first candidate</button>
+          </div>
+        ) : (
+          filtered.map(c => {
+            const score = bestScore(c)
+            const mandateCount = c.applications?.length || 0
+            return (
+              <Link key={c.id} href={`/internal/candidates/${c.id}`}
+                className="card flex items-center justify-between hover:shadow-md transition-all cursor-pointer group py-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
+                    {c.name?.charAt(0)?.toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors">{c.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
                       {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      {c.email && <span className="text-xs text-gray-400">{c.email}</span>}
+                      {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
+                      {c.location && <span className="text-xs text-gray-400 flex items-center gap-0.5"><MapPin size={10} />{c.location}</span>}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {c.location && <span className="text-xs text-gray-400 flex items-center gap-1"><MapPin size={11} />{c.location}</span>}
-                  <span className={`badge ${SOURCE_COLORS[c.source] || SOURCE_COLORS.other}`}>{c.source}</span>
-                  <ChevronRight size={14} className="text-gray-300" />
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {mandateCount > 0 && (
+                    <span className="text-xs text-gray-400">{mandateCount} mandate{mandateCount > 1 ? "s" : ""}</span>
+                  )}
+                  {score && (
+                    <div className="flex items-center gap-1">
+                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                      <span className="text-xs font-semibold" style={{ color: scoreColor(score) }}>{score}</span>
+                    </div>
+                  )}
+                  <span className={`badge ${SOURCE_COLORS[c.source] || SOURCE_COLORS.other} text-xs`}>{c.source}</span>
+                  <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
                 </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Detail panel */}
-        {selected && (
-          <div className="w-80 flex-shrink-0 card self-start sticky top-0 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ background: "#028090" }}>
-                  {selected.name.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">{selected.name}</div>
-                  <div className="text-xs text-gray-500">{selected.current_title}</div>
-                </div>
-              </div>
-              <button onClick={() => setSelected(null)} className="text-gray-300 hover:text-gray-500"><X size={16} /></button>
-            </div>
-            <div className="space-y-2 text-sm">
-              {selected.email && <div className="flex items-center gap-2 text-gray-600"><Mail size={14} className="text-gray-400" />{selected.email}</div>}
-              {selected.phone && <div className="flex items-center gap-2 text-gray-600"><Phone size={14} className="text-gray-400" />{selected.phone}</div>}
-              {selected.location && <div className="flex items-center gap-2 text-gray-600"><MapPin size={14} className="text-gray-400" />{selected.location}</div>}
-              {selected.current_company && <div className="text-gray-600">🏢 {selected.current_company}</div>}
-            </div>
-            {selected.notes && (
-              <div>
-                <div className="text-xs font-medium text-gray-500 mb-1">Notes</div>
-                <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{selected.notes}</p>
-              </div>
-            )}
-            {selected.tags?.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {selected.tags.map((t: string) => (
-                  <span key={t} className="badge bg-teal/10 text-teal">{t}</span>
-                ))}
-              </div>
-            )}
-          </div>
+              </Link>
+            )
+          })
         )}
       </div>
 
-      {/* Add Modal */}
+      {/* Add modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
@@ -157,39 +147,27 @@ export default function CandidatesPage() {
             </div>
             <form onSubmit={addCandidate} className="p-6 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
-                  <input required type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Title</label>
-                  <input value={form.current_title} onChange={e => setForm({...form, current_title: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Company</label>
-                  <input value={form.current_company} onChange={e => setForm({...form, current_company: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
-                  <input value={form.location} onChange={e => setForm({...form, location: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
+                {[
+                  { label: "Full Name *", key: "name", required: true },
+                  { label: "Email *", key: "email", required: true, type: "email" },
+                  { label: "Phone", key: "phone" },
+                  { label: "Current Title", key: "current_title" },
+                  { label: "Current Company", key: "current_company" },
+                  { label: "Location", key: "location" },
+                  { label: "LinkedIn URL", key: "linkedin_url" },
+                ].map(({ label, key, required, type }) => (
+                  <div key={key} className={key === "linkedin_url" ? "col-span-2" : ""}>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+                    <input
+                      required={required} type={type || "text"}
+                      value={form[key as keyof typeof form]}
+                      onChange={e => setForm({ ...form, [key]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                ))}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Source</label>
-                  <select value={form.source} onChange={e => setForm({...form, source: e.target.value})}
+                  <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30">
                     <option value="direct">Direct</option>
                     <option value="referral">Referral</option>
@@ -199,15 +177,10 @@ export default function CandidatesPage() {
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn URL</label>
-                  <input value={form.linkedin_url} onChange={e => setForm({...form, linkedin_url: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3}
+                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
               </div>
               <div className="flex gap-3 pt-1">
