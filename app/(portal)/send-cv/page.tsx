@@ -36,14 +36,25 @@ export default function SendCVPage() {
       })
       const profile = await profileRes.json()
 
-      // Check if already exists
+      // Check if already exists — update if so, insert if not
       const { data: existing } = await supabase
         .from("candidates")
         .select("id")
         .eq("email", email)
         .single()
 
-      if (!existing) {
+      if (existing) {
+        // Update their CV and profile
+        await supabase.from("candidates").update({
+          cv_text: cvText || "",
+          tags: profile.tags || [],
+          notes: profile.summary || "",
+          current_title: profile.current_title || null,
+          current_company: profile.current_company || null,
+          location: profile.location || null,
+          phone: phone !== "+20 " ? phone : profile.phone,
+        }).eq("id", existing.id)
+      } else {
         await supabase.from("candidates").insert([{
           name: name || profile.name,
           email,
