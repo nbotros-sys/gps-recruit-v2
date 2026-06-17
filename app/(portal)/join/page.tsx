@@ -33,7 +33,7 @@ export default function JoinPage() {
         // Already registered — just send magic link
         await supabase.auth.signInWithOtp({
           email: form.email,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+          options: { shouldCreateUser: false }
         })
         setState("done_existing")
         return
@@ -68,7 +68,7 @@ export default function JoinPage() {
       await supabase.auth.signInWithOtp({
         email: form.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
           data: { name: form.name }
         }
       })
@@ -89,7 +89,7 @@ export default function JoinPage() {
         </div>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#111", marginBottom: "12px" }}>Welcome back!</h1>
         <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "24px" }}>
-          You're already in the GPS Talent Network. We've sent a sign-in link to <strong>{form.email}</strong> — click it to access your profile and applications.
+          You're already in the GPS Talent Network. We've sent a sign-in code to <strong>{form.email}</strong> — click it to access your profile and applications.
         </p>
         <a href="/jobs" style={{ display: "inline-block", padding: "12px 28px", borderRadius: "12px", border: "1.5px solid #ddd", fontSize: "14px", fontWeight: 600, color: "#555", textDecoration: "none" }}>
           Browse open roles
@@ -106,11 +106,11 @@ export default function JoinPage() {
         </div>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#111", marginBottom: "12px" }}>You're in the network</h1>
         <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "24px" }}>
-          Welcome to GPS Talent, <strong>{form.name}</strong>. We've sent a sign-in link to <strong>{form.email}</strong> — click it to access your account.
+          Welcome to GPS Talent, <strong>{form.name}</strong>. We've sent a sign-in code to <strong>{form.email}</strong> — click it to access your account.
         </p>
         <div style={{ background: "#f0faf8", border: "1px solid #A8D5D1", borderRadius: "16px", padding: "20px 24px", textAlign: "left", marginBottom: "28px" }}>
           <p style={{ fontSize: "13px", fontWeight: 700, color: "#111", marginBottom: "10px" }}>What happens next</p>
-          {["Check your email for a sign-in link","GPS consultants will review your profile personally","We'll reach out when a role genuinely matches your background"].map(s => (
+          {["Check your email for a 6-digit sign-in code","GPS consultants will review your profile personally","We'll reach out when a role genuinely matches your background"].map(s => (
             <div key={s} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#028090", flexShrink: 0, marginTop: "6px" }} />
               <p style={{ fontSize: "13px", color: "#555", margin: 0 }}>{s}</p>
