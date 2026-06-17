@@ -232,6 +232,12 @@ export default function MandateDetail() {
     setAddingAll(false)
   }
 
+  async function removeFromPipeline(appId: string) {
+    await supabase.from("applications").delete().eq("id", appId)
+    setApplications(prev => prev.filter(a => a.id !== appId))
+    if (selectedApp?.id === appId) setSelectedApp(null)
+  }
+
   const byStage = (stage: string) => applications.filter(a => a.stage === stage)
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
   const proceed = bulkResults.filter(r => r.recommendation === "Proceed").length
@@ -331,13 +337,20 @@ export default function MandateDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-gray-50 flex gap-1">
-                        {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
-                          <button key={s} onClick={() => moveStage(app.id, s)}
-                            className="text-xs text-gray-300 hover:text-teal transition-colors truncate">
-                            → {STAGE_LABELS[s]}
-                          </button>
-                        ))}
+                      <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
+                        <div className="flex gap-1">
+                          {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
+                            <button key={s} onClick={() => moveStage(app.id, s)}
+                              className="text-xs text-gray-300 hover:text-teal transition-colors truncate">
+                              → {STAGE_LABELS[s]}
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); removeFromPipeline(app.id) }}
+                          className="text-xs text-gray-200 hover:text-red-400 transition-colors ml-2 flex-shrink-0"
+                          title="Remove from pipeline">
+                          ✕
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -429,7 +442,13 @@ export default function MandateDetail() {
               {drawerTab === "overview" && (
                 <div className="space-y-4">
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Move to stage</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Move to stage</div>
+                      <button onClick={() => removeFromPipeline(selectedApp.id)}
+                        className="text-xs text-red-400 hover:text-red-600 transition-colors flex items-center gap-1">
+                        Remove from pipeline
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {STAGES.filter(s => s !== selectedApp.stage).map(s => (
                         <button key={s} onClick={async () => {
