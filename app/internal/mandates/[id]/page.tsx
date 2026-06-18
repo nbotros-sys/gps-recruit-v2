@@ -80,7 +80,17 @@ export default function MandateDetail() {
 
   async function loadData() {
     const { data: m } = await supabase.from("mandates").select("*").eq("id", id).single()
-    if (m) setMandate(m)
+    if (m) {
+      setMandate(m)
+      setJdText(m.job_description || "")
+      setEditForm({
+        title: m.title || "",
+        client_name: m.client_name || "",
+        location: m.location || "",
+        salary_range: m.salary_range || "",
+        status: m.status || "active",
+      })
+    }
     const { data: apps } = await supabase
       .from("applications")
       .select("*, candidate:candidates(*)")
