@@ -3,6 +3,28 @@ import { useState, useRef } from "react"
 import { Upload, X, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
+
+function PhoneInput({ value, onChange, style = {} }: { value: string, onChange: (val: string) => void, style?: any }) {
+  const num = value.startsWith("+20") ? value.slice(3).trim() : value.replace(/^00?20/, "").trim()
+  return (
+    <div style={{ display: "flex", border: "1.5px solid #e5e7eb", borderRadius: "12px", overflow: "hidden", background: "white", ...style }}>
+      <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRight: "1.5px solid #e5e7eb", fontSize: "14px", fontWeight: 700, color: "#555", userSelect: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
+        +20
+      </div>
+      <input
+        type="tel"
+        value={num}
+        onChange={e => {
+          const digits = e.target.value.replace(/[^0-9 ]/g, "")
+          onChange("+20" + (digits ? " " + digits : ""))
+        }}
+        placeholder="100 123 4567"
+        style={{ flex: 1, padding: "12px 14px", border: "none", outline: "none", fontSize: "14px", background: "transparent" }}
+      />
+    </div>
+  )
+}
+
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","Other"]
 const LEVELS = ["Entry level (0–2 years)","Junior (2–4 years)","Mid-level (4–7 years)","Senior (7–12 years)","Manager / Team Lead","Director","VP / GM","C-Level (CEO, CFO, COO...)"]
 
@@ -177,8 +199,7 @@ export default function JoinPage() {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Phone</label>
-                <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                  style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                <PhoneInput value={form.phone || "+20"} onChange={v => setForm({...form, phone: v})} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Password *</label>
