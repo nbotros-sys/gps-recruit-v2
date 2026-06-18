@@ -341,7 +341,7 @@ function LoggedInHome({ candidate, applications, mandates }: { candidate: any, a
                     return (
                       <div key={app.id} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: "13px", fontWeight: 600, color: "#111", margin: 0, truncate: true }}>{app.mandate?.title}</p>
+                          <p style={{ fontSize: "13px", fontWeight: 600, color: "#111", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.mandate?.title}</p>
                           {app.mandate?.client_name && <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>{app.mandate.client_name}</p>}
                         </div>
                         <span style={{ fontSize: "11px", fontWeight: 600, color: stage.color, whiteSpace: "nowrap", flexShrink: 0 }}>
