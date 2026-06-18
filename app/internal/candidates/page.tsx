@@ -60,7 +60,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
                       fd.append("candidateId", candidate.id)
                       const res = await fetch("/api/upload-photo", { method: "POST", body: fd })
                       const data = await res.json()
-                      if (data.avatar_url) setCandidate((prev: any) => ({ ...prev, avatar_url: data.avatar_url }))
+                      if (data.avatar_url) { window.location.reload() }
                     }
                   }} />
               </label>
