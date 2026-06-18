@@ -304,8 +304,8 @@ export default function CandidatesPage() {
         }
       }
 
-      // Name, title, company, location, tags match
-      return (
+      // Name, title, company, location, tags, CV text match
+      const inStructured = (
         c.name?.toLowerCase().includes(qLower) ||
         c.current_title?.toLowerCase().includes(qLower) ||
         c.current_company?.toLowerCase().includes(qLower) ||
@@ -313,6 +313,13 @@ export default function CandidatesPage() {
         (c.tags || []).some((t: string) => t.toLowerCase().includes(qLower)) ||
         c.email?.toLowerCase().includes(qLower)
       )
+
+      // CV text search — for queries 3+ chars
+      const inCV = qLower.length >= 3 && c.cv_text?.toLowerCase().includes(qLower)
+
+      // Tag the result so UI can show "found in CV" badge
+      if (inCV && !inStructured) c._foundInCV = true
+      return inStructured || inCV
     })
   })()
 
@@ -338,7 +345,7 @@ export default function CandidatesPage() {
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, email, phone, title, company, location or tag..."
+            placeholder="Search by name, email, phone, title, company, location, tag or keyword in CV..."
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal" />
         </div>
       </div>
