@@ -104,11 +104,37 @@ export default function JobDetailPage() {
           }])
         }
       }
-      // Send OTP so they can track their application
-      await supabase.auth.signInWithOtp({
-        email: form.email,
-        options: { shouldCreateUser: true }
-      })
+      // Send confirmation email to candidate + internal alert to GPS
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "application_confirmation",
+            candidateName: form.name || profile.name || "Candidate",
+            candidateEmail: form.email,
+            roleTitle: mandate.title,
+            clientName: mandate.client_name,
+            location: mandate.location,
+          })
+        })
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "internal_alert",
+            candidateName: form.name || profile.name || "Candidate",
+            candidateEmail: form.email,
+            candidatePhone: form.phone || profile.phone,
+            candidateTitle: profile.current_title,
+            candidateCompany: profile.current_company,
+            candidateLocation: profile.location || mandate.location,
+            aiScore: score.score,
+            roleTitle: mandate.title,
+            clientName: mandate.client_name,
+          })
+        })
+      } catch (e) { console.log("Email send failed:", e) }
 
       setSubmitted(true)
     } catch (err) { console.error(err) }
