@@ -49,7 +49,7 @@ export default function CandidateLogin() {
 
         <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
           {resetSent ? (
-            <div style={{ textAlign: "center", space: "16px" }}>
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ fontSize: "32px", marginBottom: "12px" }}>✉️</div>
               <h3 style={{ fontWeight: 700, color: "#111", marginBottom: "8px" }}>Check your email</h3>
               <p style={{ color: "#888", fontSize: "13px", marginBottom: "16px" }}>
