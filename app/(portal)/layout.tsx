@@ -136,7 +136,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 32px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
             <div>
-              <img src="/gps-logo-full.png" alt="GPS" style={{ height: "60px", objectFit: "contain", filter: "brightness(0) invert(1)", opacity: 0.8 }} />
+              <div style={{ color: "white", fontSize: "18px", fontWeight: 700, letterSpacing: "0.08em", opacity: 0.8 }}>GPS</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 48px", fontSize: "13px" }}>
               {[
