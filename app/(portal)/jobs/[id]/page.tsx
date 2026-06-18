@@ -104,6 +104,12 @@ export default function JobDetailPage() {
           }])
         }
       }
+      // Send OTP so they can track their application
+      await supabase.auth.signInWithOtp({
+        email: form.email,
+        options: { shouldCreateUser: true }
+      })
+
       setSubmitted(true)
     } catch (err) { console.error(err) }
     setSubmitting(false)
