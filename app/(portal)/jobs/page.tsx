@@ -7,16 +7,36 @@ import Link from "next/link"
 export default function JobsPage() {
   const [mandates, setMandates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [candidate, setCandidate] = useState<any>(null)
+  const [applications, setApplications] = useState<any[]>([])
   const supabase = createClient()
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      const { data: { user: u } } = await supabase.auth.getUser()
+      setUser(u)
+
+      const { data: mandateData } = await supabase
         .from("mandates")
-        .select("id, title, client_name, location, job_description, created_at")
+        .select("id, title, client_name, location, salary_range, status, created_at")
         .eq("status", "active")
         .order("created_at", { ascending: false })
-      setMandates(data || [])
+      setMandates(mandateData || [])
+
+      if (u) {
+        const { data: cand } = await supabase
+          .from("candidates").select("*").eq("email", u.email).single()
+        if (cand) {
+          setCandidate(cand)
+          const { data: apps } = await supabase
+            .from("applications")
+            .select("*, mandate:mandates(id, title, client_name, location)")
+            .eq("candidate_id", cand.id)
+            .order("created_at", { ascending: false })
+          setApplications(apps || [])
+        }
+      }
       setLoading(false)
     }
     load()
