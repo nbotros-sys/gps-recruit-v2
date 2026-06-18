@@ -216,6 +216,7 @@ export default function CandidatesPage() {
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState<any>(null)
   const [selectedApps, setSelectedApps] = useState<any[]>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [form, setForm] = useState({
     name: "", email: "", phone: "+20 ", current_title: "", current_company: "",
     location: "", source: "direct", linkedin_url: "", notes: ""
