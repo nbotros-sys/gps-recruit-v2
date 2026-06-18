@@ -47,9 +47,23 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
-              {candidate.name?.charAt(0)?.toUpperCase()}
+            <div className="relative group flex-shrink-0">
+              <CandidateAvatar name={candidate?.name || "?"} avatarUrl={candidate?.avatar_url} size={48} />
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-white text-xs">📷</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                  onChange={async e => {
+                    const file = e.target.files?.[0]
+                    if (file && candidate) {
+                      const fd = new FormData()
+                      fd.append("file", file)
+                      fd.append("candidateId", candidate.id)
+                      const res = await fetch("/api/upload-photo", { method: "POST", body: fd })
+                      const data = await res.json()
+                      if (data.avatar_url) setCandidate((prev: any) => ({ ...prev, avatar_url: data.avatar_url }))
+                    }
+                  }} />
+              </label>
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">{candidate.name}</h2>
