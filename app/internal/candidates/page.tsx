@@ -227,7 +227,7 @@ export default function CandidatesPage() {
     setLoading(true)
     const { data } = await supabase
       .from("candidates")
-      .select("*, applications(id, stage, ai_score, ai_summary, ai_strengths, ai_concerns, mandate:mandates(id, title, client_name))")
+      .select("*, avatar_url, internal_notes, applications(id, stage, ai_score, ai_summary, ai_strengths, ai_concerns, mandate:mandates(id, title, client_name))")
       .order("created_at", { ascending: false })
     setCandidates(data || [])
     setLoading(false)
