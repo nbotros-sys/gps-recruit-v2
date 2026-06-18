@@ -202,6 +202,64 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
             </div>
           )}
 
+          {/* Applications history */}
+          {tab === "applications" && (
+            <div className="p-2">
+              {!candidate?.applications?.length ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400">No applications yet</p>
+                </div>
+              ) : (
+                <div>
+                  {candidate.applications.map((app: any, idx: number) => {
+                    const STAGES = ["new","screening","interview","shortlisted","offered","placed"]
+                    const STAGE_LABELS: Record<string,string> = {
+                      new:"Received", screening:"Screening", interview:"Interview",
+                      shortlisted:"Shortlisted", offered:"Offer", placed:"Placed", on_hold:"On Hold"
+                    }
+                    const stageIdx = STAGES.indexOf(app.stage)
+                    const isPlaced = app.stage === "placed"
+                    const isOnHold = app.stage === "on_hold"
+                    const dotColor = isPlaced ? "#028090" : isOnHold ? "#ef4444" : "#d97706"
+                    const date = app.created_at ? new Date(app.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" }) : ""
+                    return (
+                      <div key={app.id} className="flex gap-3 px-2">
+                        <div className="flex flex-col items-center flex-shrink-0" style={{ width: "14px" }}>
+                          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: dotColor, flexShrink: 0, marginTop: "4px" }} />
+                          {idx < candidate.applications.length - 1 && (
+                            <div style={{ width: "1px", flex: 1, background: "#e5e7eb", minHeight: "28px" }} />
+                          )}
+                        </div>
+                        <div className="flex-1 pb-4 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm text-gray-900 truncate">{app.mandate?.title || "Unknown role"}</p>
+                              {app.mandate?.client_name && <p className="text-xs text-gray-500">{app.mandate.client_name}</p>}
+                              <p className="text-xs text-gray-400">{date}</p>
+                            </div>
+                            {app.ai_score != null && (
+                              <span className="text-xs font-bold flex-shrink-0" style={{ color: app.ai_score >= 70 ? "#028090" : app.ai_score >= 50 ? "#d97706" : "#9ca3af" }}>
+                                {app.ai_score}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-1 mt-2">
+                            {STAGES.slice(0,5).map((s,i) => (
+                              <div key={s} style={{ height:"3px", flex:1, borderRadius:"2px", background: i <= stageIdx ? dotColor : "#e5e7eb" }} />
+                            ))}
+                          </div>
+                          <p className="text-xs mt-1" style={{ color: dotColor }}>
+                            {STAGE_LABELS[app.stage] || app.stage}{isPlaced ? " ✓" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notes */}
           {tab === "notes" && (
             <div className="space-y-4">
@@ -259,7 +317,7 @@ export default function CandidatesPage() {
     setLoading(true)
     const { data } = await supabase
       .from("candidates")
-      .select("*, avatar_url, internal_notes, applications(id, stage, ai_score, ai_summary, ai_strengths, ai_concerns, mandate:mandates(id, title, client_name))")
+      .select("*, avatar_url, internal_notes, applications(id, stage, ai_score, created_at, mandate:mandates(id, title, client_name))")
       .order("created_at", { ascending: false })
     setCandidates(data || [])
     setLoading(false)
