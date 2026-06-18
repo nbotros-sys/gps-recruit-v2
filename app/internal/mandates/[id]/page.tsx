@@ -48,7 +48,7 @@ export default function MandateDetail() {
   const { id } = useParams()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<"jd" | "pipeline" | "bulk" | "ai" | "insight">("pipeline")
+  const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight">("pipeline")
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
@@ -71,6 +71,9 @@ export default function MandateDetail() {
   const [jdText, setJdText] = useState("")
   const [savingJd, setSavingJd] = useState(false)
   const [jdSaved, setJdSaved] = useState(false)
+  const [editForm, setEditForm] = useState<any>({})
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editSaved, setEditSaved] = useState(false)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -277,6 +280,7 @@ export default function MandateDetail() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
         {[
+          { id: "details", icon: Settings2, label: "Details" },
           { id: "jd", icon: FileText, label: "Job Description" },
           { id: "pipeline", icon: LayoutGrid, label: `Pipeline${applications.length > 0 ? ` (${applications.length})` : ""}` },
           { id: "bulk", icon: Upload, label: "Bulk CV Upload" },
@@ -290,6 +294,69 @@ export default function MandateDetail() {
           </button>
         ))}
       </div>
+
+      {/* ── DETAILS tab */}
+      {tab === "details" && (
+        <div className="space-y-6 max-w-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-gray-900">Mandate Details</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Edit the core details of this mandate.</p>
+            </div>
+            <button onClick={async () => {
+              setSavingEdit(true)
+              await supabase.from("mandates").update({
+                title: editForm.title,
+                client_name: editForm.client_name,
+                location: editForm.location,
+                salary_range: editForm.salary_range,
+                status: editForm.status,
+              }).eq("id", id)
+              setMandate({ ...mandate, ...editForm })
+              setSavingEdit(false)
+              setEditSaved(true)
+              setTimeout(() => setEditSaved(false), 3000)
+            }}
+              className="btn-primary flex items-center gap-2 text-sm">
+              {savingEdit ? <><Loader2 size={13} className="animate-spin" /> Saving...</>
+               : editSaved ? <><CheckCircle size={13} /> Saved!</>
+               : <><Save size={13} /> Save changes</>}
+            </button>
+          </div>
+
+          <div className="card p-6 space-y-5">
+            {[
+              { label: "Job Title", key: "title", placeholder: "e.g. Finance Manager" },
+              { label: "Client / Company", key: "client_name", placeholder: "e.g. ABC Corporation" },
+              { label: "Location", key: "location", placeholder: "e.g. Cairo, Egypt" },
+              { label: "Salary Range", key: "salary_range", placeholder: "e.g. EGP 25,000 – 35,000" },
+            ].map(({ label, key, placeholder }) => (
+              <div key={key}>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</label>
+                <input
+                  value={editForm[key] || ""}
+                  onChange={e => setEditForm({ ...editForm, [key]: e.target.value })}
+                  placeholder={placeholder}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
+                />
+              </div>
+            ))}
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Status</label>
+              <select
+                value={editForm.status || "active"}
+                onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="filled">Filled</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── JOB DESCRIPTION tab */}
       {tab === "jd" && (
