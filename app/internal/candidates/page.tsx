@@ -27,7 +27,7 @@ const STAGE_COLORS: Record<string, string> = {
 }
 
 function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, onClose: () => void, onNoteSaved: (id: string, internalNotes: string) => void }) {
-  const [tab, setTab] = useState<"overview" | "cv" | "notes">("overview")
+  const [tab, setTab] = useState<"overview" | "cv" | "applications" | "notes">("overview")
   const [notes, setNotes] = useState(candidate.internal_notes || "")
   // internal_notes is separate from AI notes field
   const [savingNotes, setSavingNotes] = useState(false)
@@ -107,6 +107,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
           {[
             { id: "overview", icon: Briefcase, label: "Overview" },
             { id: "cv", icon: FileText, label: "CV" },
+            { id: "applications", icon: Briefcase, label: `Roles${candidate?.applications?.length ? ` (${candidate.applications.length})` : ""}` },
             { id: "notes", icon: MessageSquare, label: "Notes" },
           ].map(({ id, icon: Icon, label }) => (
             <button key={id} onClick={() => setTab(id as any)}
