@@ -11,7 +11,7 @@ function getColor(name: string) { return COLORS[name.split("").reduce((a,c) => a
 function getInitials(name: string) { return name.split(" ").map((w:string) => w[0]).slice(0,2).join("").toUpperCase() }
 
 function completionScore(form: any) {
-  const fields = ["name","phone","current_title","current_company","location","linkedin_url","function","level"]
+  const fields = ["name","phone","current_title","current_company","location","linkedin_url","job_function","level"]
   const filled = fields.filter(f => form[f] && form[f].toString().trim().length > 0).length
   const hasPhoto = !!form.avatar_url
   const hasCV = !!form.cv_text
@@ -25,7 +25,7 @@ function getMissing(form: any) {
     { key: "current_company", label: "Current company" },
     { key: "location", label: "Location" },
     { key: "linkedin_url", label: "LinkedIn URL" },
-    { key: "function", label: "Function" },
+    { key: "job_function", label: "Function" },
     { key: "level", label: "Seniority level" },
     { key: "avatar_url", label: "Profile photo" },
     { key: "cv_text", label: "CV on file" },
@@ -188,7 +188,7 @@ export default function ProfilePage() {
 
           <div>
             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "6px" }}>Function</label>
-            <select value={form.function || ""} onChange={e => setForm({...form, function: e.target.value})}
+            <select value={form.job_function || ""} onChange={e => setForm({...form, job_function: e.target.value})}
               style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", background: "white", boxSizing: "border-box" }}>
               <option value="">Select your function</option>
               {FUNCTIONS.map(f => <option key={f} value={f}>{f}</option>)}
