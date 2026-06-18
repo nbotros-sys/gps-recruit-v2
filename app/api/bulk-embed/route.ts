@@ -7,16 +7,31 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Get all candidates without embeddings
-  const { data: candidates } = await supabase
+  // Get IDs that already have embeddings
+  const { data: existing } = await supabase
+    .from("cv_embeddings")
+    .select("candidate_id")
+
+  const existingIds = (existing || []).map((e: any) => e.candidate_id)
+
+  // Get all candidates
+  const { data: allCandidates } = await supabase
     .from("candidates")
     .select("id, name, current_title, current_company, location, tags, cv_text, notes")
-    .not("id", "in", 
-      `(SELECT candidate_id FROM cv_embeddings)`
-    )
-    .limit(50)
+    .limit(500)
 
-  if (!candidates?.length) return NextResponse.json({ processed: 0, message: "All candidates already have embeddings" })
+  // Filter to only those without embeddings
+  const candidates = (allCandidates || []).filter(
+    (c: any) => !existingIds.includes(c.id)
+  ).slice(0, 50)
+
+  if (!candidates.length) {
+    return NextResponse.json({ 
+      processed: 0, 
+      total_existing: existingIds.length,
+      message: "All candidates already have embeddings" 
+    })
+  }
 
   let processed = 0
   let failed = 0
@@ -24,7 +39,6 @@ export async function POST(req: NextRequest) {
 
   for (const candidate of candidates) {
     try {
-      // Build rich text for embedding — combine all meaningful fields
       const text = [
         candidate.name,
         candidate.current_title,
@@ -48,8 +62,9 @@ export async function POST(req: NextRequest) {
       })
 
       if (!embeddingRes.ok) {
+        const err = await embeddingRes.json()
         failed++
-        results.push({ id: candidate.id, name: candidate.name, status: "failed" })
+        results.push({ name: candidate.name, status: "failed", error: JSON.stringify(err) })
         continue
       }
 
@@ -58,24 +73,26 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabase
         .from("cv_embeddings")
-        .upsert({ candidate_id: candidate.id, embedding }, { onConflict: "candidate_id" })
+        .upsert(
+          { candidate_id: candidate.id, embedding },
+          { onConflict: "candidate_id" }
+        )
 
       if (error) {
         failed++
-        results.push({ id: candidate.id, name: candidate.name, status: "failed", error: error.message })
+        results.push({ name: candidate.name, status: "failed", error: error.message })
       } else {
         processed++
-        results.push({ id: candidate.id, name: candidate.name, status: "done" })
+        results.push({ name: candidate.name, status: "done" })
       }
 
-      // Small delay to avoid rate limits
       await new Promise(r => setTimeout(r, 100))
 
     } catch (err: any) {
       failed++
-      results.push({ id: candidate.id, name: candidate.name, status: "error", error: err?.message })
+      results.push({ name: candidate.name, status: "error", error: err?.message })
     }
   }
 
-  return NextResponse.json({ processed, failed, results })
+  return NextResponse.json({ processed, failed, remaining: candidates.length - processed - failed, results })
 }
