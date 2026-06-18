@@ -88,7 +88,7 @@ SEARCH QUERY: "${query}"
 CANDIDATES:
 ${JSON.stringify(summaries)}
 
-Find ALL candidates with any relevant experience, skills or background matching the query. Be INCLUSIVE — if someone has done payroll, HR, finance, or related work, include them. Only exclude people who are completely unrelated.
+Find candidates who genuinely match this search. Include candidates whose title, company, skills or experience directly relate to the query. Exclude candidates with no clear connection. Score 70+ for strong matches, 40-69 for partial matches, below 40 only if tangentially related. Be accurate, not just broad.
 
 Respond ONLY with valid JSON array (no markdown):
 [{ "id": "<id>", "score": <1-100>, "reason": "<concise reason>" }]`
