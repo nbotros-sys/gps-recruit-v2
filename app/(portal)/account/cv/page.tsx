@@ -67,7 +67,7 @@ export default function CVPage() {
       {/* Upload new CV */}
       <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px", marginBottom: "24px" }}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "16px" }}>
-          {candidate?.cv_text ? "Update your CV" : "Upload your CV"}
+          {candidate?.cv_text ? "Upload a new CV (replaces current)" : "Upload your CV"}
         </h2>
 
         {uploaded && (
@@ -105,15 +105,31 @@ export default function CVPage() {
         </button>
       </div>
 
-      {/* Current CV */}
-      {candidate?.cv_text && (
-        <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "16px" }}>Current CV on file</h2>
-          <pre style={{ fontSize: "13px", color: "#555", whiteSpace: "pre-wrap", fontFamily: "inherit", lineHeight: 1.7, background: "#f9fafb", borderRadius: "12px", padding: "20px", maxHeight: "400px", overflowY: "auto", margin: 0 }}>
-            {candidate.cv_text}
-          </pre>
-        </div>
-      )}
+      {/* Current CV status */}
+      <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "16px" }}>CV on file</h2>
+        {candidate?.cv_text ? (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#f0faf8", border: "1px solid #A8D5D1", borderRadius: "12px", padding: "14px 18px", marginBottom: "16px" }}>
+              <FileText size={18} color="#028090" />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>CV on file</p>
+                <p style={{ fontSize: "12px", color: "#028090", margin: 0 }}>{Math.round(candidate.cv_text.length / 5)} words approx · Last updated when imported</p>
+              </div>
+              <CheckCircle size={18} color="#028090" />
+            </div>
+            <p style={{ fontSize: "12px", color: "#888", marginBottom: "12px" }}>Upload a new CV below to replace it. Your profile will be re-analysed automatically.</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fef9ec", border: "1px solid #fcd34d", borderRadius: "12px", padding: "14px 18px", marginBottom: "16px" }}>
+            <FileText size={18} color="#d97706" />
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>No CV on file</p>
+              <p style={{ fontSize: "12px", color: "#d97706", margin: 0 }}>Upload your CV so GPS consultants can match you to roles.</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
