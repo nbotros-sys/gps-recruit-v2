@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       cv_text: (keep.cv_text || "").length >= (discard.cv_text || "").length
         ? keep.cv_text : discard.cv_text,
       // Merge tags — union of both
-      tags: [...new Set([...(keep.tags || []), ...(discard.tags || [])])],
+      tags: Array.from(new Set([...(keep.tags || []), ...(discard.tags || [])])),
       notes: [keep.notes, discard.notes].filter(Boolean).join(" | ") || null,
     }
 
