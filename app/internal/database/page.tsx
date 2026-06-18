@@ -247,10 +247,20 @@ export default function DatabaseImportPage() {
                 <div className="card p-4 text-center"><div className="text-2xl font-bold text-teal">{done}</div><div className="text-xs text-gray-500 mt-0.5">Saved</div></div>
                 <div className="card p-4 text-center"><div className="text-2xl font-bold text-red-400">{errors}</div><div className="text-xs text-gray-500 mt-0.5">Failed</div></div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <button onClick={() => { setResults([]); setFiles([]) }} className="btn-primary flex items-center gap-2">
                   <Upload size={14} /> Import more
                 </button>
+                {errors > 0 && (
+                  <button onClick={() => {
+                    const failedFiles = files.filter((_, i) => results[i]?.status === "error")
+                    setFiles(failedFiles)
+                    setResults([])
+                    setProgress(0)
+                  }} className="btn-secondary flex items-center gap-2 text-red-500 border-red-200">
+                    <Zap size={14} /> Retry {errors} failed
+                  </button>
+                )}
                 <a href="/internal/candidates" className="btn-secondary flex items-center gap-2">
                   <Users size={14} /> View candidates
                 </a>
