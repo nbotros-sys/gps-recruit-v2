@@ -97,6 +97,18 @@ export default function SendCVPage() {
         options: { shouldCreateUser: true, data: { name } }
       })
 
+      // Send welcome email
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "network_welcome",
+            candidateName: name || "Candidate",
+            candidateEmail: email,
+          })
+        })
+      } catch (e) { console.log("Email failed:", e) }
       setSubmitted(true)
     } catch (err) {
       console.error(err)
