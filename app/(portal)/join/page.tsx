@@ -1,6 +1,6 @@
 "use client"
 import { useState, useRef } from "react"
-import { Upload, X, CheckCircle, Loader2 } from "lucide-react"
+import { Upload, X, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","Other"]
@@ -12,34 +12,25 @@ export default function JoinPage() {
   const [step, setStep] = useState<"info" | "cv">("info")
   const [file, setFile] = useState<File | null>(null)
   const [state, setState] = useState<SubmitState>("idle")
-  const [form, setForm] = useState({ name: "", email: "", phone: "+20 ", function: "", level: "", location: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "+20 ", password: "", function: "", level: "", location: "" })
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
   async function submit() {
-    if (!file || !form.name || !form.email) return
-    setState("submitting")
-    setError("")
+    if (!file || !form.name || !form.email || !form.password) return
+    setState("submitting"); setError("")
     try {
       // Check if email already exists
       const { data: existing } = await supabase
-        .from("candidates")
-        .select("id, name")
-        .eq("email", form.email)
-        .single()
+        .from("candidates").select("id, name").eq("email", form.email).single()
 
       if (existing) {
-        // Already registered — just send magic link
-        await supabase.auth.signInWithOtp({
-          email: form.email,
-          options: { shouldCreateUser: false }
-        })
-        setState("done_existing")
-        return
+        setState("done_existing"); return
       }
 
-      // New registration — extract CV + build profile
+      // Extract CV + build profile
       const formData = new FormData()
       formData.append("file", file)
       const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
@@ -52,7 +43,8 @@ export default function JoinPage() {
       })
       const profile = await profileRes.json()
 
-      await supabase.from("candidates").insert([{
+      // Save candidate to DB
+      const { data: newCand } = await supabase.from("candidates").insert([{
         name: form.name || profile.name,
         email: form.email,
         phone: form.phone !== "+20 " ? form.phone : (profile.phone || null),
@@ -63,15 +55,28 @@ export default function JoinPage() {
         tags: [...(profile.tags || []), form.function, form.level].filter(Boolean),
         source: "direct",
         notes: [profile.summary, form.function ? `Function: ${form.function}` : "", form.level ? `Level: ${form.level}` : ""].filter(Boolean).join(" | "),
-      }])
+      }]).select("id").single()
 
-      await supabase.auth.signInWithOtp({
+      // Create auth account with password — no OTP needed
+      const { error: signUpError } = await supabase.auth.signUp({
         email: form.email,
-        options: {
-          shouldCreateUser: true,
-          data: { name: form.name }
-        }
+        password: form.password,
+        options: { data: { name: form.name } }
       })
+
+      if (signUpError && !signUpError.message.includes("already registered")) {
+        console.error("Auth signup error:", signUpError)
+      }
+
+      // Extract photo if docx
+      if (newCand?.id && file.name.match(/\.docx?$/i)) {
+        try {
+          const photoForm = new FormData()
+          photoForm.append("file", file)
+          photoForm.append("candidateId", newCand.id)
+          await fetch("/api/extract-photo", { method: "POST", body: photoForm })
+        } catch (e) { console.log("No photo") }
+      }
 
       setState("done_new")
     } catch (err) {
@@ -89,10 +94,10 @@ export default function JoinPage() {
         </div>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#111", marginBottom: "12px" }}>Welcome back!</h1>
         <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "24px" }}>
-          You're already in the GPS Talent Network. We've sent a sign-in code to <strong>{form.email}</strong> — click it to access your profile and applications.
+          You're already in the GPS Talent Network. Sign in to access your profile and applications.
         </p>
-        <a href="/jobs" style={{ display: "inline-block", padding: "12px 28px", borderRadius: "12px", border: "1.5px solid #ddd", fontSize: "14px", fontWeight: 600, color: "#555", textDecoration: "none" }}>
-          Browse open roles
+        <a href="/login" style={{ display: "inline-block", padding: "13px 28px", borderRadius: "12px", background: "#028090", color: "white", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}>
+          Sign in →
         </a>
       </div>
     </div>
@@ -106,19 +111,19 @@ export default function JoinPage() {
         </div>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#111", marginBottom: "12px" }}>You're in the network</h1>
         <p style={{ color: "#666", fontSize: "15px", lineHeight: 1.7, marginBottom: "24px" }}>
-          Welcome to GPS Talent, <strong>{form.name}</strong>. We've sent a sign-in code to <strong>{form.email}</strong> — click it to access your account.
+          Welcome to GPS Talent, <strong>{form.name}</strong>. Your profile has been created.
         </p>
         <div style={{ background: "#f0faf8", border: "1px solid #A8D5D1", borderRadius: "16px", padding: "20px 24px", textAlign: "left", marginBottom: "28px" }}>
           <p style={{ fontSize: "13px", fontWeight: 700, color: "#111", marginBottom: "10px" }}>What happens next</p>
-          {["Check your email for a 6-digit sign-in code","GPS consultants will review your profile personally","We'll reach out when a role genuinely matches your background"].map(s => (
+          {["GPS consultants will review your profile personally","We'll reach out when a role genuinely matches your background","Sign in anytime to track your applications"].map(s => (
             <div key={s} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#028090", flexShrink: 0, marginTop: "6px" }} />
               <p style={{ fontSize: "13px", color: "#555", margin: 0 }}>{s}</p>
             </div>
           ))}
         </div>
-        <a href="/jobs" style={{ display: "inline-block", padding: "12px 28px", borderRadius: "12px", border: "1.5px solid #ddd", fontSize: "14px", fontWeight: 600, color: "#555", textDecoration: "none" }}>
-          Browse open roles
+        <a href="/login" style={{ display: "inline-block", padding: "13px 28px", borderRadius: "12px", background: "#028090", color: "white", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}>
+          Sign in to my account →
         </a>
       </div>
     </div>
@@ -131,7 +136,7 @@ export default function JoinPage() {
           <img src="/gps-logo.png" alt="GPS" style={{ width: "56px", height: "56px", objectFit: "contain", marginBottom: "20px" }} />
           <h1 style={{ fontSize: "42px", fontWeight: 900, color: "white", lineHeight: 1.1, marginBottom: "14px" }}>Join GPS Talent</h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "16px", lineHeight: 1.65, maxWidth: "500px", margin: "0 auto" }}>
-            Tell us who you are and upload your CV. GPS will reach out when the right opportunity appears.
+            Create your account and let GPS find the right opportunity for you.
           </p>
         </div>
       </div>
@@ -157,8 +162,8 @@ export default function JoinPage() {
 
         {step === "info" && (
           <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Tell us about yourself</h2>
-            <p style={{ color: "#888", fontSize: "13px", marginBottom: "24px" }}>Let's get to know you. We'll use this to find the right opportunities for you.</p>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Create your account</h2>
+            <p style={{ color: "#888", fontSize: "13px", marginBottom: "24px" }}>Let's get to know you.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Full Name *</label>
@@ -174,6 +179,18 @@ export default function JoinPage() {
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Phone</label>
                 <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
                   style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Password *</label>
+                <div style={{ position: "relative" }}>
+                  <input type={showPw ? "text" : "password"} value={form.password} onChange={e => setForm({...form, password: e.target.value})}
+                    placeholder="Min. 8 characters"
+                    style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", boxSizing: "border-box", paddingRight: "44px" }} />
+                  <button type="button" onClick={() => setShowPw(!showPw)}
+                    style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#888" }}>
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>What do you do?</label>
@@ -197,23 +214,26 @@ export default function JoinPage() {
                   style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
               </div>
             </div>
-            <button onClick={() => { if (form.name && form.email) setStep("cv"); else setError("Please fill in your name and email.") }}
+            <button onClick={() => { if (form.name && form.email && form.password) setStep("cv"); else setError("Please fill in name, email and password.") }}
               style={{ marginTop: "24px", width: "100%", padding: "14px", borderRadius: "12px", background: "#028090", color: "white", fontWeight: 800, fontSize: "15px", border: "none", cursor: "pointer" }}>
               Continue →
             </button>
             {error && <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "8px", textAlign: "center" }}>{error}</p>}
+            <p style={{ textAlign: "center", fontSize: "12px", color: "#aaa", marginTop: "16px" }}>
+              Already have an account? <a href="/login" style={{ color: "#028090", fontWeight: 600 }}>Sign in</a>
+            </p>
           </div>
         )}
 
         {step === "cv" && (
           <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
             <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "6px" }}>Upload your CV</h2>
-            <p style={{ color: "#888", fontSize: "13px", marginBottom: "28px" }}>PDF or Word. Our AI will read it intelligently — the more detail the better.</p>
+            <p style={{ color: "#888", fontSize: "13px", marginBottom: "28px" }}>PDF or Word. Our AI will read it intelligently.</p>
             {file ? (
               <div style={{ background: "#f0faf8", border: "1.5px solid #A8D5D1", borderRadius: "14px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: "14px", color: "#111" }}>{file.name}</div>
-                  <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>{(file.size / 1024).toFixed(0)} KB · Ready to submit</div>
+                  <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>{(file.size / 1024).toFixed(0)} KB</div>
                 </div>
                 <button onClick={() => setFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#888" }}>✕</button>
               </div>
@@ -230,14 +250,11 @@ export default function JoinPage() {
             {error && <p style={{ color: "#ef4444", fontSize: "12px", marginBottom: "12px", textAlign: "center" }}>{error}</p>}
             <button onClick={submit} disabled={!file || state === "submitting"}
               style={{ width: "100%", padding: "14px", borderRadius: "12px", background: file ? "#028090" : "#d1d5db", color: "white", fontWeight: 800, fontSize: "15px", border: "none", cursor: file ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              {state === "submitting" ? "Building your profile..." : "Join GPS Talent Network →"}
+              {state === "submitting" ? "Creating your profile..." : "Complete registration →"}
             </button>
             <button onClick={() => setStep("info")} style={{ width: "100%", marginTop: "12px", padding: "10px", background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: "13px" }}>
               ← Back
             </button>
-            <p style={{ textAlign: "center", fontSize: "11px", color: "#bbb", marginTop: "16px", lineHeight: 1.6 }}>
-              Already registered? <a href="/login" style={{ color: "#028090", fontWeight: 600 }}>Sign in here</a>
-            </p>
           </div>
         )}
       </div>
