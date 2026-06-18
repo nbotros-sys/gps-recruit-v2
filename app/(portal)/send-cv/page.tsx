@@ -3,6 +3,28 @@ import { useState, useRef } from "react"
 import { Upload, X, CheckCircle, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
+
+function PhoneInput({ value, onChange, style = {} }: { value: string, onChange: (val: string) => void, style?: any }) {
+  const num = value.startsWith("+20") ? value.slice(3).trim() : value.replace(/^00?20/, "").trim()
+  return (
+    <div style={{ display: "flex", border: "1.5px solid #e5e7eb", borderRadius: "12px", overflow: "hidden", background: "white", ...style }}>
+      <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRight: "1.5px solid #e5e7eb", fontSize: "14px", fontWeight: 700, color: "#555", userSelect: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
+        +20
+      </div>
+      <input
+        type="tel"
+        value={num}
+        onChange={e => {
+          const digits = e.target.value.replace(/[^0-9 ]/g, "")
+          onChange("+20" + (digits ? " " + digits : ""))
+        }}
+        placeholder="100 123 4567"
+        style={{ flex: 1, padding: "12px 14px", border: "none", outline: "none", fontSize: "14px", background: "transparent" }}
+      />
+    </div>
+  )
+}
+
 export default function SendCVPage() {
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -149,8 +171,7 @@ export default function SendCVPage() {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#444", marginBottom: "6px" }}>Phone</label>
-                <input value={phone} onChange={e => setPhone(e.target.value)}
-                  style={{ width: "100%", padding: "12px 16px", border: "1.5px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                <PhoneInput value={phone || "+20"} onChange={setPhone} />
               </div>
             </div>
 
