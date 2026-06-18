@@ -6,39 +6,53 @@ export async function POST(req: NextRequest) {
   if (!query) return NextResponse.json({ error: "No query" }, { status: 400 })
 
   const supabase = createClient()
-  const { data: candidates } = await supabase
-    .from("candidates")
-    .select("id, name, current_title, current_company, location, source, cv_text, applications(ai_score, mandate:mandates(title))")
-    .order("created_at", { ascending: false })
 
-  if (!candidates?.length) return NextResponse.json({ explanation: "No candidates in database.", matches: [] })
+  // Step 1: Pre-filter with Supabase text search — avoid sending all candidates to AI
+  const keywords = query.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(" ").filter((w: string) => w.length > 2)
+  const searchTerm = keywords[0] || ""
 
-  const summaries = candidates.map(c => ({
+  let candidates: any[] = []
+
+  if (searchTerm) {
+    const { data: textResults } = await supabase
+      .from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, applications(ai_score, mandate:mandates(title))")
+      .or(`name.ilike.%${searchTerm}%,current_title.ilike.%${searchTerm}%,current_company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`)
+      .limit(100)
+    candidates = textResults || []
+  }
+
+  // Fall back to all candidates if too few text results (capped at 200)
+  if (candidates.length < 5) {
+    const { data: allData } = await supabase
+      .from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, applications(ai_score, mandate:mandates(title))")
+      .limit(200)
+    candidates = allData || []
+  }
+
+  if (!candidates.length) return NextResponse.json({ results: [] })
+
+  // Step 2: Send compact summaries to AI — no cv_text, 10x smaller prompt
+  const summaries = candidates.map((c: any) => ({
     id: c.id,
     name: c.name,
     title: c.current_title,
     company: c.current_company,
     location: c.location,
-    cv_snippet: (c.cv_text || "").slice(0, 600),
-    best_score: c.applications?.length ? Math.max(...(c.applications as any[]).map((a: any) => a.ai_score || 0)) : null,
+    tags: (c.tags || []).slice(0, 8),
   }))
 
-  const prompt = `You are a senior recruitment consultant at GPS. Search this candidate database for: "${query}"
+  const prompt = `You are a recruitment search engine. Find candidates matching this query.
 
-DATABASE (${summaries.length} candidates):
-${JSON.stringify(summaries, null, 1)}
+QUERY: "${query}"
 
-Find the best matching candidates. Consider job title, company, skills in CV, location, experience level.
+CANDIDATES:
+${JSON.stringify(summaries)}
 
-Respond ONLY with valid JSON (no markdown):
-{
-  "explanation": "<1-2 sentences: what you searched for and how many matches>",
-  "matches": [
-    { "id": "<candidate id>", "relevance": <integer 0-100>, "reason": "<one sentence why they match>" }
-  ]
-}
-
-Return up to 10 matches sorted by relevance. Only include genuinely relevant candidates.`
+Return ONLY a JSON array of matching IDs ordered by best match. Be generous but accurate.
+No markdown, no backticks:
+[{ "id": "<id>", "score": <1-100>, "reason": "<one short reason>" }]`
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -55,20 +69,17 @@ Return up to 10 matches sorted by relevance. Only include genuinely relevant can
   })
 
   const data = await response.json()
-  const text = data.content?.[0]?.text || "{}"
-  try {
-    const clean = text.replace(/```json|```/g, "").trim()
-    const parsed = JSON.parse(clean)
+  const text = data.content?.[0]?.text || "[]"
+  const clean = text.replace(/```json|```/g, "").trim()
+  const matches = JSON.parse(clean)
 
-    const matched = (parsed.matches || [])
-      .map((m: any) => {
-        const cand = candidates.find((c: any) => c.id === m.id)
-        return cand ? { ...cand, relevance: m.relevance, reason: m.reason } : null
-      })
-      .filter(Boolean)
+  const results = matches
+    .map((m: any) => {
+      const c = candidates.find((c: any) => c.id === m.id)
+      return c ? { ...c, relevance_score: m.score, match_reason: m.reason } : null
+    })
+    .filter(Boolean)
+    .slice(0, 20)
 
-    return NextResponse.json({ explanation: parsed.explanation, matches: matched })
-  } catch {
-    return NextResponse.json({ explanation: "Search failed.", matches: [] })
-  }
+  return NextResponse.json({ results })
 }
