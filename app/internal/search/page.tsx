@@ -23,6 +23,7 @@ export default function DatabaseSearchPage() {
         body: JSON.stringify({ query }),
       })
       const data = await res.json()
+      console.log("Search API response:", JSON.stringify(data))
       setExplanation(data.explanation || "")
       setResults(data.results || data.matches || [])
       setSearched(true)
