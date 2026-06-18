@@ -1,8 +1,18 @@
 "use client"
 import { useEffect, useState } from "react"
-import { MapPin, ArrowRight, Briefcase, Sparkles, Users, Shield } from "lucide-react"
+import { MapPin, ArrowRight, Briefcase, Sparkles, Users, Shield, FileText, CheckCircle, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import Link from "next/link"
+import CandidateAvatar from "@/components/CandidateAvatar"
+
+const COLORS = ["#028090","#3D5A4E","#1d4ed8","#7c3aed","#b45309","#be185d","#0f766e"]
+function getColor(name: string) { return COLORS[name.split("").reduce((a,c) => a + c.charCodeAt(0), 0) % COLORS.length] }
+
+function completionScore(c: any) {
+  const fields = ["name","phone","current_title","current_company","location","linkedin_url"]
+  const filled = fields.filter((f:string) => c[f] && c[f].toString().trim().length > 0).length
+  return Math.round(((filled + (c.avatar_url?1:0) + (c.cv_text?1:0)) / (fields.length + 2)) * 100)
+}
 
 export default function JobsPage() {
   const [mandates, setMandates] = useState<any[]>([])
