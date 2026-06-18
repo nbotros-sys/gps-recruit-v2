@@ -24,7 +24,7 @@ export default function DatabaseSearchPage() {
       })
       const data = await res.json()
       setExplanation(data.explanation || "")
-      setResults(data.matches || [])
+      setResults(data.results || data.matches || [])
     } catch {
       setExplanation("Search failed. Please try again.")
     }
