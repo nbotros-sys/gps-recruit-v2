@@ -22,6 +22,8 @@ export default function JobsPage() {
     load()
   }, [])
 
+  if (user && candidate) return <LoggedInHome candidate={candidate} applications={applications} mandates={mandates} />
+
   return (
     <div>
                   {/* ── HERO ── */}
@@ -146,6 +148,214 @@ export default function JobsPage() {
           </a>
         </div>
       </section>
+    </div>
+  )
+}
+
+function LoggedInHome({ candidate, applications, mandates }: { candidate: any, applications: any[], mandates: any[] }) {
+  const pct = completionScore(candidate)
+  const firstName = candidate.name?.split(" ")[0] || "there"
+  const circumference = 2 * Math.PI * 22
+  const dash = (pct / 100) * circumference
+
+  const STAGE_LABELS: Record<string,{label:string,color:string}> = {
+    new: { label: "Received", color: "#6b7280" },
+    screening: { label: "Under Review", color: "#d97706" },
+    interview: { label: "Interview", color: "#028090" },
+    shortlisted: { label: "Shortlisted", color: "#7c3aed" },
+    offered: { label: "Offer Stage", color: "#059669" },
+    placed: { label: "Placed ✓", color: "#028090" },
+    on_hold: { label: "On Hold", color: "#ef4444" },
+  }
+
+  // Rank mandates — ones matching candidate tags/function first
+  const candidateTags = (candidate.tags || []).map((t: string) => t.toLowerCase())
+  const ranked = [...mandates].sort((a, b) => {
+    const aMatch = candidateTags.some((t: string) =>
+      (a.title + " " + a.client_name).toLowerCase().includes(t))
+    const bMatch = candidateTags.some((t: string) =>
+      (b.title + " " + b.client_name).toLowerCase().includes(t))
+    return (bMatch ? 1 : 0) - (aMatch ? 1 : 0)
+  })
+
+  // Applied mandate IDs
+  const appliedIds = new Set(applications.map((a: any) => a.mandate_id))
+
+  return (
+    <div style={{ background: "#F4F8F7", minHeight: "80vh" }}>
+      
+      {/* Personal header */}
+      <div style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0d2b30 100%)", padding: "40px 40px 48px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "32px" }}>
+            <CandidateAvatar name={candidate.name || "?"} avatarUrl={candidate.avatar_url} size={64} />
+            <div>
+              <h1 style={{ fontSize: "28px", fontWeight: 800, color: "white", marginBottom: "4px" }}>
+                Good to see you, {firstName}
+              </h1>
+              {candidate.current_title && (
+                <p style={{ color: "#A8D5D1", fontSize: "15px", fontWeight: 500 }}>
+                  {candidate.current_title}{candidate.current_company ? ` @ ${candidate.current_company}` : ""}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+            
+            {/* Profile completion */}
+            <a href="/account/profile" style={{ textDecoration: "none" }}>
+              <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "20px", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }}>
+                <div style={{ position: "relative", width: "52px", height: "52px", flexShrink: 0 }}>
+                  <svg width="52" height="52" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+                    <circle cx="26" cy="26" r="22" fill="none" stroke="#A8D5D1" strokeWidth="4"
+                      strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" />
+                  </svg>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800, color: "white" }}>{pct}%</div>
+                </div>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: "white", margin: 0 }}>Profile</p>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", margin: 0 }}>{pct < 100 ? "Tap to complete" : "Complete ✓"}</p>
+                </div>
+              </div>
+            </a>
+
+            {/* Applications */}
+            <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(2,128,144,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Briefcase size={22} color="#A8D5D1" />
+              </div>
+              <div>
+                <p style={{ fontSize: "22px", fontWeight: 800, color: "white", margin: 0 }}>{applications.length}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", margin: 0 }}>Application{applications.length !== 1 ? "s" : ""}</p>
+              </div>
+            </div>
+
+            {/* CV status */}
+            <a href="/account/cv" style={{ textDecoration: "none" }}>
+              <div style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "20px", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }}>
+                <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: candidate.cv_text ? "rgba(2,128,144,0.3)" : "rgba(217,119,6,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <FileText size={22} color={candidate.cv_text ? "#A8D5D1" : "#fbbf24"} />
+                </div>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: "white", margin: 0 }}>CV</p>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", margin: 0 }}>{candidate.cv_text ? "On file ✓" : "Not uploaded"}</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 40px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "32px", alignItems: "start" }}>
+          
+          {/* Left — Open roles */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", margin: 0 }}>Open roles</h2>
+                <p style={{ fontSize: "13px", color: "#888", marginTop: "3px" }}>Ranked by relevance to your profile</p>
+              </div>
+              <span style={{ fontSize: "13px", color: "#028090", fontWeight: 600 }}>{mandates.length} active</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {ranked.map((m: any) => {
+                const applied = appliedIds.has(m.id)
+                return (
+                  <a key={m.id} href={applied ? "#" : `/jobs/${m.id}`}
+                    style={{ textDecoration: "none", display: "block", background: "white", borderRadius: "16px", border: applied ? "1.5px solid #A8D5D1" : "1px solid #e8e8e8", padding: "20px 24px", transition: "box-shadow 0.2s", cursor: applied ? "default" : "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "15px", fontWeight: 700, color: "#111" }}>{m.title}</span>
+                          {applied && <span style={{ fontSize: "11px", background: "#e6f5f3", color: "#028090", padding: "2px 8px", borderRadius: "99px", fontWeight: 600 }}>Applied ✓</span>}
+                        </div>
+                        <div style={{ display: "flex", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+                          {m.client_name && <span style={{ fontSize: "13px", color: "#666" }}>{m.client_name}</span>}
+                          {m.location && <span style={{ fontSize: "13px", color: "#888" }}>📍 {m.location}</span>}
+                          {m.salary_range && <span style={{ fontSize: "13px", color: "#888" }}>💰 {m.salary_range}</span>}
+                        </div>
+                      </div>
+                      {!applied && <ArrowRight size={18} color="#028090" style={{ flexShrink: 0, marginTop: "2px" }} />}
+                    </div>
+                  </a>
+                )
+              })}
+              {mandates.length === 0 && (
+                <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "14px" }}>
+                  No open roles right now — check back soon.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right — Applications + quick links */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+            {/* My applications */}
+            <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "24px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#111", marginBottom: "16px" }}>My applications</h3>
+              {applications.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <p style={{ fontSize: "13px", color: "#aaa" }}>No applications yet</p>
+                  <p style={{ fontSize: "12px", color: "#bbb", marginTop: "4px" }}>Apply to a role to get started</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {applications.slice(0, 5).map((app: any) => {
+                    const stage = STAGE_LABELS[app.stage] || { label: app.stage, color: "#888" }
+                    return (
+                      <div key={app.id} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: "13px", fontWeight: 600, color: "#111", margin: 0, truncate: true }}>{app.mandate?.title}</p>
+                          {app.mandate?.client_name && <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>{app.mandate.client_name}</p>}
+                        </div>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: stage.color, whiteSpace: "nowrap", flexShrink: 0 }}>
+                          {stage.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {applications.length > 5 && (
+                    <a href="/account" style={{ fontSize: "12px", color: "#028090", fontWeight: 600, textDecoration: "none", textAlign: "center" }}>
+                      View all {applications.length} →
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Quick links */}
+            <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "24px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#111", marginBottom: "16px" }}>Quick links</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {[
+                  { label: "Complete my profile", href: "/account/profile", icon: "👤", sub: pct < 100 ? `${pct}% done` : "Complete ✓" },
+                  { label: "Update my CV", href: "/account/cv", icon: "📄", sub: candidate.cv_text ? "CV on file" : "No CV yet" },
+                  { label: "My applications", href: "/account", icon: "📋", sub: `${applications.length} total` },
+                  { label: "How GPS works", href: "/how-it-works", icon: "💡", sub: "About the process" },
+                ].map(({ label, href, icon, sub }) => (
+                  <a key={label} href={href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "12px", textDecoration: "none", transition: "background 0.15s" }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f5f5f5"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                    <span style={{ fontSize: "18px" }}>{icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#111", margin: 0 }}>{label}</p>
+                      <p style={{ fontSize: "11px", color: "#aaa", margin: 0 }}>{sub}</p>
+                    </div>
+                    <ArrowRight size={14} color="#ccc" />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
