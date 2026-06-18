@@ -119,5 +119,14 @@ Respond ONLY with valid JSON array (no markdown):
     })
     .filter(Boolean)
 
-  return NextResponse.json({ results, searchMethod })
+  return NextResponse.json({ 
+    results, 
+    searchMethod,
+    debug: {
+      candidatesFound: candidates.length,
+      aiMatchesFound: matches.length,
+      openaiKeyPresent: !!process.env.OPENAI_API_KEY,
+      anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
+    }
+  })
 }
