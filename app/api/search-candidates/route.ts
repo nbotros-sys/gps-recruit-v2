@@ -10,66 +10,68 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Step 1: Convert query to vector
-  const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: query,
-    }),
-  })
-
   let candidates: any[] = []
+  let searchMethod = "fallback"
 
-  if (embeddingRes.ok) {
-    const embeddingData = await embeddingRes.json()
-    const queryVector = embeddingData.data[0].embedding
-
-    // Step 2: Vector similarity search — finds top 100 semantically similar CVs
-    const { data: vectorResults, error } = await supabase.rpc("match_candidates", {
-      query_embedding: queryVector,
-      match_threshold: 0.1,
-      match_count: 200,
+  // Step 1: Try vector search
+  try {
+    const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: query,
+      }),
     })
 
-    if (!error && vectorResults?.length > 0) {
-      // Hydrate with full candidate data
-      const ids = vectorResults.map((r: any) => r.candidate_id)
-      const { data: fullData } = await supabase
-        .from("candidates")
-        .select("id, name, current_title, current_company, location, tags, avatar_url, notes, applications(ai_score, mandate:mandates(title))")
-        .in("id", ids)
+    if (embeddingRes.ok) {
+      const embeddingData = await embeddingRes.json()
+      const queryVector = embeddingData.data[0].embedding
 
-      // Preserve vector similarity order and attach similarity score
-      candidates = ids
-        .map((id: string) => {
-          const cand = fullData?.find((c: any) => c.id === id)
-          const vecResult = vectorResults.find((r: any) => r.candidate_id === id)
-          return cand ? { ...cand, vector_similarity: vecResult?.similarity } : null
-        })
-        .filter(Boolean)
+      const { data: vectorResults, error: vecError } = await supabase.rpc("match_candidates", {
+        query_embedding: queryVector,
+        match_threshold: 0.1,
+        match_count: 200,
+      })
+
+      if (!vecError && vectorResults?.length > 0) {
+        searchMethod = "vector"
+        const ids = vectorResults.map((r: any) => r.candidate_id)
+        const { data: fullData } = await supabase
+          .from("candidates")
+          .select("id, name, current_title, current_company, location, tags, avatar_url, notes, applications(ai_score, mandate:mandates(title))")
+          .in("id", ids)
+
+        candidates = ids
+          .map((id: string) => {
+            const cand = fullData?.find((c: any) => c.id === id)
+            const vecResult = vectorResults.find((r: any) => r.candidate_id === id)
+            return cand ? { ...cand, vector_similarity: vecResult?.similarity } : null
+          })
+          .filter(Boolean)
+      }
     }
+  } catch (err) {
+    console.error("Vector search error:", err)
   }
 
-  // Fallback: if vector search fails or no embeddings yet, use text search
+  // Fallback: load all candidates if vector search failed
   if (!candidates.length) {
-    const keyword = query.split(" ")[0]
-    const { data: fallback } = await supabase
+    searchMethod = "fallback"
+    const { data: allData } = await supabase
       .from("candidates")
       .select("id, name, current_title, current_company, location, tags, avatar_url, notes, applications(ai_score, mandate:mandates(title))")
-      .or(`name.ilike.%${keyword}%,current_title.ilike.%${keyword}%,current_company.ilike.%${keyword}%`)
-      .limit(100)
-    candidates = fallback || []
+      .limit(200)
+    candidates = allData || []
   }
 
-  if (!candidates.length) return NextResponse.json({ results: [] })
+  if (!candidates.length) return NextResponse.json({ results: [], searchMethod })
 
-  // Step 3: AI re-ranks and reasons over top candidates
-  const summaries = candidates.slice(0, 100).map((c: any) => ({
+  // Step 2: AI re-ranks all candidates
+  const summaries = candidates.slice(0, 150).map((c: any) => ({
     id: c.id,
     name: c.name,
     title: c.current_title,
@@ -79,17 +81,17 @@ export async function POST(req: NextRequest) {
     summary: (c.notes || "").slice(0, 200),
   }))
 
-  const prompt = `You are an expert recruitment consultant. Find the best matching candidates for this search.
+  const prompt = `You are an expert recruitment consultant. Find candidates matching this search query.
 
 SEARCH QUERY: "${query}"
 
-CANDIDATES (pre-filtered by semantic similarity):
+CANDIDATES:
 ${JSON.stringify(summaries)}
 
-Identify which candidates genuinely match the query. Be selective but thorough.
+Find all candidates that genuinely match. Return empty array if none match.
 
 Respond ONLY with valid JSON array (no markdown):
-[{ "id": "<id>", "score": <1-100>, "reason": "<one concise reason why they match>" }]`
+[{ "id": "<id>", "score": <1-100>, "reason": "<concise reason>" }]`
 
   const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -117,5 +119,5 @@ Respond ONLY with valid JSON array (no markdown):
     })
     .filter(Boolean)
 
-  return NextResponse.json({ results })
+  return NextResponse.json({ results, searchMethod })
 }
