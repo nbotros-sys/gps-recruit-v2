@@ -278,12 +278,43 @@ export default function CandidatesPage() {
     setSaving(false)
   }
 
-  const filtered = candidates.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.current_title?.toLowerCase().includes(search.toLowerCase()) ||
-    c.current_company?.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
-  )
+  // Smart search — handles phone (with/without spaces/country code), email, name, title, company
+  const filtered = (() => {
+    if (!search.trim()) return candidates
+
+    const q = search.trim()
+    const qLower = q.toLowerCase()
+
+    // Phone search — strip all non-digits and match
+    const qDigits = q.replace(/[^0-9]/g, "")
+    const looksLikePhone = qDigits.length >= 6 && (q.startsWith("+") || q.startsWith("0") || /^[0-9 \-()]+$/.test(q))
+
+    return candidates.filter(c => {
+      // Email match
+      if (q.includes("@")) {
+        return c.email?.toLowerCase().includes(qLower)
+      }
+
+      // Phone match — strip spaces/dashes from stored number and compare digits
+      if (looksLikePhone && c.phone) {
+        const storedDigits = c.phone.replace(/[^0-9]/g, "")
+        // Match if stored contains query digits, or last 8+ digits match
+        if (storedDigits.includes(qDigits) || (qDigits.length >= 8 && storedDigits.endsWith(qDigits.slice(-8)))) {
+          return true
+        }
+      }
+
+      // Name, title, company, location, tags match
+      return (
+        c.name?.toLowerCase().includes(qLower) ||
+        c.current_title?.toLowerCase().includes(qLower) ||
+        c.current_company?.toLowerCase().includes(qLower) ||
+        c.location?.toLowerCase().includes(qLower) ||
+        (c.tags || []).some((t: string) => t.toLowerCase().includes(qLower)) ||
+        c.email?.toLowerCase().includes(qLower)
+      )
+    })
+  })()
 
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
   const bestScore = (c: any) => {
@@ -307,7 +338,7 @@ export default function CandidatesPage() {
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, title, company or email..."
+            placeholder="Search by name, email, phone, title, company, location or tag..."
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal" />
         </div>
       </div>
