@@ -1,5 +1,25 @@
 
 "use client"
+function PhoneInput({ value, onChange, style = {} }: { value: string, onChange: (val: string) => void, style?: any }) {
+  const num = value.startsWith("+20") ? value.slice(3).trim() : value.replace(/^00?20/, "").trim()
+  return (
+    <div style={{ display: "flex", border: "1.5px solid #e5e7eb", borderRadius: "12px", overflow: "hidden", background: "white", ...style }}>
+      <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRight: "1.5px solid #e5e7eb", fontSize: "14px", fontWeight: 700, color: "#555", userSelect: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
+        +20
+      </div>
+      <input
+        type="tel"
+        value={num}
+        onChange={e => {
+          const digits = e.target.value.replace(/[^0-9 ]/g, "")
+          onChange("+20" + (digits ? " " + digits : ""))
+        }}
+        placeholder="100 123 4567"
+        style={{ flex: 1, padding: "12px 14px", border: "none", outline: "none", fontSize: "14px", background: "transparent" }}
+      />
+    </div>
+  )
+}
 import CandidateAvatar from "@/components/CandidateAvatar"
 import { useState, useEffect } from "react"
 import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Star,
