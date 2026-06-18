@@ -105,27 +105,42 @@ export default function CVPage() {
         </button>
       </div>
 
-      {/* Current CV status */}
+      {/* CV on file — status + preview */}
       <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px" }}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "16px" }}>CV on file</h2>
         {candidate?.cv_text ? (
           <div>
+            {/* Status bar */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#f0faf8", border: "1px solid #A8D5D1", borderRadius: "12px", padding: "14px 18px", marginBottom: "16px" }}>
               <FileText size={18} color="#028090" />
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>CV on file</p>
-                <p style={{ fontSize: "12px", color: "#028090", margin: 0 }}>{Math.round(candidate.cv_text.length / 5)} words approx · Last updated when imported</p>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>CV on file ✓</p>
+                <p style={{ fontSize: "12px", color: "#028090", margin: 0 }}>~{Math.round(candidate.cv_text.length / 5).toLocaleString()} words · Upload a new CV anytime to replace</p>
               </div>
               <CheckCircle size={18} color="#028090" />
             </div>
-            <p style={{ fontSize: "12px", color: "#888", marginBottom: "12px" }}>Upload a new CV below to replace it. Your profile will be re-analysed automatically.</p>
+
+            {/* Preview toggle */}
+            <details style={{ marginTop: "8px" }}>
+              <summary style={{ fontSize: "13px", fontWeight: 600, color: "#028090", cursor: "pointer", userSelect: "none", listStyle: "none", display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+                <span>▶ Preview what GPS has on file</span>
+              </summary>
+              <div style={{ background: "#f9fafb", borderRadius: "12px", padding: "20px", border: "1px solid #e5e7eb" }}>
+                <p style={{ fontSize: "11px", color: "#aaa", marginBottom: "12px", fontStyle: "italic" }}>
+                  This is the text GPS extracted from your CV. It is used by our AI to match you to roles.
+                </p>
+                <pre style={{ fontSize: "13px", color: "#444", whiteSpace: "pre-wrap", fontFamily: "inherit", lineHeight: 1.8, margin: 0, maxHeight: "500px", overflowY: "auto" }}>
+                  {candidate.cv_text}
+                </pre>
+              </div>
+            </details>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fef9ec", border: "1px solid #fcd34d", borderRadius: "12px", padding: "14px 18px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#fef9ec", border: "1px solid #fcd34d", borderRadius: "12px", padding: "14px 18px" }}>
             <FileText size={18} color="#d97706" />
             <div>
-              <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>No CV on file</p>
-              <p style={{ fontSize: "12px", color: "#d97706", margin: 0 }}>Upload your CV so GPS consultants can match you to roles.</p>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#111", margin: 0 }}>No CV on file yet</p>
+              <p style={{ fontSize: "12px", color: "#d97706", margin: 0 }}>Upload your CV above so GPS consultants can match you to roles.</p>
             </div>
           </div>
         )}
