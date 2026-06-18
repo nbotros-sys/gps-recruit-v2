@@ -88,7 +88,7 @@ SEARCH QUERY: "${query}"
 CANDIDATES:
 ${JSON.stringify(summaries)}
 
-Find all candidates that genuinely match. Return empty array if none match.
+Find ALL candidates with any relevant experience, skills or background matching the query. Be INCLUSIVE — if someone has done payroll, HR, finance, or related work, include them. Only exclude people who are completely unrelated.
 
 Respond ONLY with valid JSON array (no markdown):
 [{ "id": "<id>", "score": <1-100>, "reason": "<concise reason>" }]`
