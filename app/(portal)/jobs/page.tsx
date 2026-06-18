@@ -24,28 +24,49 @@ export default function JobsPage() {
 
   return (
     <div>
-            {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-[#071F24] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(168,213,209,0.18),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(2,128,144,0.22),transparent_34%),linear-gradient(135deg,#071F24_0%,#0B2B30_55%,#12352F_100%)]" />
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full border border-[#A8D5D1]/10" />
-        <div className="absolute -right-20 bottom-10 h-96 w-96 rounded-full border border-[#028090]/20" />
-        <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(#A8D5D1_1px,transparent_1px),linear-gradient(90deg,#A8D5D1_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="relative mx-auto max-w-5xl text-center">
-          <img src="/gps-logo.png" alt="GPS" className="mx-auto mb-8 h-16 w-16 object-contain" />
-          <div className="mx-auto mb-5 inline-flex rounded-full border border-[#A8D5D1]/20 bg-white/5 px-4 py-2 text-sm font-semibold tracking-wide text-[#A8D5D1] backdrop-blur">
-            Executive recruitment for Egypt&apos;s senior market
+                  {/* ── HERO ── */}
+      <section style={{ position: "relative", width: "100%", minHeight: "92vh", background: "#071f24", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "72px 24px 88px", isolation: "isolate" }}>
+        
+        {/* Animations */}
+        <style>{`
+          @keyframes gpsFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+          @keyframes gpsGlow { 0%,100% { opacity: .55; } 50% { opacity: .85; } }
+          .gps-btn-solid:hover { background: #0596a8 !important; transform: translateY(-2px); box-shadow: 0 18px 38px -8px rgba(2,128,144,.85) !important; }
+          .gps-btn-ghost:hover { border-color: rgba(168,213,209,.85) !important; background: rgba(168,213,209,.08) !important; transform: translateY(-2px); }
+        `}</style>
+
+        {/* Radial glow */}
+        <div style={{ position: "absolute", top: "-12%", left: "50%", transform: "translateX(-50%)", width: "min(1100px, 140%)", height: "760px", background: "radial-gradient(ellipse at center, rgba(2,128,144,.42) 0%, rgba(2,128,144,.14) 38%, rgba(7,31,36,0) 70%)", filter: "blur(8px)", animation: "gpsGlow 9s ease-in-out infinite", pointerEvents: "none" }} />
+
+        {/* Dot pattern */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(168,213,209,.10) 1.2px, transparent 1.2px)", backgroundSize: "34px 34px", WebkitMaskImage: "radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", maskImage: "radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", pointerEvents: "none" }} />
+
+        {/* Top line */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(90deg, transparent, rgba(168,213,209,.30), transparent)" }} />
+
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: "780px", width: "100%" }}>
+          
+          <img src="/gps-logo.png" alt="GPS" style={{ width: "clamp(120px, 17vw, 188px)", height: "auto", marginBottom: "14px", filter: "drop-shadow(0 14px 40px rgba(2,128,144,.35))", animation: "gpsFloat 7s ease-in-out infinite" }} />
+
+          <div style={{ fontSize: "12px", letterSpacing: ".32em", textTransform: "uppercase", color: "#a8d5d1", fontWeight: 600, marginBottom: "26px" }}>
+            Executive Recruitment · Egypt
           </div>
-          <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Your next role,<br />placed by GPS.
+
+          <h1 style={{ margin: "0 0 22px", fontFamily: "Georgia, serif", fontWeight: 400, fontSize: "clamp(38px, 6.4vw, 76px)", lineHeight: 1.04, letterSpacing: "-.015em", color: "#f4f8f7" }}>
+            Your next role,<br />placed by{" "}
+            <span style={{ color: "#36b0bd", fontStyle: "italic" }}>GPS</span>.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl">
+
+          <p style={{ margin: "0 0 40px", fontSize: "clamp(16px, 1.7vw, 20px)", lineHeight: 1.6, color: "rgba(225,238,236,.74)", maxWidth: "560px" }}>
             Egypt&apos;s specialist recruitment network. Senior roles across finance, HR, operations and technology.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a href="#roles" className="w-full rounded-2xl bg-[#028090] px-8 py-4 text-center text-base font-bold text-white shadow-2xl shadow-[#028090]/25 transition hover:bg-[#0396A8] sm:w-auto">
-              Browse open roles →
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "center" }}>
+            <a href="#roles" className="gps-btn-solid" style={{ display: "inline-flex", alignItems: "center", gap: "10px", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", padding: "16px 30px", borderRadius: "10px", textDecoration: "none", transition: "transform .2s ease, box-shadow .2s ease, background .2s ease", background: "#028090", color: "#fff", boxShadow: "0 12px 30px -8px rgba(2,128,144,.7)" }}>
+              Browse open roles <span aria-hidden="true">→</span>
             </a>
-            <a href="/send-cv" className="w-full rounded-2xl border border-white/20 bg-white/5 px-8 py-4 text-center text-base font-semibold text-white backdrop-blur transition hover:border-[#A8D5D1]/50 hover:bg-white/10 sm:w-auto">
+            <a href="/send-cv" className="gps-btn-ghost" style={{ display: "inline-flex", alignItems: "center", gap: "10px", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", padding: "16px 30px", borderRadius: "10px", textDecoration: "none", transition: "transform .2s ease, border-color .2s ease, background .2s ease", background: "transparent", color: "#d8eae8", border: "1px solid rgba(168,213,209,.38)" }}>
               Send us your CV
             </a>
           </div>
