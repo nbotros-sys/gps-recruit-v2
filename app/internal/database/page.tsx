@@ -272,27 +272,41 @@ export default function DatabaseImportPage() {
             {results.map((r, i) => (
               <div key={i} className={`bg-white rounded-2xl border p-4 transition-all
                 ${r.status === "done" ? "border-gray-100 shadow-sm" :
-                  r.status === "error" ? "border-red-100 bg-red-50/30" :
+                  r.status === "error" ? "border-red-200 bg-red-50" :
                   r.status === "processing" ? "border-teal/20 bg-teal/[0.02]" :
                   "border-gray-100 opacity-40"}`}>
                 <div className="flex items-center gap-3">
                   {r.status === "done"
                     ? <CandidateAvatar name={r.name || r.filename} avatarUrl={r.avatar_url} size={36} />
-                    : r.status === "error" ? <AlertCircle size={15} className="text-red-400 flex-shrink-0" />
+                    : r.status === "error" ? <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
                     : r.status === "processing" ? <Loader2 size={15} className="animate-spin text-teal flex-shrink-0" />
                     : <div className="w-4 h-4 rounded-full border-2 border-gray-200 flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm text-gray-900 truncate">{r.name || r.filename}</span>
-                      {r.title && <span className="text-xs text-gray-400 truncate">{r.title}</span>}
+                      <span className={`font-medium text-sm truncate ${r.status === "error" ? "text-red-700" : "text-gray-900"}`}>
+                        {r.filename}
+                      </span>
                     </div>
                     <div className="mt-0.5 text-xs">
-                      {r.status === "done" && <span className="text-green-600">Saved</span>}
-                      {r.status === "error" && <span className="text-red-400">{r.error}</span>}
+                      {r.status === "done" && <span className="text-green-600">✓ Saved — {r.name}{r.title ? ` · ${r.title}` : ""}</span>}
+                      {r.status === "error" && <span className="text-red-500 font-medium">Failed: {r.error}</span>}
                       {r.status === "processing" && <span className="text-teal">Processing...</span>}
                       {r.status === "pending" && <span className="text-gray-300">Waiting...</span>}
                     </div>
                   </div>
+                  {r.status === "error" && !running && (
+                    <button
+                      onClick={() => {
+                        const failedFile = files[i]
+                        if (failedFile) {
+                          updateResult(i, { status: "pending" })
+                          processOne(failedFile, i)
+                        }
+                      }}
+                      className="flex-shrink-0 text-xs font-semibold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                      Retry
+                    </button>
+                  )}
                 </div>
                 {r.status === "done" && r.summary && (
                   <p className="text-xs text-gray-500 mt-2 leading-relaxed pl-12">{r.summary}</p>
