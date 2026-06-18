@@ -66,7 +66,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     const clean = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(clean)
 
-    return NextResponse.json({
+    const profile = {
       name: parsed.name || filename?.replace(/\.[^.]+$/, "") || "Unknown",
       email: parsed.email || null,
       phone: parsed.phone || null,
@@ -79,7 +79,9 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       function: parsed.function || null,
       seniority: parsed.seniority || null,
       industry: parsed.industry || null,
-    })
+    }
+
+    return NextResponse.json(profile)
   } catch (err) {
     console.error("Build profile error:", err)
     return NextResponse.json({ error: "Failed to build profile" }, { status: 500 })
