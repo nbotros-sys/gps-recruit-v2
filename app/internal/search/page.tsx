@@ -128,7 +128,7 @@ export default function DatabaseSearchPage() {
                       </div>
                     )}
                     <div className="text-right">
-                      <div className="text-sm font-bold" style={{ color: scoreColor(c.relevance) }}>{c.relevance}%</div>
+                      <div className="text-sm font-bold" style={{ color: scoreColor(c.relevance_score) }}>{c.relevance_score}</div>
                       <div className="text-[10px] text-gray-400">match</div>
                     </div>
                     <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
