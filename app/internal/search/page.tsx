@@ -118,13 +118,13 @@ export default function DatabaseSearchPage() {
                       {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
                       {c.location && <span className="ml-2 text-gray-400">· {c.location}</span>}
                     </div>
-                    <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
+                    <div className="text-xs text-teal mt-1 italic">{c.match_reason}</div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    {c.best_score > 0 && (
+                    {c.relevance_score > 0 && (
                       <div className="flex items-center gap-1">
                         <Star size={12} className="text-amber-400 fill-amber-400" />
-                        <span className="text-xs font-semibold" style={{ color: scoreColor(c.best_score) }}>{c.best_score}</span>
+                        <span className="text-xs font-semibold" style={{ color: scoreColor(c.relevance_score) }}>{c.relevance_score}</span>
                       </div>
                     )}
                     <div className="text-right">
