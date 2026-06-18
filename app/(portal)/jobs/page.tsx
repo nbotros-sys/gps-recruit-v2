@@ -24,66 +24,30 @@ export default function JobsPage() {
 
   return (
     <div>
-      {/* ── HERO ── */}
-      <section style={{ background: "linear-gradient(160deg, #0a1f24 0%, #0d2b30 60%, #1a3d35 100%)", borderBottom: "none" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 40px 72px" }}>
-
-          {/* Logo + brand row */}
-          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "40px" }}>
-            <img src="/gps-logo.png" alt="GPS" style={{ width: "52px", height: "52px", objectFit: "contain" }} />
-            <div style={{ width: "1px", height: "40px", background: "rgba(255,255,255,0.2)" }} />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "18px", color: "white", lineHeight: 1.1 }}>GPS</div>
-              <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Talent Network · Egypt</div>
-            </div>
+            {/* ── HERO ── */}
+      <section className="relative overflow-hidden bg-[#071F24] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(168,213,209,0.18),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(2,128,144,0.22),transparent_34%),linear-gradient(135deg,#071F24_0%,#0B2B30_55%,#12352F_100%)]" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full border border-[#A8D5D1]/10" />
+        <div className="absolute -right-20 bottom-10 h-96 w-96 rounded-full border border-[#028090]/20" />
+        <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(#A8D5D1_1px,transparent_1px),linear-gradient(90deg,#A8D5D1_1px,transparent_1px)] [background-size:48px_48px]" />
+        <div className="relative mx-auto max-w-5xl text-center">
+          <img src="/gps-logo.png" alt="GPS" className="mx-auto mb-8 h-16 w-16 object-contain" />
+          <div className="mx-auto mb-5 inline-flex rounded-full border border-[#A8D5D1]/20 bg-white/5 px-4 py-2 text-sm font-semibold tracking-wide text-[#A8D5D1] backdrop-blur">
+            Executive recruitment for Egypt&apos;s senior market
           </div>
-
-          {/* Main headline + CTA */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "48px", alignItems: "flex-end" }}>
-            <div>
-              {/* AI badge */}
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(168,213,209,0.2)", color: "#A8D5D1", fontSize: "11px", fontWeight: 700, padding: "6px 14px", borderRadius: "99px", letterSpacing: "0.06em", marginBottom: "22px" }}>
-                <span>✦</span> AI-Matched Recruitment
-              </div>
-
-              <h1 style={{ fontSize: "58px", fontWeight: 900, color: "white", lineHeight: 1.0, letterSpacing: "-0.02em", marginBottom: "18px" }}>
-                Your next<br />
-                opportunity<br />
-                <span style={{ color: "#028090" }}>starts here.</span>
-              </h1>
-
-              <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.65)", lineHeight: 1.65, maxWidth: "500px", marginBottom: "32px" }}>
-                Where the right people find the right jobs. GPS matches professionals across Egypt to opportunities that genuinely fit — intelligently, personally, confidentially.
-              </p>
-
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <a href="#roles" style={{ background: "#028090", color: "white", padding: "14px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", display: "inline-block" }}>
-                  See open roles
-                </a>
-                <a href="/join" style={{ background: "transparent", color: "rgba(255,255,255,0.85)", padding: "13px 28px", borderRadius: "12px", fontWeight: 700, fontSize: "15px", textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.3)", display: "inline-block" }}>
-                  Join the network →
-                </a>
-              </div>
-            </div>
-
-            {/* Right side: 3 pillars stacked */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "260px" }}>
-              {[
-                { icon: "✦", label: "AI-matched", desc: "Every CV read deeply" },
-                { icon: "◎", label: "Personally reviewed", desc: "Real people, real decisions" },
-                { icon: "◈", label: "Fully confidential", desc: "Never shared without consent" },
-              ].map(({ icon, label, desc }) => (
-                <div key={label} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: "rgba(2,128,144,0.4)", borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color: "#A8D5D1", flexShrink: 0 }}>
-                    {icon}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "white" }}>{label}</div>
-                    <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginTop: "1px" }}>{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
+            Your next role,<br />placed by GPS.
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl">
+            Egypt&apos;s specialist recruitment network. Senior roles across finance, HR, operations and technology.
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a href="#roles" className="w-full rounded-2xl bg-[#028090] px-8 py-4 text-center text-base font-bold text-white shadow-2xl shadow-[#028090]/25 transition hover:bg-[#0396A8] sm:w-auto">
+              Browse open roles →
+            </a>
+            <a href="/send-cv" className="w-full rounded-2xl border border-white/20 bg-white/5 px-8 py-4 text-center text-base font-semibold text-white backdrop-blur transition hover:border-[#A8D5D1]/50 hover:bg-white/10 sm:w-auto">
+              Send us your CV
+            </a>
           </div>
         </div>
       </section>
@@ -163,30 +127,4 @@ export default function JobsPage() {
       </section>
     </div>
   )
-}      {/* Hero */}
-      <section className="relative overflow-hidden bg-[#071F24] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(168,213,209,0.18),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(2,128,144,0.22),transparent_34%),linear-gradient(135deg,#071F24_0%,#0B2B30_55%,#12352F_100%)]" />
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full border border-[#A8D5D1]/10" />
-        <div className="absolute -right-20 bottom-10 h-96 w-96 rounded-full border border-[#028090]/20" />
-        <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(#A8D5D1_1px,transparent_1px),linear-gradient(90deg,#A8D5D1_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="relative mx-auto max-w-5xl text-center">
-          <img src="/gps-logo.png" alt="GPS" className="mx-auto mb-8 h-16 w-16 object-contain" />
-          <div className="mx-auto mb-5 inline-flex rounded-full border border-[#A8D5D1]/20 bg-white/5 px-4 py-2 text-sm font-semibold tracking-wide text-[#A8D5D1] backdrop-blur">
-            Executive recruitment for Egypt&apos;s senior market
-          </div>
-          <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Your next role,<br />placed by GPS.
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl">
-            Egypt&apos;s specialist recruitment network. Senior roles across finance, HR, operations and technology.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a href="#roles" className="w-full rounded-2xl bg-[#028090] px-8 py-4 text-center text-base font-bold text-white shadow-2xl shadow-[#028090]/25 transition hover:bg-[#0396A8] sm:w-auto">
-              Browse open roles →
-            </a>
-            <a href="/send-cv" className="w-full rounded-2xl border border-white/20 bg-white/5 px-8 py-4 text-center text-base font-semibold text-white backdrop-blur transition hover:border-[#A8D5D1]/50 hover:bg-white/10 sm:w-auto">
-              Send us your CV
-            </a>
-          </div>
-        </div>
-      </section>
+}
