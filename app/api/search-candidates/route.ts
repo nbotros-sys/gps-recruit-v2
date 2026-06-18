@@ -33,9 +33,12 @@ export async function POST(req: NextRequest) {
 
       const { data: vectorResults, error: vecError } = await supabase.rpc("match_candidates", {
         query_embedding: queryVector,
-        match_threshold: 0.1,
-        match_count: 200,
+        match_threshold: 0.55,
+        match_count: 100,
       })
+
+      console.log("Vector search error:", vecError)
+      console.log("Vector results count:", vectorResults?.length)
 
       if (!vecError && vectorResults?.length > 0) {
         searchMethod = "vector"
