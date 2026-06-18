@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     // Step 2: Vector similarity search — finds top 100 semantically similar CVs
     const { data: vectorResults, error } = await supabase.rpc("match_candidates", {
       query_embedding: queryVector,
-      match_threshold: 0.3,
-      match_count: 100,
+      match_threshold: 0.1,
+      match_count: 200,
     })
 
     if (!error && vectorResults?.length > 0) {
