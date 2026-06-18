@@ -96,6 +96,17 @@ export default function DatabaseImportPage() {
         if (inserted) savedId = inserted.id
       }
 
+      // Generate embedding for vector search
+      if (savedId && cvText.trim()) {
+        try {
+          await fetch("/api/generate-embedding", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ candidateId: savedId, text: cvText })
+          })
+        } catch (e) { console.log("Embedding generation failed:", e) }
+      }
+
       // Extract photo from docx
       let avatar_url: string | null = null
       if (savedId && file.name.match(/\.docx?$/i)) {
