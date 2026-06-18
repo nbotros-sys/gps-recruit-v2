@@ -3,17 +3,79 @@ import { createClient } from "@supabase/supabase-js"
 
 export async function POST(req: NextRequest) {
   const { query } = await req.json()
-  if (!query) return NextResponse.json({ error: "No query" }, { status: 400 })
+  if (!query?.trim()) return NextResponse.json({ error: "No query" }, { status: 400 })
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
+  const q = query.trim()
+
+  // ── FAST PATH 1: Email lookup
+  if (q.includes("@")) {
+    const { data } = await supabase
+      .from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, email, phone, applications(ai_score, mandate:mandates(title))")
+      .ilike("email", `%${q}%`)
+      .limit(20)
+    if (data?.length) {
+      const results = data.map((c: any) => ({
+        ...c,
+        relevance_score: 100,
+        match_reason: `Email matches "${q}"`,
+      }))
+      return NextResponse.json({ results, searchMethod: "email" })
+    }
+  }
+
+  // ── FAST PATH 2: Phone lookup — strip spaces, dashes, brackets
+  const digits = q.replace(/[^0-9+]/g, "")
+  if (digits.length >= 7) {
+    const { data: allCands } = await supabase
+      .from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, email, phone, applications(ai_score, mandate:mandates(title))")
+      .not("phone", "is", null)
+      .limit(500)
+
+    const phoneMatches = (allCands || []).filter((c: any) => {
+      const storedDigits = (c.phone || "").replace(/[^0-9+]/g, "")
+      return storedDigits.includes(digits) || digits.includes(storedDigits.slice(-8))
+    })
+
+    if (phoneMatches.length) {
+      const results = phoneMatches.map((c: any) => ({
+        ...c,
+        relevance_score: 100,
+        match_reason: `Phone matches "${q}"`,
+      }))
+      return NextResponse.json({ results, searchMethod: "phone" })
+    }
+  }
+
+  // ── FAST PATH 3: Name exact/partial match
+  const nameWords = q.split(" ").filter((w: string) => w.length > 1)
+  if (nameWords.length >= 2 && nameWords.length <= 4 && !q.includes(" in ") && !q.includes(" with ")) {
+    const { data: nameMatches } = await supabase
+      .from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, email, phone, applications(ai_score, mandate:mandates(title))")
+      .ilike("name", `%${q}%`)
+      .limit(10)
+
+    if (nameMatches?.length) {
+      const results = nameMatches.map((c: any) => ({
+        ...c,
+        relevance_score: 100,
+        match_reason: `Name matches "${q}"`,
+      }))
+      return NextResponse.json({ results, searchMethod: "name" })
+    }
+  }
+
+  // ── AI PATH: Vector search + AI re-ranking for natural language queries
   let candidates: any[] = []
   let searchMethod = "fallback"
 
-  // Step 1: Try vector search
   try {
     const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
@@ -21,10 +83,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: query,
-      }),
+      body: JSON.stringify({ model: "text-embedding-3-small", input: q }),
     })
 
     if (embeddingRes.ok) {
@@ -37,22 +96,21 @@ export async function POST(req: NextRequest) {
         match_count: 100,
       })
 
-      console.log("Vector search error:", vecError)
-      console.log("Vector results count:", vectorResults?.length)
+      console.log("Vector error:", vecError, "Vector count:", vectorResults?.length)
 
       if (!vecError && vectorResults?.length > 0) {
         searchMethod = "vector"
         const ids = vectorResults.map((r: any) => r.candidate_id)
         const { data: fullData } = await supabase
           .from("candidates")
-          .select("id, name, current_title, current_company, location, tags, avatar_url, notes, applications(ai_score, mandate:mandates(title))")
+          .select("id, name, current_title, current_company, location, tags, avatar_url, email, phone, notes, applications(ai_score, mandate:mandates(title))")
           .in("id", ids)
 
         candidates = ids
           .map((id: string) => {
             const cand = fullData?.find((c: any) => c.id === id)
-            const vecResult = vectorResults.find((r: any) => r.candidate_id === id)
-            return cand ? { ...cand, vector_similarity: vecResult?.similarity } : null
+            const vec = vectorResults.find((r: any) => r.candidate_id === id)
+            return cand ? { ...cand, vector_similarity: vec?.similarity } : null
           })
           .filter(Boolean)
       }
@@ -61,19 +119,19 @@ export async function POST(req: NextRequest) {
     console.error("Vector search error:", err)
   }
 
-  // Fallback: load all candidates if vector search failed
+  // Fallback: all candidates
   if (!candidates.length) {
     searchMethod = "fallback"
-    const { data: allData } = await supabase
+    const { data } = await supabase
       .from("candidates")
-      .select("id, name, current_title, current_company, location, tags, avatar_url, notes, applications(ai_score, mandate:mandates(title))")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, email, phone, notes, applications(ai_score, mandate:mandates(title))")
       .limit(200)
-    candidates = allData || []
+    candidates = data || []
   }
 
   if (!candidates.length) return NextResponse.json({ results: [], searchMethod })
 
-  // Step 2: AI re-ranks all candidates
+  // AI re-ranking
   const summaries = candidates.slice(0, 150).map((c: any) => ({
     id: c.id,
     name: c.name,
@@ -86,12 +144,12 @@ export async function POST(req: NextRequest) {
 
   const prompt = `You are an expert recruitment consultant. Find candidates matching this search query.
 
-SEARCH QUERY: "${query}"
+SEARCH QUERY: "${q}"
 
 CANDIDATES:
 ${JSON.stringify(summaries)}
 
-Find candidates who genuinely match this search. Include candidates whose title, company, skills or experience directly relate to the query. Exclude candidates with no clear connection. Score 70+ for strong matches, 40-69 for partial matches, below 40 only if tangentially related. Be accurate, not just broad.
+Find candidates who genuinely match. Score 70+ for strong matches, 40-69 for partial. Return empty array if none match.
 
 Respond ONLY with valid JSON array (no markdown):
 [{ "id": "<id>", "score": <1-100>, "reason": "<concise reason>" }]`
@@ -122,14 +180,5 @@ Respond ONLY with valid JSON array (no markdown):
     })
     .filter(Boolean)
 
-  return NextResponse.json({ 
-    results, 
-    searchMethod,
-    debug: {
-      candidatesFound: candidates.length,
-      aiMatchesFound: matches.length,
-      openaiKeyPresent: !!process.env.OPENAI_API_KEY,
-      anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
-    }
-  })
+  return NextResponse.json({ results, searchMethod })
 }
