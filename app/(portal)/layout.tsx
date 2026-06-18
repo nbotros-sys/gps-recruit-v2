@@ -53,7 +53,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Nav links */}
           <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-            <a href="/jobs" style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", fontWeight: 500, textDecoration: "none" }}
+            <a href="/jobs#roles" style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", fontWeight: 500, textDecoration: "none" }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "white"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)"}>
               Open Roles
