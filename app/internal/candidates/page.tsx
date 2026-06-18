@@ -26,7 +26,7 @@ const STAGE_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-600",
 }
 
-function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, onClose: () => void, onNoteSaved: (id: string, notes: string) => void }) {
+function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, onClose: () => void, onNoteSaved: (id: string, internalNotes: string) => void }) {
   const [tab, setTab] = useState<"overview" | "cv" | "notes">("overview")
   const [notes, setNotes] = useState(candidate.internal_notes || "")
   // internal_notes is separate from AI notes field
@@ -367,9 +367,9 @@ export default function CandidatesPage() {
         <CandidateModal
           candidate={selected}
           onClose={() => setSelected(null)}
-          onNoteSaved={(id, notes) => {
-            setCandidates(prev => prev.map(c => c.id === id ? { ...c, notes } : c))
-            setSelected((prev: any) => ({ ...prev, notes }))
+          onNoteSaved={(id, internalNotes) => {
+            setCandidates(prev => prev.map(c => c.id === id ? { ...c, internal_notes: internalNotes } : c))
+            setSelected((prev: any) => ({ ...prev, internal_notes: internalNotes }))
           }}
         />
       )}
