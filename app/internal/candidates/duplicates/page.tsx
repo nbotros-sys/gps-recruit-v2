@@ -14,7 +14,7 @@ export default function DuplicatesPage() {
   const [pairs, setPairs] = useState<Pair[]>([])
   const [loading, setLoading] = useState(true)
   const [merging, setMerging] = useState<string | null>(null)
-  const [merged, setMerged] = useState<Set<string>>(new Set())
+  const [merged, setMerged] = useState<string[]>([])
 
   async function load() {
     setLoading(true)
@@ -34,12 +34,12 @@ export default function DuplicatesPage() {
       body: JSON.stringify({ keepId, discardId })
     })
     if (res.ok) {
-      setMerged(prev => new Set([...prev, pairKey]))
+      setMerged(prev => [...prev, pairKey])
     }
     setMerging(null)
   }
 
-  const activePairs = pairs.filter(p => !merged.has(`${p.a.id}-${p.b.id}`))
+  const activePairs = pairs.filter(p => merged.indexOf(`${p.a.id}-${p.b.id}`) === -1)
   const definite = activePairs.filter(p => p.confidence === "definite")
   const probable = activePairs.filter(p => p.confidence === "probable")
 
