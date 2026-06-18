@@ -92,7 +92,7 @@ export default function JobsPage() {
       <section id="roles" style={{ maxWidth: "1100px", margin: "0 auto", padding: "64px 40px" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "28px" }}>
           <div>
-            <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#111" }}>Open roles</h2>
+            <h2 id="roles" style={{ fontSize: "28px", fontWeight: 800, color: "#111", scrollMarginTop: "90px" }}>Open roles</h2>
             <p style={{ color: "#888", fontSize: "14px", marginTop: "4px" }}>Active mandates — all reviewed by GPS consultants</p>
           </div>
           <span style={{ fontSize: "13px", color: "#aaa" }}>{loading ? "..." : mandates.length} active</span>
