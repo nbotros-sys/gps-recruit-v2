@@ -129,6 +129,7 @@ function DuplicatePair({ pair, merging, onMerge }: {
   onMerge: (keepId: string, discardId: string) => void
 }) {
   const [choice, setChoice] = useState<"a" | "b" | null>(null)
+  const [showCV, setShowCV] = useState(false)
   const { a, b, confidence, reason } = pair
 
   return (
@@ -193,6 +194,37 @@ function DuplicatePair({ pair, merging, onMerge }: {
           </div>
         ))}
       </div>
+
+      {/* CV Compare toggle */}
+      <div className="border-t border-gray-100">
+        <button
+          onClick={() => setShowCV(!showCV)}
+          className="w-full px-5 py-3 text-xs font-semibold text-gray-500 hover:text-teal hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+          {showCV ? "▲ Hide CVs" : "▼ Compare CVs side by side"}
+        </button>
+      </div>
+
+      {/* CV comparison panel */}
+      {showCV && (
+        <div className="grid grid-cols-2 divide-x divide-gray-100 border-t border-gray-100">
+          {[a, b].map((cand, i) => (
+            <div key={cand.id} className="p-5">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
+                {cand.name} — CV
+              </div>
+              {cand.cv_text ? (
+                <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans max-h-96 overflow-y-auto bg-gray-50 rounded-xl p-4">
+                  {cand.cv_text}
+                </pre>
+              ) : (
+                <div className="text-xs text-gray-400 italic py-8 text-center bg-gray-50 rounded-xl">
+                  No CV text on file
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Merge action */}
       <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
