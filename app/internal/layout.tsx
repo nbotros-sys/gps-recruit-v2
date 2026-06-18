@@ -3,13 +3,14 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge } from "lucide-react"
 
 const nav = [
   { href: "/internal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/internal/mandates", icon: Briefcase, label: "Mandates" },
   { href: "/internal/candidates", icon: Users, label: "Candidates" },
   { href: "/internal/database", icon: Database, label: "Import CVs" },
+  { href: "/internal/candidates/duplicates", icon: GitMerge, label: "Duplicates" },
   { href: "/internal/search", icon: Search, label: "AI Search" },
   { href: "/internal/clients", icon: Building2, label: "Clients" },
   { href: "/internal/sourcing", icon: Zap, label: "AI Sourcing" },
