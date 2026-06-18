@@ -100,6 +100,19 @@ export default function JoinPage() {
         } catch (e) { console.log("No photo") }
       }
 
+      // Send welcome email
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "network_welcome",
+            candidateName: form.name || profile.name || "Candidate",
+            candidateEmail: form.email,
+          })
+        })
+      } catch (e) { console.log("Email send failed:", e) }
+
       setState("done_new")
     } catch (err) {
       console.error(err)
