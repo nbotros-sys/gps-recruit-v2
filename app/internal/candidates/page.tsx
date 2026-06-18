@@ -28,7 +28,7 @@ const STAGE_COLORS: Record<string, string> = {
 
 function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, onClose: () => void, onNoteSaved: (id: string, notes: string) => void }) {
   const [tab, setTab] = useState<"overview" | "cv" | "notes">("overview")
-  const [notes, setNotes] = useState(candidate.notes || "")
+  const [notes, setNotes] = useState(candidate.internal_notes || "")
   const [savingNotes, setSavingNotes] = useState(false)
   const supabase = createClient()
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
