@@ -48,7 +48,7 @@ export default function MandateDetail() {
   const { id } = useParams()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<"pipeline" | "bulk" | "ai" | "insight">("pipeline")
+  const [tab, setTab] = useState<"jd" | "pipeline" | "bulk" | "ai" | "insight">("pipeline")
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
