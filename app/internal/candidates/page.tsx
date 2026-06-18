@@ -35,7 +35,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
 
   async function saveNotes() {
     setSavingNotes(true)
-    await supabase.from("candidates").update({ notes }).eq("id", candidate.id)
+    await supabase.from("candidates").update({ internal_notes: notes }).eq("id", candidate.id)
     onNoteSaved(candidate.id, notes)
     setSavingNotes(false)
   }
@@ -188,11 +188,27 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
 
           {/* Notes */}
           {tab === "notes" && (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-400">Private notes — only visible to GPS team</p>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={10}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
-                placeholder="Add your notes about this candidate...&#10;&#10;e.g. Spoke on 17 June — strong FP&A, open to a move in 3 months. Salary expectation: 45k EGP." />
+            <div className="space-y-4">
+              {/* AI Summary */}
+              {candidate?.notes && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold text-teal uppercase tracking-wide">AI Summary</span>
+                    <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
+                  </div>
+                  <div className="text-sm text-gray-600 leading-relaxed bg-teal/5 border border-teal/10 rounded-xl p-4">
+                    {candidate.notes}
+                  </div>
+                </div>
+              )}
+              {/* Internal Notes */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Internal Notes</p>
+                <p className="text-xs text-gray-400 mb-2">Private — only visible to GPS team</p>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={8}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
+                  placeholder="Add your internal notes, interview feedback, observations..." />
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">{notes.length} characters</span>
                 <button onClick={saveNotes} disabled={savingNotes}
