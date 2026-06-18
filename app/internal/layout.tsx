@@ -3,7 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings } from "lucide-react"
 
 const nav = [
   { href: "/internal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -14,6 +14,7 @@ const nav = [
   { href: "/internal/search", icon: Search, label: "AI Search" },
   { href: "/internal/clients", icon: Building2, label: "Clients" },
   { href: "/internal/sourcing", icon: Zap, label: "AI Sourcing" },
+  { href: "/internal/settings", icon: Settings, label: "Settings" },
 ]
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
