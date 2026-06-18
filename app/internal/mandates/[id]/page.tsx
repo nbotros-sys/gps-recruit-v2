@@ -68,6 +68,9 @@ export default function MandateDetail() {
   const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "notes">("overview")
   const [insightData, setInsightData] = useState<any>(null)
   const [insightLoading, setInsightLoading] = useState(false)
+  const [jdText, setJdText] = useState("")
+  const [savingJd, setSavingJd] = useState(false)
+  const [jdSaved, setJdSaved] = useState(false)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -274,6 +277,7 @@ export default function MandateDetail() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
         {[
+          { id: "jd", icon: FileText, label: "Job Description" },
           { id: "pipeline", icon: LayoutGrid, label: `Pipeline${applications.length > 0 ? ` (${applications.length})` : ""}` },
           { id: "bulk", icon: Upload, label: "Bulk CV Upload" },
           { id: "ai", icon: Brain, label: "Score Single CV" },
@@ -286,6 +290,39 @@ export default function MandateDetail() {
           </button>
         ))}
       </div>
+
+      {/* ── JOB DESCRIPTION tab */}
+      {tab === "jd" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-gray-900">Job Description</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Used by AI to score and rank candidates against this role.</p>
+            </div>
+            <button onClick={async () => {
+              setSavingJd(true)
+              await supabase.from("mandates").update({ job_description: jdText }).eq("id", id)
+              setMandate({ ...mandate, job_description: jdText })
+              setSavingJd(false)
+              setJdSaved(true)
+              setTimeout(() => setJdSaved(false), 3000)
+            }}
+              className="btn-primary flex items-center gap-2 text-sm">
+              {savingJd ? <><Loader2 size={13} className="animate-spin" /> Saving...</>
+               : jdSaved ? <><CheckCircle size={13} /> Saved!</>
+               : <><Save size={13} /> Save JD</>}
+            </button>
+          </div>
+          <textarea
+            value={jdText}
+            onChange={e => setJdText(e.target.value)}
+            rows={24}
+            className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed font-mono"
+            placeholder="Paste or write the full job description here...&#10;&#10;Include: role overview, key responsibilities, required qualifications, experience level, and any specific requirements.&#10;&#10;The more detail you provide, the more accurately AI can score and rank candidates."
+          />
+          <p className="text-xs text-gray-400">{jdText.length} characters</p>
+        </div>
+      )}
 
       {/* ── PIPELINE with drag & drop ── */}
       {tab === "pipeline" && (
