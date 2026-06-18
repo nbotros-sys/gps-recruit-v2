@@ -1,7 +1,7 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = "GPS Talent <onboarding@resend.dev>"
+function getResend() { return new Resend(process.env.RESEND_API_KEY!) }
 const GPS_INTERNAL = process.env.GPS_INTERNAL_EMAIL || "nbotros@hotmail.com"
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://gps-recruit-v2.vercel.app"
 
@@ -76,7 +76,7 @@ export async function sendApplicationConfirmation({
     <p style="font-size:13px;color:#888;margin:0;">Browse other open roles at <a href="${BASE_URL}/jobs" style="color:#028090;text-decoration:none;">${BASE_URL}/jobs</a></p>
   `
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: candidateEmail,
     subject: `Application received — ${roleTitle}`,
@@ -107,7 +107,7 @@ export async function sendNetworkWelcome({
     <p style="font-size:13px;color:#888;margin:0;">Keep your profile current — <a href="${BASE_URL}/account/cv" style="color:#028090;text-decoration:none;">update your CV anytime</a></p>
   `
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: candidateEmail,
     subject: "Welcome to GPS Talent Network",
@@ -144,7 +144,7 @@ export async function sendInternalAlert({
     <p style="font-size:13px;color:#888;margin:0;">GPS RecruitAI · Do not reply to this email.</p>
   `
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: GPS_INTERNAL,
     subject: `New application: ${candidateName} → ${roleTitle}`,
