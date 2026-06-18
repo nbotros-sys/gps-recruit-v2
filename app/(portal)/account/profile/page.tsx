@@ -10,6 +10,28 @@ const COLORS = ["#028090","#3D5A4E","#1d4ed8","#7c3aed","#b45309","#be185d","#0f
 function getColor(name: string) { return COLORS[name.split("").reduce((a,c) => a + c.charCodeAt(0), 0) % COLORS.length] }
 function getInitials(name: string) { return name.split(" ").map((w:string) => w[0]).slice(0,2).join("").toUpperCase() }
 
+
+function PhoneInput({ value, onChange, style = {} }: { value: string, onChange: (val: string) => void, style?: any }) {
+  const num = value.startsWith("+20") ? value.slice(3).trim() : value.replace(/^00?20/, "").trim()
+  return (
+    <div style={{ display: "flex", border: "1.5px solid #e5e7eb", borderRadius: "12px", overflow: "hidden", background: "white", ...style }}>
+      <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRight: "1.5px solid #e5e7eb", fontSize: "14px", fontWeight: 700, color: "#555", userSelect: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
+        +20
+      </div>
+      <input
+        type="tel"
+        value={num}
+        onChange={e => {
+          const digits = e.target.value.replace(/[^0-9 ]/g, "")
+          onChange("+20" + (digits ? " " + digits : ""))
+        }}
+        placeholder="100 123 4567"
+        style={{ flex: 1, padding: "12px 14px", border: "none", outline: "none", fontSize: "14px", background: "transparent" }}
+      />
+    </div>
+  )
+}
+
 function completionScore(form: any) {
   const fields = ["name","phone","current_title","current_company","location","linkedin_url","job_function","level"]
   const filled = fields.filter(f => form[f] && form[f].toString().trim().length > 0).length
@@ -179,7 +201,10 @@ export default function ProfilePage() {
         <div style={{ background: "white", borderRadius: "20px", border: "1px solid #e8e8e8", padding: "32px", display: "flex", flexDirection: "column", gap: "20px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             {fieldEl("Full Name *", "name")}
-            {fieldEl("Phone", "phone")}
+            <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#555", marginBottom: "6px" }}>Phone</label>
+                <PhoneInput value={form.phone || "+20"} onChange={v => setForm({...form, phone: v})} />
+              </div>
             {fieldEl("Current Job Title", "current_title", "text", "e.g. Finance Manager")}
             {fieldEl("Current Company", "current_company", "text", "e.g. ABC Corporation")}
             {fieldEl("Location", "location", "text", "e.g. Cairo, Egypt")}
