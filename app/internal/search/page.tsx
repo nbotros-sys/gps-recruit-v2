@@ -25,11 +25,13 @@ export default function DatabaseSearchPage() {
       const data = await res.json()
       setExplanation(data.explanation || "")
       setResults(data.results || data.matches || [])
+      setSearched(true)
     } catch {
       setExplanation("Search failed. Please try again.")
+      setSearched(true)
     }
 
-    setSearching(false); setSearched(true)
+    setSearching(false)
   }
 
   const EXAMPLES = [
