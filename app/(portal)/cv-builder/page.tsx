@@ -441,7 +441,19 @@ export default function CVBuilderPage() {
                   </div>
                   <div>
                     <label style={label}>Phone</label>
-                    <input style={inp} placeholder="+20 100 000 0000" value={form.personal.phone} onChange={e => setPersonal("phone", e.target.value)} />
+                    <div style={{ display:"flex", border:"1.5px solid #e5e7eb", borderRadius:"10px", overflow:"hidden", background:"white" }}>
+                      <div style={{ padding:"11px 14px", background:"#f5f5f5", borderRight:"1.5px solid #e5e7eb", fontSize:"14px", fontWeight:700, color:"#555", userSelect:"none", flexShrink:0, display:"flex", alignItems:"center" }}>+20</div>
+                      <input
+                        type="tel"
+                        placeholder="100 123 4567"
+                        value={form.personal.phone.replace(/^\+20\s?/, "")}
+                        onChange={e => {
+                          const digits = e.target.value.replace(/[^0-9 ]/g, "")
+                          setPersonal("phone", "+20 " + digits)
+                        }}
+                        style={{ flex:1, padding:"11px 14px", border:"none", outline:"none", fontSize:"14px", background:"transparent" }}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label style={label}>Location</label>
