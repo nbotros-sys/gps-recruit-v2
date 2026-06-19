@@ -1,13 +1,14 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2,
   Edit3, Save, X, Star, FileText, MessageSquare,
-  CheckCircle, AlertCircle, Linkedin, ExternalLink, User
+  CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import CandidateAvatar from "@/components/CandidateAvatar"
 
 const STAGE_COLORS: Record<string, string> = {
   new: "bg-gray-100 text-gray-600",
@@ -26,6 +27,29 @@ export default function CandidateProfile() {
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const photoRef = useRef<HTMLInputElement>(null)
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !candidate?.id) return
+    setUploadingPhoto(true)
+    try {
+      const fd = new FormData()
+      // If it's a docx, use extract-photo to pull the embedded image
+      // If it's an image, use upload-photo directly
+      const isDocx = file.name.match(/\.docx?$/i)
+      fd.append("file", file)
+      fd.append("candidateId", candidate.id)
+      const endpoint = isDocx ? "/api/extract-photo" : "/api/upload-photo"
+      const res = await fetch(endpoint, { method: "POST", body: fd })
+      const data = await res.json()
+      if (data.avatar_url) {
+        setCandidate((prev: any) => ({ ...prev, avatar_url: data.avatar_url }))
+      }
+    } catch (err) { console.error(err) }
+    setUploadingPhoto(false)
+  }
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<"overview" | "cv" | "notes">("overview")
   const [form, setForm] = useState<any>({})
@@ -96,10 +120,21 @@ export default function CandidateProfile() {
       <div className="card">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-5">
-            {/* Avatar */}
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
-              {initials}
+            {/* Avatar — shows photo if available, otherwise monogram. Click to upload. */}
+            <div className="relative group flex-shrink-0" style={{ cursor: "pointer" }} onClick={() => photoRef.current?.click()}>
+              <CandidateAvatar
+                name={candidate.name || "?"}
+                avatarUrl={candidate.avatar_url}
+                size={64}
+                className="rounded-2xl"
+              />
+              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {uploadingPhoto
+                  ? <Loader2 size={18} color="white" className="animate-spin" />
+                  : <Camera size={18} color="white" />}
+              </div>
+              <input ref={photoRef} type="file" accept="image/*,.docx,.doc" className="hidden"
+                onChange={handlePhotoUpload} />
             </div>
             <div>
               {editing ? (
