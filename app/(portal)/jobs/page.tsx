@@ -49,6 +49,13 @@ export default function JobsPage() {
     load()
   }, [])
 
+  // Don't render until auth check is complete — prevents scroll reset on re-render
+  if (loading) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#071f24" }}>
+      <Loader2 size={24} color="#028090" className="animate-spin" />
+    </div>
+  )
+
   if (user && candidate) return <LoggedInHome candidate={candidate} applications={applications} mandates={mandates} />
 
   return (
@@ -383,7 +390,7 @@ function LoggedInHome({ candidate, applications, mandates }: { candidate: any, a
       <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"36px 40px" }}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:"28px", alignItems:"start" }}>
           <div>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"18px" }}>
+            <div id="roles" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"18px" }}>
               <div>
                 <h2 style={{ fontSize:"19px", fontWeight:800, color:"#0a1f24", margin:0 }}>Open roles</h2>
                 <p style={{ fontSize:"13px", color:"#9ca3af", marginTop:"3px" }}>Ranked by relevance to your profile</p>
