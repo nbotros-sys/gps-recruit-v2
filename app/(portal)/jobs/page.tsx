@@ -200,7 +200,7 @@ export default function JobsPage() {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"40px", flexWrap:"wrap" }}>
             {[
               { stat:"10 min", label:"to build a full CV" },
-              { stat:"5", label:"MENA-designed templates" },
+
               { stat:"Free", label:"no card, no catch" },
               { stat:"100%", label:"goes to GPS recruiters" },
             ].map(({ stat, label }) => (
