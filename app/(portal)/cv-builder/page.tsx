@@ -628,12 +628,35 @@ export default function CVBuilderPage() {
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
                       <div><label style={label}>Job title *</label><input style={inp} placeholder="e.g. Finance Manager" value={exp.title} onChange={e => updateExp(i,"title",e.target.value)} /></div>
                       <div><label style={label}>Company *</label><input style={inp} placeholder="ABC Company" value={exp.company} onChange={e => updateExp(i,"company",e.target.value)} /></div>
-                      <div><label style={label}>Start date</label><input style={inp} type="month" value={exp.start} onChange={e => updateExp(i,"start",e.target.value)} /></div>
+                      <div>
+                        <label style={label}>Start date</label>
+                        <div style={{ display:"flex", gap:"8px" }}>
+                          <select style={{ ...sel, flex:1.4 }} value={exp.start ? exp.start.split("-")[1] : ""} onChange={e => { const y=exp.start?exp.start.split("-")[0]:""; updateExp(i,"start",`${y||new Date().getFullYear()}-${e.target.value||"01"}`); }}>
+                            <option value="">Month</option>
+                            {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,mi) => <option key={m} value={String(mi+1).padStart(2,"0")}>{m}</option>)}
+                          </select>
+                          <select style={{ ...sel, flex:1 }} value={exp.start ? exp.start.split("-")[0] : ""} onChange={e => { const m=exp.start?exp.start.split("-")[1]:"01"; updateExp(i,"start",`${e.target.value||new Date().getFullYear()}-${m}`); }}>
+                            <option value="">Year</option>
+                            {Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                      </div>
                       <div>
                         <label style={label}>End date</label>
                         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
-                          <input style={{ ...inp, flex:1 }} type="month" value={exp.end} disabled={exp.current} onChange={e => updateExp(i,"end",e.target.value)} />
-                          <label style={{ display:"flex", alignItems:"center", gap:"5px", fontSize:"12px", color:"#374151", whiteSpace:"nowrap", cursor:"pointer" }}>
+                          {!exp.current && (
+                            <select style={{ ...sel, flex:1.4 }} value={exp.end ? exp.end.split("-")[1] : ""} onChange={e => { const y=exp.end?exp.end.split("-")[0]:""; updateExp(i,"end",`${y||new Date().getFullYear()}-${e.target.value||"01"}`); }}>
+                              <option value="">Month</option>
+                              {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,mi) => <option key={m} value={String(mi+1).padStart(2,"0")}>{m}</option>)}
+                            </select>
+                          )}
+                          {!exp.current && (
+                            <select style={{ ...sel, flex:1 }} value={exp.end ? exp.end.split("-")[0] : ""} onChange={e => { const m=exp.end?exp.end.split("-")[1]:"01"; updateExp(i,"end",`${e.target.value||new Date().getFullYear()}-${m}`); }}>
+                              <option value="">Year</option>
+                              {Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}
+                            </select>
+                          )}
+                          <label style={{ display:"flex", alignItems:"center", gap:"5px", fontSize:"12px", color:"#374151", whiteSpace:"nowrap", cursor:"pointer", flexShrink:0 }}>
                             <input type="checkbox" checked={exp.current} onChange={e => updateExp(i,"current",e.target.checked)} /> Present
                           </label>
                         </div>
@@ -804,7 +827,7 @@ export default function CVBuilderPage() {
 
                 {/* Arabic notice */}
                 <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"14px 18px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:"12px", marginBottom:"20px" }}>
-                  <span style={{ fontSize:"20px" }}>🇸🇦</span>
+                  <span style={{ fontSize:"20px" }}>🇪🇬</span>
                   <div>
                     <p style={{ fontSize:"13px", fontWeight:600, color:"#92400e", margin:0 }}>Arabic CV available after saving</p>
                     <p style={{ fontSize:"12px", color:"#b45309", margin:0 }}>Save your CV to unlock the Arabic RTL version — perfect for Gulf applications.</p>
