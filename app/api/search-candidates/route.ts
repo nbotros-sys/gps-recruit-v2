@@ -3,6 +3,19 @@ import { createClient } from "@supabase/supabase-js"
 
 const CANDIDATE_FIELDS = "id, name, current_title, current_company, location, tags, avatar_url, email, phone, notes, cv_text, applications(ai_score, mandate:mandates(title))"
 
+// Extract the most relevant parts of a CV for AI scoring.
+// CVs start with contact info / headers — the real content (experience, skills)
+// is in the middle. We take a generous slice and strip obvious noise.
+function extractCVContent(cvText: string | null | undefined, notes: string | null | undefined): string {
+  const raw = cvText || notes || ""
+  if (!raw) return ""
+
+  // Take up to 4000 chars — enough for 2-3 full job roles + skills section
+  // Skip first 200 chars which are usually name/address/contact header noise
+  const stripped = raw.length > 300 ? raw.slice(200) : raw
+  return stripped.slice(0, 4000).trim()
+}
+
 // Expand a short search query into a rich candidate profile description.
 // This makes "finance director who reports to the board" match candidates
 // whose CVs talk about P&L, stakeholder management, board packs — even if
@@ -53,22 +66,26 @@ async function aiRankBatch(query: string, candidates: any[]): Promise<any[]> {
     location: c.location,
     tags: (c.tags || []).slice(0, 8),
     // Give AI real CV content to reason over — not just surface fields
-    cv: (c.cv_text || c.notes || "").slice(0, 400),
+    cv: extractCVContent(c.cv_text, c.notes),
   }))
 
-  const prompt = `You are a senior recruitment consultant. A recruiter searched: "${query}"
+  const prompt = `You are a senior recruitment consultant reviewing candidates for a search.
 
-Read each candidate's actual work experience and decide how well they match — not by title alone, but by what they actually do.
+SEARCH: "${query}"
 
-CANDIDATES:
+CANDIDATES (read their full CV content carefully):
 ${JSON.stringify(summaries)}
 
-Score each 0-100. Include anyone with score >= 35 — be generous with partial matches.
-A "Financial Controller" should match a search for "Finance Director" if the responsibilities align.
-A "Senior Accountant" should match "finance" searches if relevant.
+For each candidate, score them 0-100 based on TWO factors combined:
+1. SUITABILITY (0-50 pts): Does their actual experience match what this search needs? Read what they DO, not just their title. A "Financial Controller" doing P&L, board reporting and team management fits a "Finance Director" search well.
+2. SENIORITY (0-50 pts): Is their experience level right for this search? Junior candidates score low for senior searches and vice versa. Look at years of experience, team sizes managed, budget ownership, reporting lines.
+
+Add both scores for the final 0-100.
+
+Include anyone with combined score >= 35. Do not exclude candidates just because their title differs — read what they actually do.
 
 Return ONLY a JSON array (no markdown):
-[{ "id": "<id>", "score": <0-100>, "reason": "<one sentence — what in their background matches>" }]`
+[{ "id": "<id>", "score": <0-100>, "reason": "<one sentence explaining both suitability and seniority match>" }]`
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
