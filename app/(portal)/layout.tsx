@@ -70,7 +70,33 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Nav */}
           <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-            {navLink("/jobs", "Open Roles")}
+            {/* Open Roles — smooth scrolls to #roles if already on /jobs, otherwise navigates */}
+            <a
+              href="/jobs"
+              onClick={e => {
+                if (window.location.pathname === "/jobs") {
+                  e.preventDefault()
+                  const el = document.getElementById("roles")
+                  if (el) {
+                    const top = el.getBoundingClientRect().top + window.scrollY - 80
+                    window.scrollTo({ top, behavior: "smooth" })
+                  }
+                }
+              }}
+              style={{
+                color: "rgba(255,255,255,0.55)",
+                fontSize: "13px", fontWeight: 500,
+                textDecoration: "none", letterSpacing: "0.01em",
+                paddingBottom: "2px",
+                borderBottom: "2px solid transparent",
+                transition: "color 0.15s",
+                cursor: "pointer",
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "white"}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)"}
+            >
+              Open Roles
+            </a>
             {navLink("/how-it-works", "How it works")}
 
             {!loading && (
