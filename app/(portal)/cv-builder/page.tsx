@@ -826,8 +826,14 @@ export default function CVBuilderPage() {
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState("")
   const [reviewFile, setReviewFile] = useState<File|null>(null)
+  const [reviewText, setReviewText] = useState<string>("")
   const [reviewing, setReviewing] = useState(false)
   const [reviewResult, setReviewResult] = useState<any>(null)
+  const [reviewSaved, setReviewSaved] = useState(false)
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewEmail, setReviewEmail] = useState("")
+  const [reviewPassword, setReviewPassword] = useState("")
+  const [reviewAuthError, setReviewAuthError] = useState("")
   const photoRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const currentStepId = STEPS[step].id
@@ -980,16 +986,54 @@ export default function CVBuilderPage() {
   async function handleReview() {
     if (!reviewFile) return
     setReviewing(true)
+    setReviewSaved(false)
+    setReviewEmail("")
+    setReviewPassword("")
+    setReviewAuthError("")
     try {
       const text = await reviewFile.text()
+      setReviewText(text)
       const res = await fetch("/api/generate-cv", {
         method:"POST", headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ type:"review", cvText: text.slice(0,4000) })
       })
       const data = await res.json()
+      // Pre-fill email from extracted CV data
+      if (data.email) setReviewEmail(data.email)
       setReviewResult(data)
     } catch {}
     setReviewing(false)
+  }
+
+  async function handleReviewSave() {
+    if (!reviewEmail || !reviewPassword) return
+    setReviewSaving(true)
+    setReviewAuthError("")
+    try {
+      // Sign up
+      const { error: signUpError } = await supabase.auth.signUp({ email: reviewEmail, password: reviewPassword })
+      if (signUpError && !signUpError.message.includes("already registered")) {
+        setReviewAuthError(signUpError.message)
+        setReviewSaving(false)
+        return
+      }
+      // Save to candidates table
+      await supabase.from("candidates").upsert({
+        email: reviewEmail,
+        full_name: reviewResult?.name || "",
+        name: reviewResult?.name || "",
+        current_title: reviewResult?.current_title || "",
+        current_company: reviewResult?.current_company || "",
+        cv_text: reviewText.slice(0, 50000),
+        cv_score: reviewResult?.score || null,
+        source: "cv_reviewer",
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "email" })
+      setReviewSaved(true)
+    } catch (err: any) {
+      setReviewAuthError(err.message || "Something went wrong")
+    }
+    setReviewSaving(false)
   }
 
   const suggestedSkills = SKILL_SUGGESTIONS[form.job_function] || Object.values(SKILL_SUGGESTIONS).flat().slice(0,12)
@@ -1074,12 +1118,55 @@ export default function CVBuilderPage() {
                     ))}
                   </div>
                 )}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-                  <button onClick={() => { setReviewResult(null); setReviewFile(null) }} style={{ padding:"12px", background:"white", border:"1.5px solid #e5e7eb", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor:"pointer", color:"#374151" }}>Review another CV</button>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"20px" }}>
+                  <button onClick={() => { setReviewResult(null); setReviewFile(null); setReviewSaved(false) }} style={{ padding:"12px", background:"white", border:"1.5px solid #e5e7eb", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor:"pointer", color:"#374151" }}>Review another CV</button>
                   <button onClick={() => setActiveTab("builder")} style={{ padding:"12px", background:"#028090", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"13px", cursor:"pointer", color:"white", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px" }}>
                     <Sparkles size={13} /> Rebuild with AI builder
                   </button>
                 </div>
+
+                {/* Save to GPS Network CTA */}
+                {!reviewSaved ? (
+                  <div style={{ background:"linear-gradient(135deg,#0a1f24,#1a3a3a)", borderRadius:"16px", padding:"20px 22px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px" }}>
+                      <CheckCircle size={16} color="#a8d5d1" />
+                      <p style={{ fontWeight:700, color:"white", fontSize:"14px", margin:0 }}>Save your CV to the GPS Talent Network</p>
+                    </div>
+                    <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"12px", lineHeight:1.6, marginBottom:"14px" }}>
+                      GPS recruiters will be able to find you when a matching role comes up. Free — takes 10 seconds.
+                    </p>
+                    <div style={{ display:"flex", flexDirection:"column" as const, gap:"8px", marginBottom:"12px" }}>
+                      <input
+                        style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }}
+                        type="email" placeholder="Your email"
+                        value={reviewEmail}
+                        onChange={e => setReviewEmail(e.target.value)}
+                      />
+                      <input
+                        style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }}
+                        type="password" placeholder="Choose a password (min 6 chars)"
+                        value={reviewPassword}
+                        onChange={e => setReviewPassword(e.target.value)}
+                      />
+                    </div>
+                    {reviewAuthError && <p style={{ color:"#fca5a5", fontSize:"12px", marginBottom:"8px" }}>{reviewAuthError}</p>}
+                    <button
+                      onClick={handleReviewSave}
+                      disabled={reviewSaving || !reviewEmail || !reviewPassword}
+                      style={{ width:"100%", padding:"11px", background:"#028090", border:"none", borderRadius:"9px", fontWeight:700, fontSize:"13px", cursor:"pointer", color:"white", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", opacity: (!reviewEmail||!reviewPassword) ? 0.5 : 1 }}
+                    >
+                      {reviewSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : <>Save to GPS Network <ArrowRight size={13} /></>}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"14px", padding:"18px 20px", display:"flex", alignItems:"center", gap:"12px" }}>
+                    <CheckCircle size={20} color="#059669" />
+                    <div>
+                      <p style={{ fontWeight:700, color:"#059669", fontSize:"13px", margin:0 }}>You're on the GPS Talent Network</p>
+                      <p style={{ color:"#6b7280", fontSize:"12px", margin:"2px 0 0" }}>Our consultants can now find you when a matching role comes up.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
