@@ -12,6 +12,8 @@
 
 * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
+html { scroll-behavior: smooth; }
+
 body {
   background-color: var(--cream);
   color: #1a1a1a;
