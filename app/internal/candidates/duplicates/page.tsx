@@ -130,7 +130,22 @@ function DuplicatePair({ pair, merging, onMerge }: {
 }) {
   const [choice, setChoice] = useState<"a" | "b" | null>(null)
   const [showCV, setShowCV] = useState(false)
+  const [cvTexts, setCvTexts] = useState<{ a: string | null; b: string | null } | null>(null)
+  const [loadingCV, setLoadingCV] = useState(false)
   const { a, b, confidence, reason } = pair
+
+  async function toggleCV() {
+    if (showCV) { setShowCV(false); return }
+    setShowCV(true)
+    if (cvTexts) return // already loaded
+    setLoadingCV(true)
+    try {
+      const res = await fetch(`/api/candidate-cv?ids=${a.id},${b.id}`)
+      const data = await res.json()
+      setCvTexts({ a: data[a.id] || null, b: data[b.id] || null })
+    } catch { setCvTexts({ a: null, b: null }) }
+    setLoadingCV(false)
+  }
 
   return (
     <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden
@@ -198,23 +213,27 @@ function DuplicatePair({ pair, merging, onMerge }: {
       {/* CV Compare toggle */}
       <div className="border-t border-gray-100">
         <button
-          onClick={() => setShowCV(!showCV)}
+          onClick={toggleCV}
           className="w-full px-5 py-3 text-xs font-semibold text-gray-500 hover:text-teal hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-          {showCV ? "▲ Hide CVs" : "▼ Compare CVs side by side"}
+          {loadingCV ? <><Loader2 size={12} className="animate-spin" /> Loading CVs…</> : showCV ? "▲ Hide CVs" : "▼ Compare CVs side by side"}
         </button>
       </div>
 
-      {/* CV comparison panel */}
+      {/* CV comparison panel — loaded on demand */}
       {showCV && (
         <div className="grid grid-cols-2 divide-x divide-gray-100 border-t border-gray-100">
-          {[a, b].map((cand, i) => (
+          {[{ cand: a, cvText: cvTexts?.a }, { cand: b, cvText: cvTexts?.b }].map(({ cand, cvText }) => (
             <div key={cand.id} className="p-5">
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
                 {cand.name} — CV
               </div>
-              {cand.cv_text ? (
+              {loadingCV ? (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                  {[1,2,3,4].map(i => <div key={i} className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: `${70 + i*7}%` }} />)}
+                </div>
+              ) : cvText ? (
                 <pre className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-sans max-h-96 overflow-y-auto bg-gray-50 rounded-xl p-4">
-                  {cand.cv_text}
+                  {cvText}
                 </pre>
               ) : (
                 <div className="text-xs text-gray-400 italic py-8 text-center bg-gray-50 rounded-xl">
