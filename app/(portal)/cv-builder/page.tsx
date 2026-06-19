@@ -429,11 +429,11 @@ export default function CVBuilderPage() {
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
                   <div>
                     <label style={label}>Full name *</label>
-                    <input style={inp} placeholder="Nader Botros" value={form.personal.name} onChange={e => setPersonal("name", e.target.value)} />
+                    <input style={inp} placeholder="Your full name" value={form.personal.name} onChange={e => setPersonal("name", e.target.value)} />
                   </div>
                   <div>
                     <label style={label}>Job title / headline *</label>
-                    <input style={inp} placeholder="Finance Manager" value={form.personal.title} onChange={e => setPersonal("title", e.target.value)} />
+                    <input style={inp} placeholder="e.g. Finance Manager" value={form.personal.title} onChange={e => setPersonal("title", e.target.value)} />
                   </div>
                   <div>
                     <label style={label}>Email *</label>
@@ -472,7 +472,44 @@ export default function CVBuilderPage() {
                   </div>
                   <div>
                     <label style={label}>Date of birth <span style={{ color:"#9ca3af", fontWeight:400 }}>(optional — common in MENA)</span></label>
-                    <input style={inp} type="date" value={form.personal.dob} onChange={e => setPersonal("dob", e.target.value)} />
+                    <div style={{ display:"flex", gap:"8px" }}>
+                      <select
+                        value={form.personal.dob ? form.personal.dob.split("-")[2] : ""}
+                        onChange={e => {
+                          const parts = form.personal.dob ? form.personal.dob.split("-") : ["","",""]
+                          setPersonal("dob", `${parts[0] || "2000"}-${parts[1] || "01"}-${e.target.value || "01"}`)
+                        }}
+                        style={{ ...sel, flex:1 }}
+                      >
+                        <option value="">Day</option>
+                        {Array.from({length:31}, (_,i) => String(i+1).padStart(2,"0")).map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <select
+                        value={form.personal.dob ? form.personal.dob.split("-")[1] : ""}
+                        onChange={e => {
+                          const parts = form.personal.dob ? form.personal.dob.split("-") : ["","",""]
+                          setPersonal("dob", `${parts[0] || "2000"}-${e.target.value || "01"}-${parts[2] || "01"}`)
+                        }}
+                        style={{ ...sel, flex:1.4 }}
+                      >
+                        <option value="">Month</option>
+                        {["01 — January","02 — February","03 — March","04 — April","05 — May","06 — June","07 — July","08 — August","09 — September","10 — October","11 — November","12 — December"].map((m,i) => {
+                          const val = String(i+1).padStart(2,"0")
+                          return <option key={val} value={val}>{m}</option>
+                        })}
+                      </select>
+                      <select
+                        value={form.personal.dob ? form.personal.dob.split("-")[0] : ""}
+                        onChange={e => {
+                          const parts = form.personal.dob ? form.personal.dob.split("-") : ["","",""]
+                          setPersonal("dob", `${e.target.value || "2000"}-${parts[1] || "01"}-${parts[2] || "01"}`)
+                        }}
+                        style={{ ...sel, flex:1.2 }}
+                      >
+                        <option value="">Year</option>
+                        {Array.from({length:60}, (_,i) => String(new Date().getFullYear() - 18 - i)).map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label style={label}>Function / industry</label>
@@ -517,7 +554,7 @@ export default function CVBuilderPage() {
                       {form.experience.length > 1 && <button onClick={() => removeExp(i)} style={{ background:"none", border:"none", cursor:"pointer", color:"#ef4444", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }}><Trash2 size={13} /> Remove</button>}
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"12px" }}>
-                      <div><label style={label}>Job title *</label><input style={inp} placeholder="Finance Manager" value={exp.title} onChange={e => updateExp(i,"title",e.target.value)} /></div>
+                      <div><label style={label}>Job title *</label><input style={inp} placeholder="e.g. Finance Manager" value={exp.title} onChange={e => updateExp(i,"title",e.target.value)} /></div>
                       <div><label style={label}>Company *</label><input style={inp} placeholder="ABC Company" value={exp.company} onChange={e => updateExp(i,"company",e.target.value)} /></div>
                       <div><label style={label}>Start date</label><input style={inp} type="month" value={exp.start} onChange={e => updateExp(i,"start",e.target.value)} /></div>
                       <div>
