@@ -418,7 +418,7 @@ export default function MandateDetail() {
                 }}
               >
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <span className={`badge ${STAGE_COLORS[stage]} text-xs`}>{STAGE_LABELS[stage]}</span>
+                  <span className={`badge ${STAGE_COLORS[stage]} text-xs truncate max-w-[110px]`}>{STAGE_LABELS[stage]}</span>
                   <span className="text-xs text-gray-400 font-medium">{byStage(stage).length}</span>
                 </div>
                 <div className="space-y-2 min-h-[80px]">
@@ -453,7 +453,7 @@ export default function MandateDetail() {
                         </div>
                       </div>
                       <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 min-w-0 overflow-hidden">
                           {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
                             <button key={s} onClick={() => moveStage(app.id, s)}
                               className="text-xs text-gray-300 hover:text-teal transition-colors truncate">
