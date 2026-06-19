@@ -19,10 +19,10 @@ const TEMPLATES = [
 
 const STEPS = [
   { id:"personal",    icon:User,          label:"Personal" },
-  { id:"summary",     icon:Star,          label:"Summary" },
   { id:"experience",  icon:Briefcase,     label:"Experience" },
-  { id:"education",   icon:GraduationCap, label:"Education" },
   { id:"skills",      icon:Sparkles,      label:"Skills" },
+  { id:"education",   icon:GraduationCap, label:"Education" },
+  { id:"summary",     icon:Star,          label:"Summary" },
   { id:"template",    icon:Eye,           label:"Template" },
 ]
 
@@ -56,6 +56,72 @@ const INITIAL: FormData = {
   languages: [{ lang:"Arabic", level:"Native" }, { lang:"English", level:"Fluent" }],
   function: "",
   level: "",
+}
+
+function SummaryStep({ form, generating, setForm, generateSummary, inp }: any) {
+  useEffect(() => {
+    if (!form.summary && form.experience.some((e: any) => e.title || e.company)) {
+      generateSummary()
+    }
+  }, [])
+
+  return (
+    <div style={{ padding:"32px" }}>
+      <h2 style={{ fontSize:"20px", fontWeight:800, color:"#0a1f24", marginBottom:"6px" }}>Professional summary</h2>
+      <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"24px" }}>
+        AI has read your experience and written a tailored summary. Edit freely or regenerate.
+      </p>
+
+      {generating ? (
+        <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"20px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"12px", marginBottom:"16px" }}>
+          <Loader2 size={18} color="#028090" className="animate-spin" />
+          <div>
+            <p style={{ fontWeight:600, color:"#028090", fontSize:"13px", margin:0 }}>Writing your summary…</p>
+            <p style={{ color:"#6b7280", fontSize:"12px", margin:0 }}>AI is reading your experience and crafting a market-relevant summary</p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ position:"relative", marginBottom:"16px" }}>
+          <textarea
+            value={form.summary}
+            onChange={e => setForm((f: any) => ({ ...f, summary:e.target.value }))}
+            rows={6}
+            placeholder="Your professional summary will appear here once AI generates it…"
+            style={{ ...inp, resize:"vertical", lineHeight:1.7 }}
+          />
+          {form.summary && (
+            <div style={{ position:"absolute", bottom:"10px", right:"10px" }}>
+              <button
+                onClick={generateSummary}
+                style={{ display:"flex", alignItems:"center", gap:"5px", padding:"5px 10px", background:"white", border:"1px solid #e5e7eb", borderRadius:"8px", fontSize:"11px", fontWeight:600, color:"#6b7280", cursor:"pointer" }}
+              >
+                <Sparkles size={11} /> Regenerate
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!generating && form.summary && (
+        <div style={{ display:"flex", alignItems:"center", gap:"8px", padding:"10px 14px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"10px" }}>
+          <CheckCircle size={14} color="#059669" />
+          <p style={{ fontSize:"12px", color:"#059669", margin:0, fontWeight:500 }}>
+            Generated from your {form.experience.filter((e: any) => e.title).length} role{form.experience.filter((e: any) => e.title).length !== 1 ? "s" : ""} and {form.skills.length} skills — edit anything you like
+          </p>
+        </div>
+      )}
+
+      {!generating && !form.summary && (
+        <button
+          onClick={generateSummary}
+          disabled={!form.personal.title}
+          style={{ display:"flex", alignItems:"center", gap:"8px", padding:"11px 20px", background:form.personal.title?"#028090":"#e5e7eb", color:form.personal.title?"white":"#9ca3af", border:"none", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor:form.personal.title?"pointer":"default" }}
+        >
+          <Sparkles size={14} /> Generate with AI
+        </button>
+      )}
+    </div>
+  )
 }
 
 export default function CVBuilderPage() {
@@ -95,10 +161,18 @@ export default function CVBuilderPage() {
     try {
       const res = await fetch("/api/generate-cv", {
         method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ type:"summary", title:form.personal.title, level:form.level, function:form.function, experience:form.experience })
+        body: JSON.stringify({
+          type:"summary",
+          title: form.personal.title,
+          level: form.level,
+          function: form.function,
+          experience: form.experience,
+          skills: form.skills,
+          location: form.personal.location,
+        })
       })
       const data = await res.json()
-      if (data.text) setForm(f => ({ ...f, summary: data.text }))
+      if (data.text) setForm((f: any) => ({ ...f, summary: data.text }))
     } catch {}
     setGenerating(false)
   }
@@ -531,15 +605,13 @@ export default function CVBuilderPage() {
 
             {/* ── STEP 2: SUMMARY ── */}
             {currentStepId === "summary" && (
-              <div style={{ padding:"32px" }}>
-                <h2 style={{ fontSize:"20px", fontWeight:800, color:"#0a1f24", marginBottom:"6px" }}>Professional summary</h2>
-                <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"24px" }}>A 3–4 line overview of who you are. Let AI write it based on your profile, or write your own.</p>
-                <button onClick={generateSummary} disabled={generating || !form.personal.title} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"11px 20px", background:form.personal.title?"#028090":"#e5e7eb", color:form.personal.title?"white":"#9ca3af", border:"none", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor:form.personal.title?"pointer":"default", marginBottom:"16px" }}>
-                  {generating ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : <><Sparkles size={14} /> Generate with AI</>}
-                </button>
-                <textarea value={form.summary} onChange={e => setForm(f => ({ ...f, summary:e.target.value }))} rows={5} placeholder="Experienced finance professional with 8+ years across FMCG and banking sectors in Egypt and the Gulf. Proven track record of…" style={{ ...inp, resize:"vertical" }} />
-                <p style={{ fontSize:"12px", color:"#9ca3af", marginTop:"8px" }}>Tip: AI will use your job title ({form.personal.title || "not set yet"}), function, and level to generate a market-relevant summary.</p>
-              </div>
+              <SummaryStep
+                form={form}
+                generating={generating}
+                setForm={setForm}
+                generateSummary={generateSummary}
+                inp={inp}
+              />
             )}
 
             {/* ── STEP 3: EXPERIENCE ── */}
