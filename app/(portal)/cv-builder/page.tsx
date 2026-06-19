@@ -826,11 +826,11 @@ export default function CVBuilderPage() {
                 </div>
 
                 {/* Arabic notice */}
-                <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"14px 18px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:"12px", marginBottom:"20px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"14px 18px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"12px", marginBottom:"20px" }}>
                   <span style={{ fontSize:"20px" }}>🇪🇬</span>
                   <div>
-                    <p style={{ fontSize:"13px", fontWeight:600, color:"#92400e", margin:0 }}>Arabic CV available after saving</p>
-                    <p style={{ fontSize:"12px", color:"#b45309", margin:0 }}>Save your CV to unlock the Arabic RTL version — perfect for Gulf applications.</p>
+                    <p style={{ fontSize:"13px", fontWeight:600, color:"#166534", margin:0 }}>Arabic CV — coming soon</p>
+                    <p style={{ fontSize:"12px", color:"#15803d", margin:0 }}>We're building a full Arabic RTL version. Save your CV now and we'll notify you when it's ready.</p>
                   </div>
                 </div>
 
