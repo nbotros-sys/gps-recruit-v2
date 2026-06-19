@@ -59,37 +59,73 @@ const INITIAL: FormData = {
 }
 
 // ── DENSITY CALCULATOR ────────────────────────────────────────────────────────
+// ── TYPESETTING ENGINE ───────────────────────────────────────────────────────
+// Smooth interpolation between sparse (t=0) and dense (t=1) extremes.
+// Candidate never sees this — it runs silently on every form change.
+function lerp(a: number, b: number, t: number) { return a + (b - a) * t }
+function lerpR(a: number, b: number, t: number) { return Math.round(lerp(a, b, t)) }
+function lerpF(a: number, b: number, t: number) { return parseFloat(lerp(a, b, t).toFixed(2)) }
+
 function getContentDensity(form: FormData) {
-  const expCount = form.experience.filter(e => e.title || e.company).length
+  const expCount    = form.experience.filter(e => e.title || e.company).length
   const bulletCount = form.experience.reduce((acc, e) => acc + e.bullets.filter(b => b.trim()).length, 0)
-  const hasPhoto = !!form.personal.photo
-  const hasEdu = form.education.some(e => e.institution)
-  const skillCount = form.skills.length
-  const summaryLen = form.summary.length
-  const hasHobbies = !!form.hobbies.trim()
+  const hasPhoto    = !!form.personal.photo
+  const hasEdu      = form.education.some(e => e.institution)
+  const skillCount  = form.skills.length
+  const summaryLen  = form.summary.length
+  const hasHobbies  = !!form.hobbies.trim()
   const hasAchievements = !!form.achievements?.trim()
 
-  // Score 0-100
+  // Density score 0–100
   let score = 0
-  score += Math.min(expCount * 20, 40)      // up to 40pts for experience
-  score += Math.min(bulletCount * 4, 20)     // up to 20pts for bullets
-  score += hasPhoto ? 10 : 0
+  score += Math.min(expCount * 20, 40)
+  score += Math.min(bulletCount * 4, 20)
+  score += hasPhoto ? 8 : 0
   score += hasEdu ? 5 : 0
-  score += Math.min(skillCount * 1.5, 10)    // up to 10pts for skills
-  score += summaryLen > 100 ? 10 : summaryLen > 50 ? 5 : 0
-  score += hasHobbies ? 3 : 0
-  score += hasAchievements ? 2 : 0
+  score += Math.min(skillCount * 1.5, 10)
+  score += summaryLen > 120 ? 10 : summaryLen > 60 ? 5 : 0
+  score += hasHobbies ? 4 : 0
+  score += hasAchievements ? 3 : 0
+  score = Math.min(score, 100)
+
+  // t = 0 at sparse (score=0), t = 1 at dense (score=100)
+  const t = score / 100
 
   return {
     score,
+    t,
     isSparse: score < 45,
-    isLight: score < 65,
-    lineHeight: score < 45 ? 1.85 : score < 65 ? 1.7 : 1.55,
-    sectionGap: score < 45 ? 18 : score < 65 ? 14 : 10,
-    showHobbies: hasHobbies || score < 55,
-    showAchievements: hasAchievements || score < 40,
-    summaryTargetWords: score < 45 ? 80 : score < 65 ? 60 : 45,
-    minBulletsPerRole: score < 45 ? 4 : 3,
+    isLight:  score < 65,
+
+    // ── Typography — all smooth ──────────────────────────────────────────
+    // Body text: bigger when sparse so it fills space, tighter when dense
+    fontSize:       lerpF(9.5,  7.5,  t),   // px — body copy
+    bulletSize:     lerpF(9.0,  7.5,  t),   // px — bullet points
+    secLabelSize:   lerpF(8.5,  7.0,  t),   // px — section headings
+    lineHeight:     lerpF(1.95, 1.50, t),   // ratio — line spacing
+    letterSpacing:  lerpF(0.04, 0.1,  t),   // em — section label tracking
+
+    // ── Sizing ───────────────────────────────────────────────────────────
+    nameSize:       lerpF(17,   13,   t),   // px — name in header
+    titleSize:      lerpF(10,   8,    t),   // px — job title in header
+    photoSize:      lerpR(68,   44,   t),   // px — avatar circle diameter
+
+    // ── Spacing ──────────────────────────────────────────────────────────
+    sectionGap:     lerpR(22,   8,    t),   // px — gap above each section
+    headerPadV:     lerpR(26,   14,   t),   // px — header top/bottom padding
+    headerPadH:     lerpR(22,   18,   t),   // px — header left/right padding
+    bodyPad:        lerpR(20,   12,   t),   // px — main content padding
+
+    // ── Layout ───────────────────────────────────────────────────────────
+    sidebarWidth:   lerpR(155,  118,  t),   // px — sidebar column width
+
+    // ── Content visibility ───────────────────────────────────────────────
+    showHobbies:       hasHobbies || score < 58,
+    showAchievements:  hasAchievements || score < 42,
+
+    // ── AI generation hints ───────────────────────────────────────────────
+    summaryTargetWords: lerpR(85, 42, t),
+    minBulletsPerRole:  score < 45 ? 4 : 3,
   }
 }
 
@@ -144,36 +180,37 @@ function TplExecutive({ form, density }: { form: FormData; density: ReturnType<t
   const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
   const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
   const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const lh = density.lineHeight
-  const sg = density.sectionGap
+  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
+          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
+          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
 
   const secLabel = (label: string) => (
-    <div style={{ fontSize:"7.5px", fontWeight:700, color:"rgba(2,128,144,0.9)", letterSpacing:".1em", textTransform:"uppercase" as const, margin:`${sg}px 0 5px`, paddingBottom:"4px", borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
+    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"rgba(2,128,144,0.9)", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 5px`, paddingBottom:"4px", borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
       {label}
     </div>
   )
   const mainSec = (label: string) => (
-    <div style={{ fontSize:"8px", fontWeight:700, color:"#028090", letterSpacing:".1em", textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"1px solid rgba(2,128,144,0.2)" }}>
+    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"1px solid rgba(2,128,144,0.2)" }}>
       {label}
     </div>
   )
 
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"Georgia, serif" }}>
-      {/* Dark sidebar */}
-      <div style={{ width:"145px", flexShrink:0, background:"#0a1f24", padding:"20px 14px", display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
+      {/* Dark sidebar — width scales with density */}
+      <div style={{ width:`${sw}px`, flexShrink:0, background:"#0a1f24", padding:`${hpv}px ${Math.round(sw*0.09)}px`, display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
         {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:"56px", height:"56px", borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(2,128,144,0.5)", marginBottom:"12px" }} />
+          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(2,128,144,0.5)", marginBottom:`${Math.round(ph*0.18)}px` }} />
         ) : (
-          <div style={{ width:"56px", height:"56px", borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid rgba(2,128,144,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"12px", fontSize:"18px", fontWeight:700, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>
+          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid rgba(2,128,144,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:`${Math.round(ph*0.18)}px`, fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>
             {initials(name)}
           </div>
         )}
-        <div style={{ fontSize:"13px", fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"3px" }}>{name}</div>
-        <div style={{ fontSize:"8px", color:"rgba(168,213,209,0.8)", letterSpacing:".06em", fontFamily:"sans-serif", marginBottom:"14px" }}>{title}</div>
-        <div style={{ width:"24px", height:"2px", background:"#028090", marginBottom:"14px" }} />
+        <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"3px" }}>{name}</div>
+        <div style={{ fontSize:`${ts}px`, color:"rgba(168,213,209,0.8)", letterSpacing:".06em", fontFamily:"sans-serif", marginBottom:`${sg}px` }}>{title}</div>
+        <div style={{ width:"24px", height:"2px", background:"#028090", marginBottom:`${sg}px` }} />
         {secLabel("Contact")}
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.55)", lineHeight:1.9, fontFamily:"sans-serif", marginBottom:"2px" }}>
+        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.55)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:"2px" }}>
           {email && <div>{email}</div>}
           {phone && <div>{phone}</div>}
           {location && <div>{location}</div>}
@@ -184,12 +221,12 @@ function TplExecutive({ form, density }: { form: FormData; density: ReturnType<t
           {skills.slice(0,8).map((s,i) => (
             <div key={i} style={{ display:"flex", alignItems:"center", gap:"5px" }}>
               <div style={{ width:"3px", height:"3px", borderRadius:"50%", background:"#028090", flexShrink:0 }} />
-              <span style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>{s}</span>
+              <span style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>{s}</span>
             </div>
           ))}
         </div>
         {secLabel("Languages")}
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.6)", lineHeight:1.9, fontFamily:"sans-serif", marginBottom:"4px" }}>
+        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.6)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:"4px" }}>
           {langs.filter(l=>l.lang).map((l,i)=>(
             <div key={i}><span style={{ fontWeight:600, color:"rgba(255,255,255,0.8)" }}>{l.lang}</span> <span style={{ color:"rgba(255,255,255,0.4)" }}>· {l.level}</span></div>
           ))}
@@ -213,27 +250,27 @@ function TplExecutive({ form, density }: { form: FormData; density: ReturnType<t
         </>)}
       </div>
       {/* Main content */}
-      <div style={{ flex:1, padding:"20px 18px", overflow:"hidden" }}>
+      <div style={{ flex:1, padding:`${hpv}px ${bp}px`, overflow:"hidden" }}>
         {mainSec("Professional Summary")}
-        <p style={{ fontSize:"8.5px", color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
+        <p style={{ fontSize:`${fs}px`, color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
         {mainSec("Work Experience")}
         {exps.filter(e=>e.title||e.company).map((e,i)=>(
           <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
               <div>
-                <div style={{ fontSize:"9.5px", fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:"8px", color:"#028090", fontWeight:600 }}>{e.company}</div>
+                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
+                <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600 }}>{e.company}</div>
               </div>
               {(e.start||e.end) && (
-                <div style={{ fontSize:"7.5px", color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
                   {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
                 </div>
               )}
             </div>
             {e.bullets.filter(b=>b.trim()).map((b,j)=>(
               <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#028090", fontSize:"8px", flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:"8px", color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+                <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
+                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
               </div>
             ))}
           </div>
@@ -272,33 +309,34 @@ function TplModern({ form, density }: { form: FormData; density: ReturnType<type
   const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
   const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
   const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const lh = density.lineHeight
-  const sg = density.sectionGap
+  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
+          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
+          bodyPad:bp, letterSpacing:lsp } = density
 
   const secLine = (label: string) => (
-    <div style={{ fontSize:"8px", fontWeight:700, color:"#028090", letterSpacing:".1em", textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
+    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
       {label}
     </div>
   )
 
   return (
     <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ background:"#028090", padding:"20px 24px 0" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"16px", marginBottom:"16px" }}>
+      <div style={{ background:"#028090", padding:`${hpv}px ${hph}px 0` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"14px", marginBottom:`${sg}px` }}>
           {f.personal.photo ? (
-            <img src={f.personal.photo} alt="" style={{ width:"58px", height:"58px", borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.3)", flexShrink:0 }} />
+            <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.3)", flexShrink:0 }} />
           ) : (
-            <div style={{ width:"58px", height:"58px", borderRadius:"50%", background:"rgba(255,255,255,0.15)", border:"1.5px solid rgba(255,255,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px", fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
+            <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(255,255,255,0.15)", border:"1.5px solid rgba(255,255,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.32)}px`, fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
               {initials(name)}
             </div>
           )}
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:"20px", fontWeight:700, color:"white", marginBottom:"3px" }}>{name}</div>
-            <div style={{ fontSize:"9.5px", color:"rgba(255,255,255,0.75)", letterSpacing:".08em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
+            <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", marginBottom:"3px" }}>{name}</div>
+            <div style={{ fontSize:`${ts}px`, color:"rgba(255,255,255,0.75)", letterSpacing:".08em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
             <div style={{ display:"flex", gap:"14px", marginTop:"5px", flexWrap:"wrap" as const }}>
-              {email && <span style={{ fontSize:"8px", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{email}</span>}
-              {phone && <span style={{ fontSize:"8px", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{phone}</span>}
-              {location && <span style={{ fontSize:"8px", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{location}</span>}
+              {email && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{email}</span>}
+              {phone && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{phone}</span>}
+              {location && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{location}</span>}
             </div>
           </div>
         </div>
@@ -308,27 +346,27 @@ function TplModern({ form, density }: { form: FormData; density: ReturnType<type
           ))}
         </div>
       </div>
-      <div style={{ padding:"16px 24px", overflow:"hidden" }}>
+      <div style={{ padding:`${bp}px ${hph}px`, overflow:"hidden" }}>
         {secLine("Professional Summary")}
-        <p style={{ fontSize:"8.5px", color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
+        <p style={{ fontSize:`${fs}px`, color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
         {secLine("Work Experience")}
         {exps.filter(e=>e.title||e.company).map((e,i)=>(
           <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
               <div>
-                <div style={{ fontSize:"9.5px", fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:"8px", color:"#028090", fontWeight:600 }}>{e.company}</div>
+                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
+                <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600 }}>{e.company}</div>
               </div>
               {(e.start||e.end) && (
-                <div style={{ fontSize:"7.5px", color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
                   {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
                 </div>
               )}
             </div>
             {e.bullets.filter(b=>b.trim()).map((b,j)=>(
               <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#028090", fontSize:"8px", flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:"8px", color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+                <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
+                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
               </div>
             ))}
           </div>
@@ -389,46 +427,47 @@ function TplMinimal({ form, density }: { form: FormData; density: ReturnType<typ
   const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
   const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
   const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const lh = density.lineHeight
-  const sg = density.sectionGap
+  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
+          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
+          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
 
   const sec = (label: string) => (
-    <div style={{ fontSize:"8px", fontWeight:700, color:"#028090", letterSpacing:".12em", textTransform:"uppercase" as const, margin:`${sg}px 0 7px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
+    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 7px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
       {label}
     </div>
   )
 
   return (
     <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ padding:"24px 28px 16px", borderBottom:"1px solid #e8ecef" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"16px" }}>
+      <div style={{ padding:`${hpv}px ${hph}px ${Math.round(hpv*0.6)}px`, borderBottom:"1px solid #e8ecef" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"14px" }}>
           {f.personal.photo && (
-            <img src={f.personal.photo} alt="" style={{ width:"52px", height:"52px", borderRadius:"4px", objectFit:"cover", border:"1px solid #e5e7eb", flexShrink:0 }} />
+            <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"4px", objectFit:"cover", border:"1px solid #e5e7eb", flexShrink:0 }} />
           )}
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:"24px", fontWeight:700, color:"#0a1f24", letterSpacing:"-0.5px", lineHeight:1.1, marginBottom:"4px" }}>{name}</div>
-            <div style={{ fontSize:"10px", color:"#028090", letterSpacing:".12em", textTransform:"uppercase" as const, fontFamily:"sans-serif", fontWeight:600, marginBottom:"8px" }}>{title}</div>
-            <div style={{ display:"flex", gap:"16px", flexWrap:"wrap" as const }}>
+            <div style={{ fontSize:`${ns + 6}px`, fontWeight:700, color:"#0a1f24", letterSpacing:"-0.5px", lineHeight:1.1, marginBottom:"4px" }}>{name}</div>
+            <div style={{ fontSize:`${ts + 1}px`, color:"#028090", letterSpacing:".12em", textTransform:"uppercase" as const, fontFamily:"sans-serif", fontWeight:600, marginBottom:`${sg * 0.4}px` }}>{title}</div>
+            <div style={{ display:"flex", gap:"14px", flexWrap:"wrap" as const }}>
               {[email, phone, location, linkedin].filter(Boolean).map((c,i)=>(
-                <span key={i} style={{ fontSize:"8px", color:"#6b7280", fontFamily:"sans-serif" }}>{c}</span>
+                <span key={i} style={{ fontSize:`${fs - 0.5}px`, color:"#6b7280", fontFamily:"sans-serif" }}>{c}</span>
               ))}
             </div>
           </div>
         </div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 170px", gap:"0", height:"calc(100% - 90px)" }}>
-        <div style={{ padding:"16px 20px", borderRight:"1px solid #e8ecef", overflow:"hidden" }}>
+      <div style={{ display:"grid", gridTemplateColumns:`1fr ${sw}px`, gap:"0", height:`calc(100% - ${hpv * 2 + 60}px)` }}>
+        <div style={{ padding:`${bp}px ${bp + 4}px`, borderRight:"1px solid #e8ecef", overflow:"hidden" }}>
           {sec("Experience")}
           {exps.filter(e=>e.title||e.company).map((e,i)=>(
             <div key={i} style={{ marginBottom:`${sg + 2}px`, paddingLeft:"12px", borderLeft:"2px solid #028090" }}>
-              <div style={{ fontSize:"9.5px", fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-              <div style={{ fontSize:"8px", color:"#028090", fontWeight:600, marginBottom:"3px" }}>
+              <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
+              <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600, marginBottom:"3px" }}>
                 {e.company}{(e.start||e.end) && <span style={{ color:"#9ca3af", fontWeight:400, fontFamily:"sans-serif" }}> · {fmtDate(e.start)} – {e.current ? "Present" : fmtDate(e.end)}</span>}
               </div>
               {e.bullets.filter(b=>b.trim()).map((b,j)=>(
                 <div key={j} style={{ display:"flex", gap:"4px", marginTop:"2px" }}>
-                  <span style={{ color:"#028090", fontSize:"8px", flexShrink:0 }}>▸</span>
-                  <p style={{ fontSize:"8px", color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+                  <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0 }}>▸</span>
+                  <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
                 </div>
               ))}
             </div>
@@ -497,30 +536,31 @@ function TplBold({ form, density }: { form: FormData; density: ReturnType<typeof
   const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
   const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
   const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const lh = density.lineHeight
-  const sg = density.sectionGap
+  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
+          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
+          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
 
   const skillLevels = [92,85,95,88,80,78,83,72]
 
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"Georgia, serif" }}>
-      {/* Bold dark left panel */}
-      <div style={{ width:"190px", flexShrink:0, background:"#3D5A4E", padding:"24px 16px", display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
+      {/* Bold dark left panel — width scales */}
+      <div style={{ width:`${sw + 30}px`, flexShrink:0, background:"#3D5A4E", padding:`${hpv}px ${Math.round((sw+30)*0.1)}px`, display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
         {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:"64px", height:"64px", borderRadius:"10px", objectFit:"cover", border:"1.5px solid rgba(255,255,255,0.2)", marginBottom:"14px" }} />
+          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"10px", objectFit:"cover", border:"1.5px solid rgba(255,255,255,0.2)", marginBottom:`${Math.round(ph*0.2)}px` }} />
         ) : (
-          <div style={{ width:"64px", height:"64px", borderRadius:"10px", background:"rgba(255,255,255,0.08)", border:"1.5px solid rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px", fontWeight:700, color:"rgba(255,255,255,0.5)", marginBottom:"14px", fontFamily:"sans-serif" }}>
+          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"10px", background:"rgba(255,255,255,0.08)", border:"1.5px solid rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.5)", marginBottom:`${Math.round(ph*0.2)}px`, fontFamily:"sans-serif" }}>
             {initials(name)}
           </div>
         )}
-        <div style={{ fontSize:"16px", fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"4px" }}>{name}</div>
-        <div style={{ width:"28px", height:"2.5px", background:"#028090", margin:"8px 0" }} />
-        <div style={{ fontSize:"8px", color:"rgba(255,255,255,0.55)", letterSpacing:".1em", fontFamily:"sans-serif", marginBottom:"16px" }}>{title.toUpperCase()}</div>
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"6px" }}>Contact</div>
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.55)", lineHeight:1.9, fontFamily:"sans-serif", marginBottom:"14px" }}>
+        <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"4px" }}>{name}</div>
+        <div style={{ width:"28px", height:"2.5px", background:"#028090", margin:`${Math.round(sg*0.5)}px 0` }} />
+        <div style={{ fontSize:`${ts}px`, color:"rgba(255,255,255,0.55)", letterSpacing:".1em", fontFamily:"sans-serif", marginBottom:`${sg}px` }}>{title.toUpperCase()}</div>
+        <div style={{ fontSize:`${sls}px`, color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:"6px" }}>Contact</div>
+        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.55)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:`${sg}px` }}>
           {email && <div>{email}</div>}{phone && <div>{phone}</div>}{location && <div>{location}</div>}
         </div>
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"10px" }}>Skills</div>
+        <div style={{ fontSize:`${sls}px`, color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:"10px" }}>Skills</div>
         <div style={{ display:"flex", flexDirection:"column" as const, gap:"7px", marginBottom:"14px" }}>
           {skills.slice(0,7).map((s,i)=>(
             <div key={i}>
@@ -556,26 +596,26 @@ function TplBold({ form, density }: { form: FormData; density: ReturnType<typeof
         </>)}
       </div>
       {/* White right content */}
-      <div style={{ flex:1, background:"white", padding:"24px 20px", overflow:"hidden" }}>
-        <p style={{ fontSize:"8.5px", color:"#4b5563", lineHeight:lh, paddingBottom:`${sg}px`, borderBottom:"1px solid #f0f0f0", marginBottom:`${sg}px` }}>{summary}</p>
-        <div style={{ fontSize:"9px", fontWeight:700, color:"#3D5A4E", letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"12px" }}>Experience</div>
+      <div style={{ flex:1, background:"white", padding:`${hpv}px ${bp}px`, overflow:"hidden" }}>
+        <p style={{ fontSize:`${fs}px`, color:"#4b5563", lineHeight:lh, paddingBottom:`${sg}px`, borderBottom:"1px solid #f0f0f0", marginBottom:`${sg}px` }}>{summary}</p>
+        <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#3D5A4E", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:`${sg}px` }}>Experience</div>
         {exps.filter(e=>e.title||e.company).map((e,i)=>(
           <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
               <div>
-                <div style={{ fontSize:"9.5px", fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:"8px", color:"#3D5A4E", fontWeight:600 }}>{e.company}</div>
+                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
+                <div style={{ fontSize:`${fs}px`, color:"#3D5A4E", fontWeight:600 }}>{e.company}</div>
               </div>
               {(e.start||e.end) && (
-                <div style={{ fontSize:"7.5px", color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
+                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
                   {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
                 </div>
               )}
             </div>
             {e.bullets.filter(b=>b.trim()).map((b,j)=>(
               <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#3D5A4E", fontSize:"8px", flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:"8px", color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+                <span style={{ color:"#3D5A4E", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
+                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
               </div>
             ))}
           </div>
@@ -608,32 +648,33 @@ function TplInfographic({ form, density }: { form: FormData; density: ReturnType
   const skills = f.skills.length > 0 ? f.skills : PH.skills
   const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
   const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const lh = density.lineHeight
-  const sg = density.sectionGap
+  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
+          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
+          bodyPad:bp, letterSpacing:lsp } = density
   const totalYears = exps.filter(e=>e.title).length > 0 ? `${exps.filter(e=>e.title).length * 3}+` : "8+"
   const skillBars = [92,85,95,88,80,78,83,72,76,68]
   const langBars: Record<string,number> = { Native:100, Fluent:88, Advanced:72, Intermediate:55, Basic:30 }
 
   const sec = (label: string) => (
-    <div style={{ fontSize:"8px", fontWeight:700, color:"#028090", letterSpacing:".1em", textTransform:"uppercase" as const, margin:`${sg}px 0 8px`, display:"flex", alignItems:"center", gap:"8px" }}>
+    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 8px`, display:"flex", alignItems:"center", gap:"8px" }}>
       {label}<div style={{ flex:1, height:"1px", background:"#e5e7eb" }} />
     </div>
   )
 
   return (
     <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ background:"#0a1f24", padding:"18px 22px", display:"flex", alignItems:"center", gap:"16px" }}>
+      <div style={{ background:"#0a1f24", padding:`${hpv}px ${hph}px`, display:"flex", alignItems:"center", gap:"14px" }}>
         {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:"52px", height:"52px", borderRadius:"50%", objectFit:"cover", border:"2px solid #028090", flexShrink:0 }} />
+          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid #028090", flexShrink:0 }} />
         ) : (
-          <div style={{ width:"52px", height:"52px", borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid #028090", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"17px", fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
+          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid #028090", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
             {initials(name)}
           </div>
         )}
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:"18px", fontWeight:700, color:"white", marginBottom:"2px" }}>{name}</div>
-          <div style={{ fontSize:"8.5px", color:"#a8d5d1", letterSpacing:".1em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
-          <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif", marginTop:"4px" }}>
+          <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", marginBottom:"2px" }}>{name}</div>
+          <div style={{ fontSize:`${ts}px`, color:"#a8d5d1", letterSpacing:".1em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
+          <div style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif", marginTop:"4px" }}>
             {[email, location].filter(Boolean).join(" · ")}
           </div>
         </div>
@@ -661,7 +702,7 @@ function TplInfographic({ form, density }: { form: FormData; density: ReturnType
                   </span>
                 </div>
                 {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-                  <div key={j} style={{ fontSize:"7px", color:"#6b7280", lineHeight:lh * 0.9, paddingLeft:"6px", borderLeft:"1.5px solid #f0f0f0", marginBottom:"2px" }}>{b}</div>
+                  <div key={j} style={{ fontSize:`${bs - 0.5}px`, color:"#6b7280", lineHeight:lh * 0.9, paddingLeft:"6px", borderLeft:"1.5px solid #f0f0f0", marginBottom:"2px" }}>{b}</div>
                 ))}
               </div>
             </div>
