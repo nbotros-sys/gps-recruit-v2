@@ -14,23 +14,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
+      // Fetch counts using id-only selects — avoids Supabase HEAD 503 errors
       const [
-        { count: mc }, { count: cc }, { count: pc }, { count: lc },
+        { data: mdRaw }, { data: cdRaw }, { data: pcRaw }, { data: clRaw },
         { data: pd }, { data: mandates }, { data: candidates }
       ] = await Promise.all([
-        supabase.from("mandates").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("candidates").select("*", { count: "exact", head: true }),
-        supabase.from("applications").select("*", { count: "exact", head: true }).eq("stage", "placed"),
-        supabase.from("clients").select("*", { count: "exact", head: true }),
+        supabase.from("mandates").select("id").eq("status", "active"),
+        supabase.from("candidates").select("id"),
+        supabase.from("applications").select("id").eq("stage", "placed"),
+        supabase.from("clients").select("id"),
         supabase.from("applications").select("stage"),
         supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5),
         supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6),
       ])
-      setStats({ mandates: mc || 0, candidates: cc || 0, placements: pc || 0, clients: lc || 0 })
-      const mc = { count: (mdRaw || []).length }
-      const cc = { count: (cdRaw || []).length }
-      const pc = { count: (pdRaw2 || []).length }
-      const lc = { count: (clRaw || []).length }
+      const mc = (mdRaw || []).length
+      const cc = (cdRaw || []).length
+      const pc = (pcRaw || []).length
+      const lc = (clRaw || []).length
+      setStats({ mandates: mc, candidates: cc, placements: pc, clients: lc })
       const counts: Record<string, number> = {}
       for (const a of pd || []) counts[a.stage] = (counts[a.stage] || 0) + 1
       setPipeline(counts)
