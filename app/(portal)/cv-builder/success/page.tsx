@@ -101,7 +101,7 @@ export default function CVBuilderSuccess() {
           <Link href="/account" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", background:"#028090", color:"white", padding:"15px", borderRadius:"12px", fontWeight:700, fontSize:"15px", textDecoration:"none" }}>
             Go to my dashboard <ArrowRight size={15} />
           </Link>
-          <Link href="/jobs" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", background:"white", color:"#0a1f24", padding:"15px", borderRadius:"12px", fontWeight:600, fontSize:"14px", textDecoration:"none", border:"1.5px solid #e5e7eb" }}>
+          <Link href="/jobs#roles" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", background:"white", color:"#0a1f24", padding:"15px", borderRadius:"12px", fontWeight:600, fontSize:"14px", textDecoration:"none", border:"1.5px solid #e5e7eb" }}>
             Browse open roles
           </Link>
         </div>
