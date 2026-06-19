@@ -104,47 +104,53 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                       <>
                         <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setMenuOpen(false)} />
                         <div style={{
-                          position: "absolute", right: 0, top: "calc(100% + 10px)",
-                          background: "white", borderRadius: "18px",
-                          boxShadow: "0 12px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)",
-                          width: "230px", overflow: "hidden", zIndex: 50,
+                          position: "absolute", right: 0, top: "calc(100% + 12px)",
+                          background: "white", borderRadius: "20px",
+                          boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)",
+                          width: "260px", overflow: "hidden", zIndex: 50,
                           border: "1px solid rgba(0,0,0,0.06)"
                         }}>
-                          {/* Profile header */}
-                          <div style={{ padding: "16px 18px", background: "linear-gradient(135deg, #0a1f24, #1a3a3a)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <CandidateAvatar name={candidate?.name || user?.email || "?"} avatarUrl={candidate?.avatar_url} size={36} />
-                              <div>
-                                <div style={{ fontWeight: 700, fontSize: "13px", color: "white" }}>{candidate?.name || "My Account"}</div>
-                                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginTop: "1px" }}>{candidate?.current_title || user?.email}</div>
+                          {/* Profile header — clean dark strip, no emoji */}
+                          <div style={{ padding: "18px 20px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <CandidateAvatar name={candidate?.name || user?.email || "?"} avatarUrl={candidate?.avatar_url} size={40} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: "14px", color: "#0a1f24", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{candidate?.name || "My Account"}</div>
+                                <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{candidate?.current_title || user?.email}</div>
                               </div>
+                            </div>
+                            {/* GPS brand accent line */}
+                            <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#028090" }} />
+                              <span style={{ fontSize: "11px", color: "#028090", fontWeight: 600, letterSpacing: "0.04em" }}>GPS Talent Network</span>
                             </div>
                           </div>
 
-                          {/* Menu items */}
-                          <div style={{ padding: "6px 0" }}>
+                          {/* Menu items — icon as SVG-like teal square dots */}
+                          <div style={{ padding: "8px 0" }}>
                             {[
-                              { label: "My Dashboard",    href: "/account",         icon: "⚡" },
-                              { label: "My Profile",      href: "/account/profile", icon: "👤" },
-                              { label: "My CV",           href: "/account/cv",      icon: "📄" },
-                              { label: "Browse Roles",    href: "/jobs",            icon: "🔍" },
-                            ].map(({ label, href, icon }) => (
+                              { label: "My Dashboard",  href: "/account",         accent: "#028090" },
+                              { label: "My Profile",    href: "/account/profile", accent: "#028090" },
+                              { label: "Build my CV",   href: "/cv-builder",      accent: "#028090" },
+                              { label: "Browse Roles",  href: "/jobs",            accent: "#028090" },
+                            ].map(({ label, href, accent }) => (
                               <a key={label} href={href} onClick={() => setMenuOpen(false)}
-                                style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", textDecoration: "none", color: "#374151", fontSize: "13px", fontWeight: 500, transition: "background 0.1s" }}
-                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f9fafb"}
-                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                                <span style={{ fontSize: "14px", width: "20px", textAlign: "center" }}>{icon}</span>
+                                style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px", textDecoration: "none", color: "#374151", fontSize: "13px", fontWeight: 500, transition: "background 0.12s" }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f0fdf4"; (e.currentTarget as HTMLElement).style.color = "#028090" }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#374151" }}>
+                                <div style={{ width: "6px", height: "6px", borderRadius: "2px", background: accent, opacity: 0.5, flexShrink: 0 }} />
                                 {label}
                               </a>
                             ))}
                           </div>
 
-                          <div style={{ borderTop: "1px solid #f3f4f6", padding: "6px 0" }}>
+                          {/* Divider + sign out */}
+                          <div style={{ borderTop: "1px solid #f3f4f6", padding: "8px 0" }}>
                             <button onClick={signOut}
-                              style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "13px", fontWeight: 500, width: "100%", textAlign: "left" }}
-                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#fef2f2"}
-                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                              <span style={{ fontSize: "14px", width: "20px", textAlign: "center" }}>🚪</span>
+                              style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "13px", fontWeight: 500, width: "100%", textAlign: "left", transition: "all 0.12s" }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fef2f2"; (e.currentTarget as HTMLElement).style.color = "#ef4444" }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#9ca3af" }}>
+                              <div style={{ width: "6px", height: "6px", borderRadius: "2px", background: "#ef4444", opacity: 0.4, flexShrink: 0 }} />
                               Sign out
                             </button>
                           </div>
