@@ -64,7 +64,7 @@ export default function JobsPage() {
       `}</style>
 
       {/* ── HERO: RECRUITMENT ── */}
-      <section style={{ position:"relative", width:"100%", minHeight:"52vh", background:"#071f24", overflow:"hidden", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"48px 24px 56px", isolation:"isolate" }}>
+      <section style={{ position:"relative", width:"100%", minHeight:"38vh", background:"#071f24", overflow:"hidden", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px 36px", isolation:"isolate" }}>
         <div style={{ position:"absolute", top:"-12%", left:"50%", transform:"translateX(-50%)", width:"min(1100px,140%)", height:"760px", background:"radial-gradient(ellipse at center,rgba(2,128,144,.38) 0%,rgba(2,128,144,.12) 40%,rgba(7,31,36,0) 70%)", filter:"blur(8px)", animation:"gpsGlow 9s ease-in-out infinite", pointerEvents:"none" }} />
         <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(rgba(168,213,209,.10) 1.2px, transparent 1.2px)", backgroundSize:"34px 34px", WebkitMaskImage:"radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", maskImage:"radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", top:0, left:0, right:0, height:"1px", background:"linear-gradient(90deg, transparent, rgba(168,213,209,.30), transparent)" }} />
@@ -72,14 +72,14 @@ export default function JobsPage() {
         <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"120px", background:"linear-gradient(to bottom, transparent, #0a1f24)", pointerEvents:"none" }} />
 
         <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", maxWidth:"820px", width:"100%", animation:"fadeUp .8s ease both" }}>
-          <img src="/gps-logo.png" alt="GPS Recruitment" style={{ width:"clamp(64px,8vw,96px)", height:"auto", marginBottom:"10px", filter:"drop-shadow(0 14px 40px rgba(2,128,144,.35))", animation:"gpsFloat 7s ease-in-out infinite" }} />
-          <div style={{ fontSize:"11px", letterSpacing:".32em", textTransform:"uppercase", color:"#a8d5d1", fontWeight:600, marginBottom:"12px" }}>
+          <img src="/gps-logo.png" alt="GPS Recruitment" style={{ width:"clamp(52px,6vw,72px)", height:"auto", marginBottom:"6px", filter:"drop-shadow(0 14px 40px rgba(2,128,144,.35))", animation:"gpsFloat 7s ease-in-out infinite" }} />
+          <div style={{ fontSize:"10px", letterSpacing:".28em", textTransform:"uppercase", color:"#a8d5d1", fontWeight:600, marginBottom:"8px" }}>
             Executive Recruitment · Egypt & MENA
           </div>
           <h1 style={{ margin:"0 0 10px", fontFamily:"Georgia, serif", fontWeight:400, fontSize:"clamp(30px,4.8vw,58px)", lineHeight:1.06, letterSpacing:"-.015em", color:"#f4f8f7" }}>
             Your next role,<br />placed by <span style={{ color:"#36b0bd", fontStyle:"italic" }}>GPS</span>.
           </h1>
-          <p style={{ margin:"0 0 24px", fontSize:"clamp(15px,1.5vw,18px)", lineHeight:1.65, color:"rgba(225,238,236,.68)", maxWidth:"520px" }}>
+          <p style={{ margin:"0 0 20px", fontSize:"clamp(13px,1.2vw,15px)", lineHeight:1.5, color:"rgba(225,238,236,.65)", maxWidth:"640px" }}>
             Egypt's specialist recruitment network — placing professionals across all functions and industries, in Egypt and the Gulf.
           </p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:"12px", justifyContent:"center" }}>
@@ -95,10 +95,10 @@ export default function JobsPage() {
 
       {/* ── CV TOOLS HERO ── big, prominent, its own section ── */}
       <section style={{ background:"#0a1f24", padding:"0 0 0" }}>
-        <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"0 40px 64px" }}>
+        <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"0 40px 48px" }}>
 
           {/* Section label */}
-          <div style={{ display:"flex", alignItems:"center", gap:"12px", paddingTop:"36px", marginBottom:"28px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"12px", paddingTop:"20px", marginBottom:"16px" }}>
             <div style={{ height:"1px", flex:1, background:"rgba(168,213,209,0.15)" }} />
             <span style={{ fontSize:"11px", letterSpacing:".28em", textTransform:"uppercase", color:"rgba(168,213,209,0.5)", fontWeight:600, whiteSpace:"nowrap" }}>GPS AI Tools · Free</span>
             <div style={{ height:"1px", flex:1, background:"rgba(168,213,209,0.15)" }} />
@@ -109,7 +109,7 @@ export default function JobsPage() {
 
             {/* Card 1: Build CV */}
             <Link href="/cv-builder" style={{ textDecoration:"none", display:"block" }}>
-              <div style={{ background:"linear-gradient(135deg, #028090 0%, #025f6b 100%)", borderRadius:"24px", padding:"40px", position:"relative", overflow:"hidden", minHeight:"280px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, box-shadow 0.2s" }}
+              <div style={{ background:"linear-gradient(135deg, #028090 0%, #025f6b 100%)", borderRadius:"24px", padding:"28px", position:"relative", overflow:"hidden", minHeight:"240px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, box-shadow 0.2s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow="0 24px 60px rgba(2,128,144,0.4)" }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow="none" }}>
                 {/* Background pattern */}
@@ -154,7 +154,7 @@ export default function JobsPage() {
 
             {/* Card 2: Review CV */}
             <Link href="/cv-builder?tab=reviewer" style={{ textDecoration:"none", display:"block" }}>
-              <div style={{ background:"linear-gradient(135deg, #1a3a3a 0%, #0a1f24 100%)", border:"1px solid rgba(168,213,209,0.2)", borderRadius:"24px", padding:"40px", position:"relative", overflow:"hidden", minHeight:"280px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, border-color 0.2s, box-shadow 0.2s" }}
+              <div style={{ background:"linear-gradient(135deg, #1a3a3a 0%, #0a1f24 100%)", border:"1px solid rgba(168,213,209,0.2)", borderRadius:"24px", padding:"28px", position:"relative", overflow:"hidden", minHeight:"240px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, border-color 0.2s, box-shadow 0.2s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-4px)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(168,213,209,0.5)"; (e.currentTarget as HTMLElement).style.boxShadow="0 24px 60px rgba(0,0,0,0.3)" }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(168,213,209,0.2)"; (e.currentTarget as HTMLElement).style.boxShadow="none" }}>
 
