@@ -40,7 +40,8 @@ type FormData = {
   personal: { name:string; title:string; email:string; phone:string; location:string; nationality:string; dob:string; linkedin:string; photo:string|null }
   summary: string
   experience: Array<{ company:string; title:string; start:string; end:string; current:boolean; bullets:string[] }>
-  education: Array<{ institution:string; degree:string; field:string; year:string }>
+  education: Array<{ institution:string; degree:string; field:string; startYear:string; endYear:string }>
+  hobbies: string
   skills: string[]
   languages: Array<{ lang:string; level:string }>
   function: string
@@ -51,7 +52,8 @@ const INITIAL: FormData = {
   personal: { name:"", title:"", email:"", phone:"", location:"", nationality:"", dob:"", linkedin:"", photo:null },
   summary: "",
   experience: [{ company:"", title:"", start:"", end:"", current:false, bullets:[""] }],
-  education: [{ institution:"", degree:"", field:"", year:"" }],
+  education: [{ institution:"", degree:"", field:"", startYear:"", endYear:"" }],
+  hobbies: "",
   skills: [],
   languages: [{ lang:"Arabic", level:"Native" }, { lang:"English", level:"Fluent" }],
   function: "",
@@ -144,6 +146,16 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
   const hasExperience = form.experience.some(e => e.title || e.company)
   const hasSkills = form.skills.length > 0
   const hasEducation = form.education.some(e => e.institution || e.degree)
+  // Placeholder data shown when form is mostly empty — so preview never looks blank
+  const previewName = name !== "Your Name" ? name : "Ahmed Hassan"
+  const previewTitle = title !== "Your Job Title" ? title : "Finance Manager"
+  const previewSummary = form.summary || "Experienced finance professional with 8+ years across banking and FMCG sectors in Egypt. Proven track record in financial planning, team leadership and stakeholder management across Cairo and the Gulf region."
+  const previewExp = hasExperience ? form.experience : [
+    { title:"Finance Manager", company:"ABC Group", start:"2020-01", end:"", current:true, bullets:["Led financial reporting for EGP 50M portfolio across 3 business units","Managed team of 6 accountants, reducing month-end close from 7 to 3 days"] },
+    { title:"Senior Accountant", company:"XYZ Bank", start:"2017-03", end:"2019-12", current:false, bullets:["Prepared monthly management accounts and variance analysis reports"] }
+  ]
+  const previewSkills = hasSkills ? form.skills : ["Financial Reporting","Budgeting","SAP","Excel Advanced","Team Leadership"]
+  const isPlaceholder = !hasExperience && !form.summary && name === "Your Name"
 
   const sectionLabel = (label: string) => (
     <div style={{ display:"flex", alignItems:"center", gap:"8px", margin:"14px 0 8px" }}>
@@ -155,17 +167,17 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
   const mainContent = (
     <div style={{ flex:1, minWidth:0, padding: t.hasSidebar ? "0 0 0 14px" : "0" }}>
       {/* Summary */}
-      {form.summary && (
+      {(form.summary || isPlaceholder) && (
         <div>
           {sectionLabel("Professional Summary")}
-          <p style={{ fontSize:"8.5px", color:"#374151", lineHeight:1.65, margin:0 }}>{form.summary}</p>
+          <p style={{ fontSize:"8.5px", color: isPlaceholder && !form.summary ? "#9ca3af" : "#374151", lineHeight:1.65, margin:0, fontStyle: isPlaceholder && !form.summary ? "italic" : "normal" }}>{previewSummary}</p>
         </div>
       )}
       {/* Experience */}
-      {hasExperience && (
+      {(hasExperience || isPlaceholder) && (
         <div>
           {sectionLabel("Work Experience")}
-          {form.experience.filter(e => e.title || e.company).map((exp, i) => (
+          {previewExp.filter((e:any) => e.title || e.company).map((exp:any, i:number) => (
             <div key={i} style={{ marginBottom:"10px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div>
@@ -191,7 +203,7 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
         </div>
       )}
       {/* Education (in main column only if no sidebar) */}
-      {!t.hasSidebar && hasEducation && (
+      {!t.hasSidebar && (hasEducation || isPlaceholder) && (
         <div>
           {sectionLabel("Education")}
           {form.education.filter(e => e.institution).map((edu, i) => (
@@ -213,12 +225,12 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
       {phone && <p style={{ fontSize:"7.5px", color:"#4b5563", marginBottom:"4px", lineHeight:1.4 }}>📞 {phone}</p>}
       {linkedin && <p style={{ fontSize:"7.5px", color:t.accentColor, marginBottom:"4px", lineHeight:1.4, wordBreak:"break-all" as const }}>{linkedin.replace("https://","")}</p>}
       {/* Skills */}
-      {hasSkills && (
+      {(hasSkills || isPlaceholder) && (
         <>
           {sectionLabel("Skills")}
           <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
-            {form.skills.slice(0, 8).map(s => (
-              <div key={s} style={{ fontSize:"7.5px", color:"#374151", display:"flex", alignItems:"center", gap:"4px" }}>
+            {previewSkills.slice(0, 8).map((s:string) => (
+              <div key={s} style={{ fontSize:"7.5px", color: isPlaceholder && !hasSkills ? "#9ca3af" : "#374151", display:"flex", alignItems:"center", gap:"4px", fontStyle: isPlaceholder && !hasSkills ? "italic" : "normal" }}>
                 <div style={{ width:"4px", height:"4px", borderRadius:"50%", background:t.accentColor, flexShrink:0 }} />
                 {s}
               </div>
@@ -239,15 +251,15 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
         </>
       )}
       {/* Education in sidebar */}
-      {hasEducation && (
+      {(hasEducation || isPlaceholder) && (
         <>
           {sectionLabel("Education")}
-          {form.education.filter(e => e.institution).map((edu, i) => (
+          {(hasEducation ? form.education.filter((e:any) => e.institution) : [{ institution:"Cairo University", degree:"B.Sc. Accounting", field:"", startYear:"2012", endYear:"2016" }]).map((edu:any, i:number) => (
             <div key={i} style={{ marginBottom:"6px" }}>
-              <p style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24", margin:0, lineHeight:1.3 }}>{edu.degree}</p>
+              <p style={{ fontSize:"8px", fontWeight:700, color: isPlaceholder && !hasEducation ? "#9ca3af" : "#0a1f24", margin:0, lineHeight:1.3, fontStyle: isPlaceholder && !hasEducation ? "italic" : "normal" }}>{edu.degree}</p>
               {edu.field && <p style={{ fontSize:"7.5px", color:"#6b7280", margin:0 }}>{edu.field}</p>}
               <p style={{ fontSize:"7.5px", color:t.accentColor, margin:0 }}>{edu.institution}</p>
-              {edu.year && <p style={{ fontSize:"7px", color:"#9ca3af", margin:0 }}>{edu.year}</p>}
+              {edu.endYear && <p style={{ fontSize:"7px", color:"#9ca3af", margin:0 }}>{edu.endYear}</p>}
             </div>
           ))}
         </>
@@ -278,8 +290,8 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
             </div>
           )}
           <div style={{ flex:1, minWidth:0 }}>
-            <h1 style={{ fontSize:"16px", fontWeight:700, color:t.textOnHeader, margin:0, letterSpacing:"-0.3px", lineHeight:1.2 }}>{name}</h1>
-            <p style={{ fontSize:"10px", color:t.subtitleOnHeader, margin:"3px 0 0", fontFamily:"sans-serif", letterSpacing:"0.02em" }}>{title}</p>
+            <h1 style={{ fontSize:"16px", fontWeight:700, color:t.textOnHeader, margin:0, letterSpacing:"-0.3px", lineHeight:1.2 }}>{previewName}</h1>
+            <p style={{ fontSize:"10px", color:t.subtitleOnHeader, margin:"3px 0 0", fontFamily:"sans-serif", letterSpacing:"0.02em" }}>{previewTitle}</p>
             {!t.hasSidebar && (
               <div style={{ display:"flex", gap:"12px", marginTop:"5px", flexWrap:"wrap" as const }}>
                 {location && <span style={{ fontSize:"8px", color:t.subtitleOnHeader, fontFamily:"sans-serif" }}>📍 {location}</span>}
@@ -418,7 +430,7 @@ export default function CVBuilderPage() {
   }
 
   function addEdu() {
-    setForm(f => ({ ...f, education: [...f.education, { institution:"", degree:"", field:"", year:"" }] }))
+    setForm(f => ({ ...f, education: [...f.education, { institution:"", degree:"", field:"", startYear:"", endYear:"" }] }))
   }
 
   function updateEdu(i: number, k: string, v: string) {
@@ -926,8 +938,21 @@ export default function CVBuilderPage() {
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
                       <div><label style={label}>Institution</label><input style={inp} placeholder="Cairo University" value={edu.institution} onChange={e => updateEdu(i,"institution",e.target.value)} /></div>
                       <div><label style={label}>Degree</label><input style={inp} placeholder="Bachelor's" value={edu.degree} onChange={e => updateEdu(i,"degree",e.target.value)} /></div>
-                      <div><label style={label}>Field of study</label><input style={inp} placeholder="Accounting" value={edu.field} onChange={e => updateEdu(i,"field",e.target.value)} /></div>
-                      <div><label style={label}>Year</label><input style={inp} type="number" placeholder="2015" value={edu.year} onChange={e => updateEdu(i,"year",e.target.value)} /></div>
+                      <div style={{ gridColumn:"span 2" }}><label style={label}>Field of study</label><input style={inp} placeholder="Accounting" value={edu.field} onChange={e => updateEdu(i,"field",e.target.value)} /></div>
+                      <div>
+                        <label style={label}>Start year</label>
+                        <select style={sel} value={edu.startYear} onChange={e => updateEdu(i,"startYear",e.target.value)}>
+                          <option value="">Year</option>
+                          {Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={label}>End year <span style={{ color:"#9ca3af", fontWeight:400 }}>(or expected)</span></label>
+                        <select style={sel} value={edu.endYear} onChange={e => updateEdu(i,"endYear",e.target.value)}>
+                          <option value="">Year</option>
+                          {Array.from({length:44},(_,idx)=>String(new Date().getFullYear()+3-idx)).map(y=><option key={y} value={y}>{y}</option>)}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -953,9 +978,18 @@ export default function CVBuilderPage() {
                     {form.languages.length > 1 && <button onClick={() => setForm(f => ({...f, languages:f.languages.filter((_,idx)=>idx!==i)}))} style={{ height:"42px", padding:"0 12px", background:"none", border:"1px solid #fee2e2", borderRadius:"8px", cursor:"pointer", color:"#ef4444" }}><Trash2 size={13} /></button>}
                   </div>
                 ))}
-                <button onClick={() => setForm(f=>({...f,languages:[...f.languages,{lang:"French",level:"Intermediate"}]}))} style={{ display:"flex", alignItems:"center", gap:"6px", padding:"10px 18px", background:"white", border:"1.5px dashed #d1d5db", borderRadius:"10px", cursor:"pointer", color:"#6b7280", fontSize:"13px", fontWeight:500 }}>
+                <button onClick={() => setForm(f=>({...f,languages:[...f.languages,{lang:"French",level:"Intermediate"}]}))} style={{ display:"flex", alignItems:"center", gap:"6px", padding:"10px 18px", background:"white", border:"1.5px dashed #d1d5db", borderRadius:"10px", cursor:"pointer", color:"#6b7280", fontSize:"13px", fontWeight:500, marginBottom:"28px" }}>
                   <Plus size={14} /> Add language
                 </button>
+
+                <h3 style={{ fontSize:"15px", fontWeight:700, color:"#374151", marginBottom:"6px" }}>Hobbies & interests <span style={{ fontSize:"12px", color:"#9ca3af", fontWeight:400 }}>(optional)</span></h3>
+                <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"12px" }}>A brief line about what you do outside work. Adds personality — especially valued in Egyptian & Gulf recruitment.</p>
+                <input
+                  style={inp}
+                  placeholder="e.g. Playing football, reading Arabic literature, hiking, photography"
+                  value={form.hobbies}
+                  onChange={e => setForm(f => ({ ...f, hobbies: e.target.value }))}
+                />
               </div>
             )}
 
@@ -995,24 +1029,45 @@ export default function CVBuilderPage() {
                 <h2 style={{ fontSize:"20px", fontWeight:800, color:"#0a1f24", marginBottom:"6px" }}>Choose your template</h2>
                 <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"24px" }}>5 designs built for the MENA market. All include photo support. Arabic version available after saving.</p>
 
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"10px", marginBottom:"28px" }}>
-                  {TEMPLATES.map(t => (
-                    <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:0, border:selectedTemplate===t.id?"2.5px solid #028090":"1.5px solid #e5e7eb", borderRadius:"14px", overflow:"hidden", cursor:"pointer", background:"white", boxShadow:selectedTemplate===t.id?"0 0 0 3px rgba(2,128,144,0.12)":"none", transition:"all 0.15s" }}>
-                      {/* Mini template preview */}
-                      <div style={{ height:"90px", background:t.color, display:"flex", flexDirection:"column", padding:"8px", gap:"4px", position:"relative" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                          <div style={{ width:"12px", height:"12px", borderRadius:"50%", background:t.accent, opacity:0.7, flexShrink:0 }} />
-                          <div style={{ height:"3px", background:t.accent === "white"?"rgba(255,255,255,0.6)":"rgba(0,0,0,0.15)", borderRadius:"2px", flex:1 }} />
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"12px", marginBottom:"28px" }}>
+                  {TEMPLATES.map(t => {
+                    const isSelected = selectedTemplate === t.id
+                    const isDark = t.id === "executive" || t.id === "modern" || t.id === "bold"
+                    const hasSidebar = t.id === "executive" || t.id === "twocol" || t.id === "bold"
+                    return (
+                      <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:0, border:isSelected?"2.5px solid #028090":"1.5px solid #e5e7eb", borderRadius:"14px", overflow:"hidden", cursor:"pointer", background:"white", boxShadow:isSelected?"0 0 0 4px rgba(2,128,144,0.15)":"0 1px 4px rgba(0,0,0,0.05)", transition:"all 0.15s" }}>
+                        {/* Proper mini CV layout */}
+                        <div style={{ height:"110px", background:t.color === "white" ? "#fafafa" : t.color, position:"relative", overflow:"hidden", borderBottom: t.color === "white" ? "1px solid #e8e8e8" : "none" }}>
+                          {/* Header bar */}
+                          <div style={{ background:t.headerBg, padding:"7px 8px 6px", display:"flex", alignItems:"center", gap:"5px", borderBottom: t.id === "minimal" ? `2px solid ${t.accent}` : "none" }}>
+                            <div style={{ width:"10px", height:"10px", borderRadius:"50%", background:isDark?"rgba(255,255,255,0.35)":"rgba(0,0,0,0.15)", flexShrink:0 }} />
+                            <div style={{ flex:1 }}>
+                              <div style={{ height:"3px", borderRadius:"2px", background:isDark?"rgba(255,255,255,0.6)":"rgba(0,0,0,0.25)", width:"55%", marginBottom:"2px" }} />
+                              <div style={{ height:"2px", borderRadius:"2px", background:isDark?"rgba(255,255,255,0.3)":"rgba(0,0,0,0.12)", width:"35%" }} />
+                            </div>
+                          </div>
+                          {/* Body with optional sidebar */}
+                          <div style={{ display:"flex", padding:"5px 6px", gap:"5px", flex:1 }}>
+                            {hasSidebar && (
+                              <div style={{ width:"28%", display:"flex", flexDirection:"column", gap:"3px" }}>
+                                <div style={{ height:"2px", borderRadius:"1px", background:t.accent==="white"?"rgba(255,255,255,0.5)":t.accent, opacity:0.6, width:"70%" }} />
+                                {[100,80,90,70,85].map((w,i)=><div key={i} style={{ height:"2px", borderRadius:"1px", background:isDark?"rgba(255,255,255,0.18)":"rgba(0,0,0,0.1)", width:`${w}%` }} />)}
+                              </div>
+                            )}
+                            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:"3px" }}>
+                              <div style={{ height:"2px", borderRadius:"1px", background:t.accent==="white"?"rgba(255,255,255,0.5)":t.accent, opacity:0.7, width:"45%" }} />
+                              {[100,85,90,75,80,65].map((w,i)=><div key={i} style={{ height:"2px", borderRadius:"1px", background:isDark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.09)", width:`${w}%` }} />)}
+                            </div>
+                          </div>
                         </div>
-                        {[70,50,80,40].map((w,i) => <div key={i} style={{ height:"3px", background:t.accent==="white"?"rgba(255,255,255,0.25)":"rgba(0,0,0,0.08)", borderRadius:"2px", width:`${w}%` }} />)}
-                      </div>
-                      <div style={{ padding:"8px 10px" }}>
-                        <p style={{ fontSize:"11px", fontWeight:700, color:"#0a1f24", margin:0 }}>{t.name}</p>
-                        <p style={{ fontSize:"10px", color:"#9ca3af", margin:0 }}>{t.desc}</p>
-                      </div>
-                      {selectedTemplate===t.id && <div style={{ background:"#028090", padding:"3px 0", textAlign:"center", fontSize:"10px", color:"white", fontWeight:600 }}>Selected ✓</div>}
-                    </button>
-                  ))}
+                        <div style={{ padding:"7px 10px", background:"white" }}>
+                          <p style={{ fontSize:"11px", fontWeight:700, color:isSelected?"#028090":"#0a1f24", margin:0, transition:"color 0.15s" }}>{t.name}</p>
+                          <p style={{ fontSize:"9px", color:"#9ca3af", margin:0, marginTop:"1px" }}>{t.desc}</p>
+                        </div>
+                        {isSelected && <div style={{ background:"#028090", padding:"3px 0", textAlign:"center", fontSize:"9px", color:"white", fontWeight:700, letterSpacing:"0.04em" }}>✓ SELECTED</div>}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* CV Preview — proper A4 document render */}
