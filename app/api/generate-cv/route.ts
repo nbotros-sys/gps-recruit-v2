@@ -127,7 +127,11 @@ Return ONLY valid JSON with this exact structure (no markdown, no preamble):
   "score": <number 0-100>,
   "summary": "<2-3 sentence overall assessment>",
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-  "concerns": ["<concern 1>", "<concern 2>", "<concern 3>"]
+  "concerns": ["<concern 1>", "<concern 2>", "<concern 3>"],
+  "name": "<candidate full name extracted from CV, or null>",
+  "email": "<candidate email extracted from CV, or null>",
+  "current_title": "<current or most recent job title, or null>",
+  "current_company": "<current or most recent employer, or null>"
 }
 
 Score guidelines: 80+ = strong, 60-79 = good, 40-59 = needs work, below 40 = major gaps.
