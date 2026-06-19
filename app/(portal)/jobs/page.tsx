@@ -84,7 +84,7 @@ export default function JobsPage() {
           </h1>
 
           <p style={{ margin:"0 0 16px", fontSize:"clamp(15px,1.6vw,19px)", lineHeight:1.65, color:"rgba(225,238,236,.72)", maxWidth:"560px" }}>
-            Egypt's specialist recruitment network for senior finance, HR, operations and technology roles — across Egypt and the Gulf.
+            Egypt's specialist recruitment network — placing professionals across all functions and industries, in Egypt and the Gulf.
           </p>
 
           {/* CV Builder callout pill */}
@@ -99,8 +99,8 @@ export default function JobsPage() {
             <a href="#roles" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"16px", whiteSpace:"nowrap", padding:"16px 30px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, box-shadow .2s, background .2s", background:"#028090", color:"#fff", boxShadow:"0 12px 30px -8px rgba(2,128,144,.7)" }}>
               Browse open roles <ArrowRight size={16} />
             </a>
-            <Link href="/cv-builder" className="gps-hero-cv" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"16px", whiteSpace:"nowrap", padding:"16px 30px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, background .2s", background:"rgba(255,255,255,0.08)", color:"#f4f8f7", border:"1px solid rgba(255,255,255,0.18)" }}>
-              <Sparkles size={16} color="#a8d5d1" /> Build your CV free
+            <Link href="/cv-builder" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:700, fontSize:"16px", whiteSpace:"nowrap", padding:"16px 30px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s ease, box-shadow .2s ease, background .2s ease", background:"#028090", color:"#fff", boxShadow:"0 12px 30px -8px rgba(2,128,144,.7)" }}>
+              <Sparkles size={16} color="white" /> Build your CV free
             </Link>
             <a href="/send-cv" className="gps-hero-secondary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:500, fontSize:"15px", whiteSpace:"nowrap", padding:"16px 24px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, border-color .2s, background .2s", background:"transparent", color:"rgba(168,213,209,0.8)", border:"1px solid rgba(168,213,209,.25)" }}>
               Send us your CV
@@ -119,17 +119,17 @@ export default function JobsPage() {
                 <Sparkles size={12} /> FREE AI CV BUILDER
               </div>
               <h2 style={{ fontSize:"clamp(28px,3.5vw,42px)", fontWeight:800, color:"#0a1f24", lineHeight:1.15, marginBottom:"18px", letterSpacing:"-0.5px" }}>
-                Build a professional CV in 10 minutes — AI does the writing
+                Build a new CV or get your existing one reviewed — all free, all AI
               </h2>
               <p style={{ fontSize:"16px", color:"#6b7280", lineHeight:1.7, marginBottom:"28px" }}>
-                Tell us your role and experience. Our AI generates your professional summary, rewrites your bullet points, and formats everything across 5 professionally designed templates built for the Egyptian and Gulf markets.
+                Already have a CV? Upload it and get an instant AI review — score, weaknesses, and rewrites. Starting from scratch? Our AI builds your full CV in 10 minutes: professional summary, bullet points, and 5 MENA-optimised templates. Every CV saved goes directly to GPS recruiters.
               </p>
               <div style={{ display:"flex", flexDirection:"column", gap:"12px", marginBottom:"32px" }}>
                 {[
-                  { icon: Sparkles, text: "AI writes your summary and bullet points for you" },
-                  { icon: FileText, text: "5 templates designed for Egypt & MENA recruiters" },
-                  { icon: Users, text: "Your CV automatically joins the GPS Talent Network" },
-                  { icon: Shield, text: "Photo support — expected and encouraged in MENA" },
+                  { icon: Sparkles, text: "AI builds your CV or reviews your existing one" },
+                  { icon: FileText, text: "5 templates for all roles — finance, tech, marketing, legal, ops and more" },
+                  { icon: Users, text: "Every CV saved goes straight to GPS recruiters" },
+                  { icon: Shield, text: "Upload any existing CV for instant AI scoring & feedback" },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} style={{ display:"flex", alignItems:"center", gap:"12px" }}>
                     <div style={{ width:"28px", height:"28px", background:"#e6f5f3", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
@@ -139,10 +139,15 @@ export default function JobsPage() {
                   </div>
                 ))}
               </div>
-              <Link href="/cv-builder" style={{ display:"inline-flex", alignItems:"center", gap:"10px", background:"#0a1f24", color:"white", padding:"15px 28px", borderRadius:"12px", fontWeight:700, fontSize:"15px", textDecoration:"none" }}>
-                Build my CV free <ArrowRight size={15} />
-              </Link>
-              <p style={{ fontSize:"12px", color:"#9ca3af", marginTop:"10px" }}>No credit card. No subscription. Your CV stays yours.</p>
+              <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+                <Link href="/cv-builder" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"#028090", color:"white", padding:"14px 24px", borderRadius:"12px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
+                  <Sparkles size={14} /> Build my CV
+                </Link>
+                <Link href="/cv-builder?tab=reviewer" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"#0a1f24", color:"white", padding:"14px 24px", borderRadius:"12px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
+                  <FileText size={14} /> Review my CV
+                </Link>
+              </div>
+              <p style={{ fontSize:"12px", color:"#9ca3af", marginTop:"10px" }}>Free. No credit card. Works for any industry or level.</p>
             </div>
 
             {/* Visual preview of templates */}
