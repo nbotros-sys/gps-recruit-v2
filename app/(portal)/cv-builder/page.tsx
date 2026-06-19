@@ -124,6 +124,205 @@ function SummaryStep({ form, generating, setForm, generateSummary, inp }: any) {
   )
 }
 
+
+// ── TEMPLATE COLOURS ──
+const T: Record<string, { headerBg:string; accentColor:string; sidebarBg:string; textOnHeader:string; subtitleOnHeader:string; isDark:boolean; hasSidebar:boolean }> = {
+  executive: { headerBg:"#0a1f24", accentColor:"#028090", sidebarBg:"#f0fdf4", textOnHeader:"white", subtitleOnHeader:"rgba(168,213,209,0.8)", isDark:true, hasSidebar:true },
+  modern:    { headerBg:"#028090", accentColor:"#0a1f24", sidebarBg:"#f9fafb", textOnHeader:"white", subtitleOnHeader:"rgba(255,255,255,0.75)", isDark:true, hasSidebar:false },
+  twocol:    { headerBg:"#f4f8f7", accentColor:"#028090", sidebarBg:"#e8f4f2", textOnHeader:"#0a1f24", subtitleOnHeader:"#6b7280", isDark:false, hasSidebar:true },
+  bold:      { headerBg:"#3D5A4E", accentColor:"#028090", sidebarBg:"#f0fdf4", textOnHeader:"white", subtitleOnHeader:"rgba(255,255,255,0.7)", isDark:true, hasSidebar:true },
+  minimal:   { headerBg:"white", accentColor:"#028090", sidebarBg:"#f9fafb", textOnHeader:"#0a1f24", subtitleOnHeader:"#6b7280", isDark:false, hasSidebar:false },
+}
+
+function CVPreview({ form, templateId }: { form: FormData; templateId: string }) {
+  const t = T[templateId] || T.executive
+  const name = form.personal.name || "Your Name"
+  const title = form.personal.title || "Your Job Title"
+  const location = form.personal.location || ""
+  const phone = form.personal.phone || ""
+  const linkedin = form.personal.linkedin || ""
+  const hasExperience = form.experience.some(e => e.title || e.company)
+  const hasSkills = form.skills.length > 0
+  const hasEducation = form.education.some(e => e.institution || e.degree)
+
+  const sectionLabel = (label: string) => (
+    <div style={{ display:"flex", alignItems:"center", gap:"8px", margin:"14px 0 8px" }}>
+      <span style={{ fontSize:"9px", fontWeight:700, color:t.accentColor, textTransform:"uppercase", letterSpacing:"0.1em" }}>{label}</span>
+      <div style={{ flex:1, height:"1px", background:t.accentColor, opacity:0.25 }} />
+    </div>
+  )
+
+  const mainContent = (
+    <div style={{ flex:1, minWidth:0, padding: t.hasSidebar ? "0 0 0 14px" : "0" }}>
+      {/* Summary */}
+      {form.summary && (
+        <div>
+          {sectionLabel("Professional Summary")}
+          <p style={{ fontSize:"8.5px", color:"#374151", lineHeight:1.65, margin:0 }}>{form.summary}</p>
+        </div>
+      )}
+      {/* Experience */}
+      {hasExperience && (
+        <div>
+          {sectionLabel("Work Experience")}
+          {form.experience.filter(e => e.title || e.company).map((exp, i) => (
+            <div key={i} style={{ marginBottom:"10px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <p style={{ fontSize:"9.5px", fontWeight:700, color:"#0a1f24", margin:0 }}>{exp.title}</p>
+                  <p style={{ fontSize:"8.5px", color:t.accentColor, fontWeight:600, margin:"1px 0" }}>{exp.company}</p>
+                </div>
+                {(exp.start || exp.end) && (
+                  <p style={{ fontSize:"8px", color:"#9ca3af", margin:0, flexShrink:0, marginLeft:"8px" }}>
+                    {exp.start ? exp.start.replace(/^(\d{4})-(\d{2})$/, (_, y, m) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m)] + " " + y) : ""}
+                    {" – "}
+                    {exp.current ? "Present" : exp.end ? exp.end.replace(/^(\d{4})-(\d{2})$/, (_, y, m) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m)] + " " + y) : ""}
+                  </p>
+                )}
+              </div>
+              {exp.bullets.filter(b => b.trim()).map((b, bi) => (
+                <div key={bi} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
+                  <span style={{ color:t.accentColor, fontSize:"8px", flexShrink:0, marginTop:"1px" }}>▸</span>
+                  <p style={{ fontSize:"8px", color:"#4b5563", lineHeight:1.5, margin:0 }}>{b}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Education (in main column only if no sidebar) */}
+      {!t.hasSidebar && hasEducation && (
+        <div>
+          {sectionLabel("Education")}
+          {form.education.filter(e => e.institution).map((edu, i) => (
+            <div key={i} style={{ marginBottom:"7px" }}>
+              <p style={{ fontSize:"9px", fontWeight:700, color:"#0a1f24", margin:0 }}>{edu.degree}{edu.field ? ` — ${edu.field}` : ""}</p>
+              <p style={{ fontSize:"8px", color:"#6b7280", margin:"1px 0" }}>{edu.institution}{edu.year ? ` · ${edu.year}` : ""}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const sidebarContent = t.hasSidebar ? (
+    <div style={{ width:"130px", flexShrink:0, background:t.sidebarBg, padding:"14px 12px", borderRight:t.isDark ? "none" : "1px solid #e8ecef" }}>
+      {/* Contact */}
+      {sectionLabel("Contact")}
+      {location && <p style={{ fontSize:"7.5px", color:"#4b5563", marginBottom:"4px", lineHeight:1.4 }}>📍 {location}</p>}
+      {phone && <p style={{ fontSize:"7.5px", color:"#4b5563", marginBottom:"4px", lineHeight:1.4 }}>📞 {phone}</p>}
+      {linkedin && <p style={{ fontSize:"7.5px", color:t.accentColor, marginBottom:"4px", lineHeight:1.4, wordBreak:"break-all" as const }}>{linkedin.replace("https://","")}</p>}
+      {/* Skills */}
+      {hasSkills && (
+        <>
+          {sectionLabel("Skills")}
+          <div style={{ display:"flex", flexDirection:"column", gap:"3px" }}>
+            {form.skills.slice(0, 8).map(s => (
+              <div key={s} style={{ fontSize:"7.5px", color:"#374151", display:"flex", alignItems:"center", gap:"4px" }}>
+                <div style={{ width:"4px", height:"4px", borderRadius:"50%", background:t.accentColor, flexShrink:0 }} />
+                {s}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {/* Languages */}
+      {form.languages.some(l => l.lang) && (
+        <>
+          {sectionLabel("Languages")}
+          {form.languages.filter(l => l.lang).map((l, i) => (
+            <div key={i} style={{ fontSize:"7.5px", color:"#374151", marginBottom:"3px" }}>
+              <span style={{ fontWeight:600 }}>{l.lang}</span>
+              <span style={{ color:"#9ca3af" }}> · {l.level}</span>
+            </div>
+          ))}
+        </>
+      )}
+      {/* Education in sidebar */}
+      {hasEducation && (
+        <>
+          {sectionLabel("Education")}
+          {form.education.filter(e => e.institution).map((edu, i) => (
+            <div key={i} style={{ marginBottom:"6px" }}>
+              <p style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24", margin:0, lineHeight:1.3 }}>{edu.degree}</p>
+              {edu.field && <p style={{ fontSize:"7.5px", color:"#6b7280", margin:0 }}>{edu.field}</p>}
+              <p style={{ fontSize:"7.5px", color:t.accentColor, margin:0 }}>{edu.institution}</p>
+              {edu.year && <p style={{ fontSize:"7px", color:"#9ca3af", margin:0 }}>{edu.year}</p>}
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  ) : null
+
+  return (
+    <div style={{ background:"#e5e7eb", padding:"12px", borderRadius:"12px" }}>
+      {/* A4 paper shadow */}
+      <div style={{
+        background:"white",
+        borderRadius:"3px",
+        boxShadow:"0 4px 24px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08)",
+        overflow:"hidden",
+        fontFamily:"Georgia, serif",
+        width:"100%",
+        aspectRatio:"210/297",
+        position:"relative",
+      }}>
+        {/* Header */}
+        <div style={{ background:t.headerBg, padding:"18px 20px 16px", display:"flex", alignItems:"center", gap:"14px" }}>
+          {form.personal.photo ? (
+            <img src={form.personal.photo} alt="" style={{ width:"44px", height:"44px", borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.3)", flexShrink:0 }} />
+          ) : (
+            <div style={{ width:"44px", height:"44px", borderRadius:"50%", background:"rgba(255,255,255,0.15)", border:"1.5px solid rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <User size={18} color="rgba(255,255,255,0.5)" />
+            </div>
+          )}
+          <div style={{ flex:1, minWidth:0 }}>
+            <h1 style={{ fontSize:"16px", fontWeight:700, color:t.textOnHeader, margin:0, letterSpacing:"-0.3px", lineHeight:1.2 }}>{name}</h1>
+            <p style={{ fontSize:"10px", color:t.subtitleOnHeader, margin:"3px 0 0", fontFamily:"sans-serif", letterSpacing:"0.02em" }}>{title}</p>
+            {!t.hasSidebar && (
+              <div style={{ display:"flex", gap:"12px", marginTop:"5px", flexWrap:"wrap" as const }}>
+                {location && <span style={{ fontSize:"8px", color:t.subtitleOnHeader, fontFamily:"sans-serif" }}>📍 {location}</span>}
+                {phone && <span style={{ fontSize:"8px", color:t.subtitleOnHeader, fontFamily:"sans-serif" }}>📞 {phone}</span>}
+              </div>
+            )}
+          </div>
+          {/* Minimal accent line for minimal template */}
+          {templateId === "minimal" && (
+            <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"3px", background:t.accentColor }} />
+          )}
+        </div>
+
+        {/* Body */}
+        <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100% - 78px)" }}>
+          {t.hasSidebar ? (
+            <>
+              {sidebarContent}
+              <div style={{ flex:1, padding:"14px 16px", overflowY:"hidden" as const }}>
+                {mainContent}
+              </div>
+            </>
+          ) : (
+            <div style={{ flex:1, padding:"14px 20px", overflowY:"hidden" as const }}>
+              {!t.hasSidebar && hasSkills && (
+                <div>
+                  {sectionLabel("Skills")}
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:"4px", marginBottom:"2px" }}>
+                    {form.skills.slice(0,10).map(s => (
+                      <span key={s} style={{ fontSize:"7.5px", padding:"2px 7px", background:t.accentColor+"15", color:t.accentColor, borderRadius:"99px", fontFamily:"sans-serif", fontWeight:600 }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {mainContent}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CVBuilderPage() {
   const [activeTab, setActiveTab] = useState<"builder"|"reviewer">("builder")
   useEffect(() => {
@@ -781,48 +980,13 @@ export default function CVBuilderPage() {
                   ))}
                 </div>
 
-                {/* CV Preview panel */}
-                <div style={{ border:"1.5px solid #e5e7eb", borderRadius:"14px", overflow:"hidden", marginBottom:"24px" }}>
-                  <div style={{ padding:"12px 16px", background:"#f9fafb", borderBottom:"1px solid #e5e7eb", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                    <p style={{ fontSize:"13px", fontWeight:600, color:"#374151", margin:0 }}>Preview — {TEMPLATES.find(t=>t.id===selectedTemplate)?.name}</p>
-                    <span style={{ fontSize:"11px", color:"#9ca3af" }}>A4 format</span>
+                {/* CV Preview — proper A4 document render */}
+                <div style={{ marginBottom:"24px" }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"12px" }}>
+                    <p style={{ fontSize:"13px", fontWeight:600, color:"#374151", margin:0 }}>Live preview — {TEMPLATES.find(t=>t.id===selectedTemplate)?.name}</p>
+                    <span style={{ fontSize:"11px", color:"#9ca3af", background:"#f3f4f6", padding:"3px 8px", borderRadius:"6px" }}>A4</span>
                   </div>
-                  {/* Simplified CV preview */}
-                  <div style={{ padding:"24px", background:"white", minHeight:"300px" }}>
-                    <div style={{ maxWidth:"500px", margin:"0 auto", background:TEMPLATES.find(t=>t.id===selectedTemplate)?.id==="minimal"?"white":"#f9fafb", borderRadius:"8px", overflow:"hidden", boxShadow:"0 2px 16px rgba(0,0,0,0.08)" }}>
-                      <div style={{ background:TEMPLATES.find(t=>t.id===selectedTemplate)?.headerBg, padding:"16px 20px", display:"flex", alignItems:"center", gap:"12px" }}>
-                        {form.personal.photo ? (
-                          <img src={form.personal.photo} style={{ width:"40px", height:"40px", borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.3)", flexShrink:0 }} alt="" />
-                        ) : (
-                          <div style={{ width:"40px", height:"40px", borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                            <User size={18} color="rgba(255,255,255,0.5)" />
-                          </div>
-                        )}
-                        <div>
-                          <p style={{ fontWeight:700, color:TEMPLATES.find(t=>t.id===selectedTemplate)?.id==="minimal"||TEMPLATES.find(t=>t.id===selectedTemplate)?.id==="twocol"?"#0a1f24":"white", fontSize:"15px", margin:0 }}>{form.personal.name || "Your Name"}</p>
-                          <p style={{ color:TEMPLATES.find(t=>t.id===selectedTemplate)?.id==="minimal"||TEMPLATES.find(t=>t.id===selectedTemplate)?.id==="twocol"?"#6b7280":"rgba(255,255,255,0.7)", fontSize:"12px", margin:0 }}>{form.personal.title || "Your Job Title"}</p>
-                        </div>
-                      </div>
-                      <div style={{ padding:"16px 20px" }}>
-                        {form.summary && <p style={{ fontSize:"12px", color:"#374151", lineHeight:1.6, marginBottom:"12px" }}>{form.summary.substring(0,200)}{form.summary.length>200?"...":""}</p>}
-                        {form.experience[0]?.title && (
-                          <div>
-                            <p style={{ fontSize:"10px", fontWeight:700, color:"#028090", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:"6px" }}>Experience</p>
-                            <p style={{ fontSize:"12px", fontWeight:600, color:"#374151", margin:0 }}>{form.experience[0].title}</p>
-                            <p style={{ fontSize:"11px", color:"#9ca3af", margin:0 }}>{form.experience[0].company}</p>
-                          </div>
-                        )}
-                        {form.skills.length > 0 && (
-                          <div style={{ marginTop:"12px" }}>
-                            <p style={{ fontSize:"10px", fontWeight:700, color:"#028090", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:"6px" }}>Skills</p>
-                            <div style={{ display:"flex", flexWrap:"wrap", gap:"4px" }}>
-                              {form.skills.slice(0,6).map(s => <span key={s} style={{ padding:"2px 8px", background:"#e6f5f3", color:"#028090", borderRadius:"99px", fontSize:"10px" }}>{s}</span>)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <CVPreview form={form} templateId={selectedTemplate} />
                 </div>
 
                 {/* Arabic notice */}
