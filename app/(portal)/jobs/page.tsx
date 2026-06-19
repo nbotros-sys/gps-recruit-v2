@@ -63,133 +63,154 @@ export default function JobsPage() {
         .role-card:hover         { border-color:#028090!important; box-shadow:0 4px 20px rgba(2,128,144,0.08)!important; }
       `}</style>
 
-      {/* ── HERO ── */}
-      <section style={{ position:"relative", width:"100%", minHeight:"96vh", background:"#071f24", overflow:"hidden", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 24px 96px", isolation:"isolate" }}>
-
-        {/* Radial glow */}
-        <div style={{ position:"absolute", top:"-12%", left:"50%", transform:"translateX(-50%)", width:"min(1100px,140%)", height:"760px", background:"radial-gradient(ellipse at center,rgba(2,128,144,.42) 0%,rgba(2,128,144,.14) 38%,rgba(7,31,36,0) 70%)", filter:"blur(8px)", animation:"gpsGlow 9s ease-in-out infinite", pointerEvents:"none" }} />
+      {/* ── HERO: RECRUITMENT ── */}
+      <section style={{ position:"relative", width:"100%", minHeight:"72vh", background:"#071f24", overflow:"hidden", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"72px 24px 80px", isolation:"isolate" }}>
+        <div style={{ position:"absolute", top:"-12%", left:"50%", transform:"translateX(-50%)", width:"min(1100px,140%)", height:"760px", background:"radial-gradient(ellipse at center,rgba(2,128,144,.38) 0%,rgba(2,128,144,.12) 40%,rgba(7,31,36,0) 70%)", filter:"blur(8px)", animation:"gpsGlow 9s ease-in-out infinite", pointerEvents:"none" }} />
         <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(rgba(168,213,209,.10) 1.2px, transparent 1.2px)", backgroundSize:"34px 34px", WebkitMaskImage:"radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", maskImage:"radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", top:0, left:0, right:0, height:"1px", background:"linear-gradient(90deg, transparent, rgba(168,213,209,.30), transparent)" }} />
+        {/* Bottom fade into CV section */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"120px", background:"linear-gradient(to bottom, transparent, #0a1f24)", pointerEvents:"none" }} />
 
         <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", maxWidth:"820px", width:"100%", animation:"fadeUp .8s ease both" }}>
-
-          <img src="/gps-logo.png" alt="GPS Recruitment" style={{ width:"clamp(100px,14vw,160px)", height:"auto", marginBottom:"16px", filter:"drop-shadow(0 14px 40px rgba(2,128,144,.35))", animation:"gpsFloat 7s ease-in-out infinite" }} />
-
-          <div style={{ fontSize:"11px", letterSpacing:".32em", textTransform:"uppercase", color:"#a8d5d1", fontWeight:600, marginBottom:"24px" }}>
+          <img src="/gps-logo.png" alt="GPS Recruitment" style={{ width:"clamp(80px,11vw,130px)", height:"auto", marginBottom:"14px", filter:"drop-shadow(0 14px 40px rgba(2,128,144,.35))", animation:"gpsFloat 7s ease-in-out infinite" }} />
+          <div style={{ fontSize:"11px", letterSpacing:".32em", textTransform:"uppercase", color:"#a8d5d1", fontWeight:600, marginBottom:"20px" }}>
             Executive Recruitment · Egypt & MENA
           </div>
-
-          <h1 style={{ margin:"0 0 12px", fontFamily:"Georgia, serif", fontWeight:400, fontSize:"clamp(38px,6.4vw,76px)", lineHeight:1.04, letterSpacing:"-.015em", color:"#f4f8f7" }}>
+          <h1 style={{ margin:"0 0 14px", fontFamily:"Georgia, serif", fontWeight:400, fontSize:"clamp(36px,5.8vw,70px)", lineHeight:1.06, letterSpacing:"-.015em", color:"#f4f8f7" }}>
             Your next role,<br />placed by <span style={{ color:"#36b0bd", fontStyle:"italic" }}>GPS</span>.
           </h1>
-
-          <p style={{ margin:"0 0 16px", fontSize:"clamp(15px,1.6vw,19px)", lineHeight:1.65, color:"rgba(225,238,236,.72)", maxWidth:"560px" }}>
+          <p style={{ margin:"0 0 36px", fontSize:"clamp(15px,1.5vw,18px)", lineHeight:1.65, color:"rgba(225,238,236,.68)", maxWidth:"520px" }}>
             Egypt's specialist recruitment network — placing professionals across all functions and industries, in Egypt and the Gulf.
           </p>
-
-          {/* CV Builder callout pill */}
-          <div style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"rgba(2,128,144,0.15)", border:"1px solid rgba(2,128,144,0.4)", borderRadius:"99px", padding:"6px 14px 6px 8px", marginBottom:"36px" }}>
-            <span style={{ background:"#028090", color:"white", fontSize:"10px", fontWeight:700, padding:"3px 8px", borderRadius:"99px", letterSpacing:"0.04em" }}>NEW</span>
-            <span style={{ fontSize:"13px", color:"#a8d5d1", fontWeight:500 }}>AI CV Builder — free, takes 10 minutes</span>
-            <Link href="/cv-builder" style={{ fontSize:"12px", color:"#36b0bd", fontWeight:700, textDecoration:"none" }}>Try it →</Link>
-          </div>
-
-          {/* CTA buttons */}
-          <div style={{ display:"flex", flexWrap:"wrap", gap:"14px", justifyContent:"center" }}>
-            <a href="#roles" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"16px", whiteSpace:"nowrap", padding:"16px 30px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, box-shadow .2s, background .2s", background:"#028090", color:"#fff", boxShadow:"0 12px 30px -8px rgba(2,128,144,.7)" }}>
-              Browse open roles <ArrowRight size={16} />
+          <div style={{ display:"flex", flexWrap:"wrap", gap:"12px", justifyContent:"center" }}>
+            <a href="#roles" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"15px", whiteSpace:"nowrap", padding:"14px 28px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, box-shadow .2s, background .2s", background:"#028090", color:"#fff", boxShadow:"0 10px 28px -8px rgba(2,128,144,.7)" }}>
+              Browse open roles <ArrowRight size={15} />
             </a>
-            <Link href="/cv-builder" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:700, fontSize:"16px", whiteSpace:"nowrap", padding:"16px 30px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s ease, box-shadow .2s ease, background .2s ease", background:"#028090", color:"#fff", boxShadow:"0 12px 30px -8px rgba(2,128,144,.7)" }}>
-              <Sparkles size={16} color="white" /> Build your CV free
-            </Link>
-            <a href="/send-cv" className="gps-hero-secondary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:500, fontSize:"15px", whiteSpace:"nowrap", padding:"16px 24px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, border-color .2s, background .2s", background:"transparent", color:"rgba(168,213,209,0.8)", border:"1px solid rgba(168,213,209,.25)" }}>
+            <a href="/send-cv" className="gps-hero-secondary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:500, fontSize:"14px", whiteSpace:"nowrap", padding:"14px 24px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, border-color .2s, background .2s", background:"transparent", color:"rgba(168,213,209,0.8)", border:"1px solid rgba(168,213,209,.25)" }}>
               Send us your CV
             </a>
           </div>
         </div>
       </section>
 
-      {/* ── CV BUILDER FEATURE SECTION ── */}
-      <section style={{ background:"white", padding:"80px 40px", borderBottom:"1px solid #f0f0f0" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"64px", alignItems:"center" }}>
+      {/* ── CV TOOLS HERO ── big, prominent, its own section ── */}
+      <section style={{ background:"#0a1f24", padding:"0 0 0" }}>
+        <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"0 40px 80px" }}>
 
-            <div>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:"6px", background:"#e6f5f3", color:"#028090", fontSize:"12px", fontWeight:700, padding:"5px 12px", borderRadius:"99px", marginBottom:"20px", letterSpacing:"0.04em" }}>
-                <Sparkles size={12} /> FREE AI CV BUILDER
-              </div>
-              <h2 style={{ fontSize:"clamp(28px,3.5vw,42px)", fontWeight:800, color:"#0a1f24", lineHeight:1.15, marginBottom:"18px", letterSpacing:"-0.5px" }}>
-                Build a new CV or get your existing one reviewed — all free, all AI
-              </h2>
-              <p style={{ fontSize:"16px", color:"#6b7280", lineHeight:1.7, marginBottom:"28px" }}>
-                Already have a CV? Upload it and get an instant AI review — score, weaknesses, and rewrites. Starting from scratch? Our AI builds your full CV in 10 minutes: professional summary, bullet points, and 5 MENA-optimised templates. Every CV saved goes directly to GPS recruiters.
-              </p>
-              <div style={{ display:"flex", flexDirection:"column", gap:"12px", marginBottom:"32px" }}>
-                {[
-                  { icon: Sparkles, text: "AI builds your CV or reviews your existing one" },
-                  { icon: FileText, text: "5 templates for all roles — finance, tech, marketing, legal, ops and more" },
-                  { icon: Users, text: "Every CV saved goes straight to GPS recruiters" },
-                  { icon: Shield, text: "Upload any existing CV for instant AI scoring & feedback" },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                    <div style={{ width:"28px", height:"28px", background:"#e6f5f3", borderRadius:"8px", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <Icon size={14} color="#028090" />
-                    </div>
-                    <span style={{ fontSize:"14px", color:"#374151" }}>{text}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
-                <Link href="/cv-builder" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"#028090", color:"white", padding:"14px 24px", borderRadius:"12px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
-                  <Sparkles size={14} /> Build my CV
-                </Link>
-                <Link href="/cv-builder?tab=reviewer" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"#0a1f24", color:"white", padding:"14px 24px", borderRadius:"12px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
-                  <FileText size={14} /> Review my CV
-                </Link>
-              </div>
-              <p style={{ fontSize:"12px", color:"#9ca3af", marginTop:"10px" }}>Free. No credit card. Works for any industry or level.</p>
-            </div>
+          {/* Section label */}
+          <div style={{ display:"flex", alignItems:"center", gap:"12px", paddingTop:"56px", marginBottom:"48px" }}>
+            <div style={{ height:"1px", flex:1, background:"rgba(168,213,209,0.15)" }} />
+            <span style={{ fontSize:"11px", letterSpacing:".28em", textTransform:"uppercase", color:"rgba(168,213,209,0.5)", fontWeight:600, whiteSpace:"nowrap" }}>GPS AI Tools · Free</span>
+            <div style={{ height:"1px", flex:1, background:"rgba(168,213,209,0.15)" }} />
+          </div>
 
-            {/* Visual preview of templates */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
-              {[
-                { name:"Executive", color:"#0a1f24", accent:"#028090" },
-                { name:"Modern", color:"#028090", accent:"#f4f8f7" },
-                { name:"Two-Column", color:"#f4f8f7", accent:"#028090", border:true },
-                { name:"Bold Block", color:"#3D5A4E", accent:"white" },
-                { name:"Minimal", color:"white", accent:"#0a1f24", border:true },
-              ].map((t, i) => (
-                <div key={t.name} style={{ background:t.border?"white":t.color, border:t.border?"1.5px solid #e5e7eb":"none", borderRadius:"12px", padding:"14px", aspectRatio:"0.75", display:"flex", flexDirection:"column", gap:"6px", overflow:"hidden", boxShadow:"0 2px 12px rgba(0,0,0,0.08)", gridColumn: i === 4 ? "span 2" : "span 1" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"4px" }}>
-                    <div style={{ width:"18px", height:"18px", borderRadius:"50%", background:t.accent, opacity:0.7 }} />
-                    <div style={{ height:"5px", borderRadius:"3px", background:t.border?t.accent:"rgba(255,255,255,0.4)", width:"50%", opacity:0.8 }} />
+          {/* Two big cards side by side */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px", marginBottom:"32px" }}>
+
+            {/* Card 1: Build CV */}
+            <Link href="/cv-builder" style={{ textDecoration:"none", display:"block" }}>
+              <div style={{ background:"linear-gradient(135deg, #028090 0%, #025f6b 100%)", borderRadius:"24px", padding:"40px", position:"relative", overflow:"hidden", minHeight:"320px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, box-shadow 0.2s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow="0 24px 60px rgba(2,128,144,0.4)" }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow="none" }}>
+                {/* Background pattern */}
+                <div style={{ position:"absolute", inset:0, opacity:0.08, backgroundImage:`url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54 12H6v36h48V12z' fill='none' stroke='white' stroke-width='1'/%3E%3Cpath d='M12 20h36M12 28h28M12 36h20' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize:"60px 60px", pointerEvents:"none" }} />
+                {/* Mini CV preview */}
+                <div style={{ position:"absolute", right:"24px", top:"24px", width:"110px", background:"rgba(255,255,255,0.12)", borderRadius:"10px", padding:"10px", backdropFilter:"blur(4px)" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"5px", marginBottom:"7px" }}>
+                    <div style={{ width:"14px", height:"14px", borderRadius:"50%", background:"rgba(255,255,255,0.4)" }} />
+                    <div style={{ height:"4px", borderRadius:"2px", background:"rgba(255,255,255,0.35)", flex:1 }} />
                   </div>
-                  {[80,60,90,55,70].map((w,j) => (
-                    <div key={j} style={{ height:"4px", borderRadius:"2px", background:t.border?`${t.accent}22`:"rgba(255,255,255,0.2)", width:`${w}%` }} />
-                  ))}
-                  <div style={{ marginTop:"4px", fontSize:"8px", fontWeight:700, color:t.border?t.accent:"rgba(255,255,255,0.5)", letterSpacing:"0.05em" }}>{t.name}</div>
+                  {[85,65,90,55,75,60].map((w,i) => <div key={i} style={{ height:"3px", borderRadius:"2px", background:"rgba(255,255,255,0.2)", width:`${w}%`, marginBottom:"4px" }} />)}
+                  <div style={{ marginTop:"6px", display:"flex", gap:"3px" }}>
+                    {["#028090","#3D5A4E","#fff"].map(c => <div key={c} style={{ width:"8px", height:"8px", borderRadius:"2px", background:c, opacity:0.7 }} />)}
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                <div>
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:"6px", background:"rgba(255,255,255,0.15)", borderRadius:"99px", padding:"5px 12px", marginBottom:"20px" }}>
+                    <Sparkles size={12} color="white" />
+                    <span style={{ fontSize:"11px", color:"white", fontWeight:600, letterSpacing:"0.04em" }}>AI-POWERED · FREE</span>
+                  </div>
+                  <h2 style={{ fontSize:"clamp(26px,3vw,36px)", fontWeight:800, color:"white", lineHeight:1.15, marginBottom:"14px", letterSpacing:"-0.5px" }}>
+                    Build your CV<br />in 10 minutes
+                  </h2>
+                  <p style={{ fontSize:"15px", color:"rgba(255,255,255,0.72)", lineHeight:1.65, marginBottom:"0", maxWidth:"340px" }}>
+                    No experience writing CVs? No problem. Tell us your role — AI writes your summary, rewrites your bullet points, and formats across 5 MENA-optimised templates. Your CV goes straight to GPS recruiters.
+                  </p>
+                </div>
+
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"32px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"8px", background:"white", color:"#028090", padding:"13px 22px", borderRadius:"12px", fontWeight:700, fontSize:"14px" }}>
+                    <Sparkles size={14} /> Build my CV free
+                  </div>
+                  <div style={{ display:"flex", gap:"8px" }}>
+                    {["10 min","5 templates","Free"].map(t => (
+                      <span key={t} style={{ fontSize:"10px", color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.1)", padding:"4px 8px", borderRadius:"6px", fontWeight:500 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Card 2: Review CV */}
+            <Link href="/cv-builder?tab=reviewer" style={{ textDecoration:"none", display:"block" }}>
+              <div style={{ background:"linear-gradient(135deg, #1a3a3a 0%, #0a1f24 100%)", border:"1px solid rgba(168,213,209,0.2)", borderRadius:"24px", padding:"40px", position:"relative", overflow:"hidden", minHeight:"320px", display:"flex", flexDirection:"column", justifyContent:"space-between", cursor:"pointer", transition:"transform 0.2s, border-color 0.2s, box-shadow 0.2s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-4px)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(168,213,209,0.5)"; (e.currentTarget as HTMLElement).style.boxShadow="0 24px 60px rgba(0,0,0,0.3)" }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(168,213,209,0.2)"; (e.currentTarget as HTMLElement).style.boxShadow="none" }}>
+
+                {/* Score preview */}
+                <div style={{ position:"absolute", right:"24px", top:"24px", width:"100px", background:"rgba(2,128,144,0.2)", border:"1px solid rgba(2,128,144,0.3)", borderRadius:"14px", padding:"12px", textAlign:"center" }}>
+                  <div style={{ fontSize:"28px", fontWeight:800, color:"#5ecfdb", lineHeight:1 }}>78</div>
+                  <div style={{ fontSize:"9px", color:"rgba(168,213,209,0.6)", marginTop:"3px", fontWeight:500 }}>/ 100</div>
+                  <div style={{ marginTop:"8px", height:"4px", background:"rgba(255,255,255,0.1)", borderRadius:"99px", overflow:"hidden" }}>
+                    <div style={{ width:"78%", height:"100%", background:"#028090", borderRadius:"99px" }} />
+                  </div>
+                  <div style={{ fontSize:"9px", color:"rgba(168,213,209,0.5)", marginTop:"4px" }}>AI score</div>
+                </div>
+
+                <div>
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:"6px", background:"rgba(168,213,209,0.1)", border:"1px solid rgba(168,213,209,0.2)", borderRadius:"99px", padding:"5px 12px", marginBottom:"20px" }}>
+                    <FileText size={12} color="#a8d5d1" />
+                    <span style={{ fontSize:"11px", color:"#a8d5d1", fontWeight:600, letterSpacing:"0.04em" }}>INSTANT AI REVIEW · FREE</span>
+                  </div>
+                  <h2 style={{ fontSize:"clamp(26px,3vw,36px)", fontWeight:800, color:"white", lineHeight:1.15, marginBottom:"14px", letterSpacing:"-0.5px" }}>
+                    Get your CV<br />reviewed by AI
+                  </h2>
+                  <p style={{ fontSize:"15px", color:"rgba(255,255,255,0.58)", lineHeight:1.65, marginBottom:"0", maxWidth:"340px" }}>
+                    Already have a CV? Upload it and get an instant score, a breakdown of weak sections, and AI-generated rewrites — all calibrated for MENA recruiters and ATS systems.
+                  </p>
+                </div>
+
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"32px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"8px", background:"rgba(2,128,144,0.3)", border:"1px solid rgba(2,128,144,0.5)", color:"#a8d5d1", padding:"13px 22px", borderRadius:"12px", fontWeight:700, fontSize:"14px" }}>
+                    <FileText size={14} /> Review my CV
+                  </div>
+                  <div style={{ display:"flex", gap:"8px" }}>
+                    {["PDF · Word","Instant","Free"].map(t => (
+                      <span key={t} style={{ fontSize:"10px", color:"rgba(168,213,209,0.4)", background:"rgba(255,255,255,0.05)", padding:"4px 8px", borderRadius:"6px", fontWeight:500 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Link>
 
           </div>
-        </div>
-      </section>
 
-      {/* ── TRUST STATS ── */}
-      <section style={{ background:"#f9fafb", padding:"48px 40px", borderBottom:"1px solid #f0f0f0" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto", display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"32px", textAlign:"center" }}>
-          {[
-            { stat:"10 min", label:"Average build time" },
-            { stat:"5", label:"Professional templates" },
-            { stat:"MENA", label:"Market-optimised" },
-            { stat:"Free", label:"Always, forever" },
-          ].map(({ stat, label }) => (
-            <div key={label}>
-              <div style={{ fontSize:"32px", fontWeight:800, color:"#028090", marginBottom:"4px" }}>{stat}</div>
-              <div style={{ fontSize:"13px", color:"#6b7280" }}>{label}</div>
-            </div>
-          ))}
+          {/* Bottom trust strip */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"40px", flexWrap:"wrap" }}>
+            {[
+              { stat:"10 min", label:"to build a full CV" },
+              { stat:"5", label:"MENA-designed templates" },
+              { stat:"Free", label:"no card, no catch" },
+              { stat:"100%", label:"goes to GPS recruiters" },
+            ].map(({ stat, label }) => (
+              <div key={label} style={{ textAlign:"center" }}>
+                <div style={{ fontSize:"22px", fontWeight:800, color:"#a8d5d1", marginBottom:"2px" }}>{stat}</div>
+                <div style={{ fontSize:"12px", color:"rgba(168,213,209,0.45)" }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
