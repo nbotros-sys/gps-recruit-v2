@@ -65,7 +65,7 @@ export default function HowItWorksPage() {
         </div>
 
         <div style={{ marginTop: "8px", marginLeft: "80px", marginBottom: "80px" }}>
-          <a href="/jobs" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#028090", color: "white", padding: "13px 26px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", textDecoration: "none", boxShadow: "0 6px 20px rgba(2,128,144,0.3)" }}>
+          <a href="/jobs#roles" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#028090", color: "white", padding: "13px 26px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", textDecoration: "none", boxShadow: "0 6px 20px rgba(2,128,144,0.3)" }}>
             See open roles <ArrowRight size={15} />
           </a>
         </div>
@@ -128,7 +128,7 @@ export default function HowItWorksPage() {
               Every application is read by a human. Every outreach is personalised. Your career is not a transaction — and GPS treats it that way.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
-              <a href="/jobs" style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: "#028090", color: "white", padding: "12px 22px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}>
+              <a href="/jobs#roles" style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: "#028090", color: "white", padding: "12px 22px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}>
                 Browse open roles <ArrowRight size={14} />
               </a>
               <a href="/cv-builder" style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", padding: "12px 22px", borderRadius: "10px", fontWeight: 600, fontSize: "14px", textDecoration: "none" }}>
