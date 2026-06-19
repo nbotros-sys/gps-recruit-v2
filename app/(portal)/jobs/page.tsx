@@ -144,7 +144,7 @@ export default function JobsPage() {
                     <Sparkles size={14} /> Build my CV free
                   </div>
                   <div style={{ display:"flex", gap:"8px" }}>
-                    {["10 min","5 templates","Free"].map(t => (
+                    {["10 min","Free"].map(t => (
                       <span key={t} style={{ fontSize:"10px", color:"rgba(255,255,255,0.55)", background:"rgba(255,255,255,0.1)", padding:"4px 8px", borderRadius:"6px", fontWeight:500 }}>{t}</span>
                     ))}
                   </div>
