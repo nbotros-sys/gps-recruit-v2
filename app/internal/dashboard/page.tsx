@@ -27,6 +27,10 @@ export default function Dashboard() {
         supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6),
       ])
       setStats({ mandates: mc || 0, candidates: cc || 0, placements: pc || 0, clients: lc || 0 })
+      const mc = { count: (mdRaw || []).length }
+      const cc = { count: (cdRaw || []).length }
+      const pc = { count: (pdRaw2 || []).length }
+      const lc = { count: (clRaw || []).length }
       const counts: Record<string, number> = {}
       for (const a of pd || []) counts[a.stage] = (counts[a.stage] || 0) + 1
       setPipeline(counts)
