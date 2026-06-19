@@ -59,10 +59,35 @@ export default function JobsPage() {
     load()
   }, [])
 
-  // Don't render until auth check is complete — prevents scroll reset on re-render
+  // Show skeleton shell while auth + data loads — prevents layout shift and looks fast
   if (loading) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#071f24" }}>
-      <Loader2 size={24} color="#028090" className="animate-spin" />
+    <div style={{ background:"#f4f8f7", minHeight:"100vh" }}>
+      {/* Hero skeleton */}
+      <div style={{ background:"#071f24", padding:"60px 40px 70px", textAlign:"center" }}>
+        <div className="skeleton" style={{ width:"180px", height:"14px", margin:"0 auto 20px", opacity:0.15 }} />
+        <div className="skeleton" style={{ width:"420px", height:"48px", margin:"0 auto 12px", opacity:0.12 }} />
+        <div className="skeleton" style={{ width:"320px", height:"48px", margin:"0 auto 24px", opacity:0.12 }} />
+        <div className="skeleton" style={{ width:"240px", height:"16px", margin:"0 auto 32px", opacity:0.1 }} />
+        <div style={{ display:"flex", gap:"12px", justifyContent:"center" }}>
+          <div className="skeleton" style={{ width:"160px", height:"46px", borderRadius:"10px", opacity:0.15 }} />
+          <div className="skeleton" style={{ width:"140px", height:"46px", borderRadius:"10px", opacity:0.1 }} />
+        </div>
+      </div>
+      {/* Jobs skeleton */}
+      <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"60px 40px" }}>
+        <div className="skeleton" style={{ width:"120px", height:"20px", marginBottom:"8px" }} />
+        <div className="skeleton" style={{ width:"280px", height:"14px", marginBottom:"32px" }} />
+        {[1,2,3].map(i => (
+          <div key={i} style={{ background:"white", borderRadius:"16px", padding:"20px 24px", marginBottom:"12px", display:"flex", alignItems:"center", gap:"16px", border:"1px solid #e8ecef" }}>
+            <div className="skeleton" style={{ width:"44px", height:"44px", borderRadius:"12px", flexShrink:0 }} />
+            <div style={{ flex:1 }}>
+              <div className="skeleton" style={{ width:"200px", height:"16px", marginBottom:"8px" }} />
+              <div className="skeleton" style={{ width:"140px", height:"12px" }} />
+            </div>
+            <div className="skeleton" style={{ width:"60px", height:"28px", borderRadius:"99px" }} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 
