@@ -45,6 +45,16 @@ export default function JobsPage() {
         }
       }
       setLoading(false)
+      // After data loads, check if URL has #roles hash and scroll there
+      if (typeof window !== "undefined" && window.location.hash === "#roles") {
+        setTimeout(() => {
+          const el = document.getElementById("roles")
+          if (el) {
+            const top = el.getBoundingClientRect().top + window.scrollY - 80
+            window.scrollTo({ top, behavior: "smooth" })
+          }
+        }, 100)
+      }
     }
     load()
   }, [])
