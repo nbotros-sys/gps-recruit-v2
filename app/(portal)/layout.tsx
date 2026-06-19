@@ -140,7 +140,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                               { label: "Browse Roles",  href: "/jobs",            sub: "Open mandates" },
                             ].map(({ label, href, sub }) => (
                               <a key={label} href={href} onClick={() => setMenuOpen(false)}
-                                style={{ display: "flex", flexDirection: "column", gap: "1px", padding: "9px 12px", borderRadius: "10px", textDecoration: "none", transition: "background 0.1s" }}
+                                style={{ display: "flex", flexDirection: "column", gap: "1px", padding: "7px 12px", borderRadius: "10px", textDecoration: "none", transition: "background 0.1s" }}
                                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f0fdf4"}
                                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
                                 <span style={{ fontSize: "13px", fontWeight: 600, color: "#0a1f24" }}>{label}</span>
@@ -150,9 +150,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                           </div>
 
                           {/* Sign out */}
-                          <div style={{ borderTop: "1px solid #f3f4f6", padding: "6px 8px 8px" }}>
+                          <div style={{ borderTop: "1px solid #f3f4f6", padding: "4px 8px 6px" }}>
                             <button onClick={signOut}
-                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", borderRadius: "10px", width: "100%", transition: "background 0.1s" }}
+                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", borderRadius: "10px", width: "100%", transition: "background 0.1s" }}
                               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#fef2f2"}
                               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
                               <span style={{ fontSize: "13px", fontWeight: 500, color: "#ef4444" }}>Sign out</span>
