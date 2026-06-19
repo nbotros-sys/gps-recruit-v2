@@ -1040,7 +1040,7 @@ export default function CVBuilderPage() {
 
                 {/* Save / Download */}
                 <button onClick={handleSaveAndDownload} disabled={saving || !form.personal.name} style={{ width:"100%", padding:"16px", background:form.personal.name?"#028090":"#e5e7eb", color:form.personal.name?"white":"#9ca3af", border:"none", borderRadius:"14px", fontWeight:700, fontSize:"16px", cursor:form.personal.name?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", gap:"10px" }}>
-                  {saving ? <><Loader2 size={18} className="animate-spin" /> Saving to GPS Talent Network…</> : <><Download size={18} /> Save CV & Join GPS Talent Network</>}
+                  {saving ? <><Loader2 size={18} className="animate-spin" /> Saving & preparing download…</> : <><Download size={18} /> Save to GPS & Download PDF</>}
                 </button>
                 <p style={{ textAlign:"center", fontSize:"12px", color:"#9ca3af", marginTop:"10px" }}>Your CV saves to the GPS recruiter database. Our consultants will be able to find you.</p>
               </div>
