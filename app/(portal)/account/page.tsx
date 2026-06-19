@@ -208,7 +208,7 @@ export default function AccountPage() {
       <div id="applications" style={{ marginBottom: "40px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
           <h2 style={{ fontSize: "17px", fontWeight: 700, color: "#0a1f24", margin: 0 }}>Your Applications</h2>
-          <Link href="/jobs" style={{ fontSize: "13px", color: "#028090", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
+          <Link href="/jobs#roles" style={{ fontSize: "13px", color: "#028090", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
             Browse roles <ArrowRight size={13} />
           </Link>
         </div>
@@ -222,7 +222,7 @@ export default function AccountPage() {
             <p style={{ color: "#9ca3af", fontSize: "13px", marginBottom: "24px", maxWidth: "320px", margin: "0 auto 24px", lineHeight: 1.6 }}>
               {candidate ? "You're in our talent network. We'll reach out when a role matches your background." : "Apply to a role to see your status tracked here."}
             </p>
-            <Link href="/jobs" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#028090", color: "white", padding: "12px 22px", borderRadius: "12px", fontWeight: 700, fontSize: "13px", textDecoration: "none" }}>
+            <Link href="/jobs#roles" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#028090", color: "white", padding: "12px 22px", borderRadius: "12px", fontWeight: 700, fontSize: "13px", textDecoration: "none" }}>
               Browse open roles <ArrowRight size={14} />
             </Link>
           </div>
