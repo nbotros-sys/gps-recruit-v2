@@ -188,6 +188,7 @@ function DuplicatePair({ pair, merging, onMerge }: {
               {[
                 { label: "Email", value: cand.email?.includes("@pending.com") ? "—" : cand.email },
                 { label: "Phone", value: cand.phone },
+                { label: "LinkedIn", value: cand.linkedin_url ? cand.linkedin_url.replace(/^https?:\/\//, "").replace("www.", "") : null },
                 { label: "Location", value: cand.location },
                 { label: "Source", value: cand.source },
                 { label: "Added", value: new Date(cand.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) },
