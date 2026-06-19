@@ -150,33 +150,45 @@ export async function POST(req: NextRequest) {
         company: c.current_company,
         location: c.location,
         tags: toArray(c.tags).slice(0, 6),
-        // Give AI real CV text — this is where we catch role variations
-        cv: (c.cv_text || c.notes || "").slice(0, 600),
+        // Full CV content — skip first 200 chars (contact header noise),
+        // take up to 4000 chars covering full experience + skills sections
+        cv: (c.cv_text || c.notes || "").length > 300
+          ? (c.cv_text || c.notes || "").slice(200, 4200).trim()
+          : (c.cv_text || c.notes || "").trim(),
       }))
 
-      const prompt = `You are a senior recruitment consultant reviewing candidates for this role.
+      const prompt = `You are a senior recruitment consultant reviewing candidates for a specific mandate.
 
 ROLE: ${mandate_title}
 
-JOB DESCRIPTION (key requirements):
-${job_description.slice(0, 1500)}
+JOB DESCRIPTION:
+${job_description.slice(0, 2000)}
 
-CANDIDATES TO REVIEW:
+CANDIDATES — read their full CV content carefully:
 ${JSON.stringify(summaries)}
 
-Read each candidate's actual CV content carefully. Match based on what they ACTUALLY DO, not just their job title.
-A "Financial Controller" may be perfect for a "Finance Director" role if their responsibilities match.
-A "Senior HR Business Partner" may fit an "HR Manager" role perfectly.
+Score each candidate on TWO dimensions, then combine:
 
-Score each candidate:
-- 70-100: Strong match — their actual experience clearly fits what this role needs
-- 40-69: Possible match — relevant background, some gaps but worth a conversation
-- Below 40: Not relevant — omit these
+SUITABILITY (0-50 pts): Does what they actually DO match what this role requires?
+- Read their CV, not just their title. A "Financial Controller" managing P&L, teams and board reporting fits a "Finance Director" role well.
+- Look for matching responsibilities, industries, tools, scope of work.
+- Do not penalise for a different job title if the actual work aligns.
+
+SENIORITY MATCH (0-50 pts): Is their experience level right for this role?
+- Consider: years of experience, team sizes managed, budget ownership, seniority of stakeholders they work with.
+- A strong match means they are ready for THIS level — not too junior, not overqualified.
+
+Add both for the final score (0-100).
+
+Tiers:
+- Score 70-100 → "strong": clearly qualified, ready to interview
+- Score 40-69 → "possible": relevant background, worth a conversation
+- Below 40 → omit entirely
 
 Return ONLY valid JSON (no markdown):
 {
   "matches": [
-    { "id": "<id>", "score": <40-100>, "tier": "strong" or "possible", "reason": "<one sentence — specifically what in their background matches this role>" }
+    { "id": "<id>", "score": <40-100>, "tier": "strong" or "possible", "reason": "<one sentence covering both suitability and seniority — be specific about what in their CV matches>" }
   ]
 }`
 
