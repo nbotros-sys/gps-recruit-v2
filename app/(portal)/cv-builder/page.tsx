@@ -258,7 +258,7 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
   return (
     <div style={{ background:"#e5e7eb", padding:"12px", borderRadius:"12px" }}>
       {/* A4 paper shadow */}
-      <div style={{
+      <div id="cv-preview-print" style={{
         background:"white",
         borderRadius:"3px",
         boxShadow:"0 4px 24px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08)",
@@ -460,6 +460,39 @@ export default function CVBuilderPage() {
     setReviewing(false)
   }
 
+  function triggerPDFDownload() {
+    // Open a new window with just the CV for printing/saving as PDF
+    const cvEl = document.getElementById("cv-preview-print")
+    if (!cvEl) return
+    const cvHTML = cvEl.outerHTML
+    const printWindow = window.open("", "_blank", "width=900,height=1200")
+    if (!printWindow) return
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${form.personal.name || "CV"} — GPS Talent Network</title>
+          <meta charset="utf-8" />
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Georgia, serif; background: white; }
+            @page { size: A4; margin: 0; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          ${cvHTML}
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 300);
+            };
+          <\/script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   async function handleSaveAndDownload() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setShowSignup(true); return }
@@ -489,7 +522,7 @@ export default function CVBuilderPage() {
           source: "cv_builder",
         }).eq("id", existing.id)
       } else {
-        const { data: newCand } = await supabase.from("candidates").insert([{
+        await supabase.from("candidates").insert([{
           name: form.personal.name,
           email: user.email,
           phone: form.personal.phone,
@@ -502,7 +535,9 @@ export default function CVBuilderPage() {
         }]).select().single()
       }
       setSaved(true)
-      window.location.href = "/cv-builder/success"
+      // Trigger PDF download first, then redirect to success
+      triggerPDFDownload()
+      setTimeout(() => { window.location.href = "/cv-builder/success" }, 800)
     } catch (e) { console.error(e) }
     setSaving(false)
   }
@@ -988,6 +1023,11 @@ export default function CVBuilderPage() {
                   </div>
                   <CVPreview form={form} templateId={selectedTemplate} />
                 </div>
+
+                {/* Download only button */}
+                <button onClick={triggerPDFDownload} style={{ width:"100%", marginBottom:"12px", padding:"12px", background:"white", border:"1.5px solid #e5e7eb", borderRadius:"12px", fontWeight:600, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", color:"#374151" }}>
+                  <Download size={15} /> Preview & download PDF
+                </button>
 
                 {/* Arabic notice */}
                 <div style={{ display:"flex", alignItems:"center", gap:"12px", padding:"14px 18px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"12px", marginBottom:"20px" }}>
