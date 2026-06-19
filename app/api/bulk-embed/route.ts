@@ -1,35 +1,93 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+// Build a rich semantic paragraph describing what the candidate actually does.
+// This is what gets embedded — not raw fields. Makes semantic search understand
+// "Financial Controller" and "Head of Accounts" as the same kind of person.
+async function buildSemanticText(candidate: any): Promise<string> {
+  const hasCvText = (candidate.cv_text || "").length > 200
+
+  if (hasCvText) {
+    // Ask Claude to distil the CV into a rich semantic paragraph
+    const prompt = `Read this CV and write a single 150-200 word paragraph describing what this person actually does professionally. Focus on:
+- Their real responsibilities and day-to-day work (not just job titles)
+- The scale and scope of their work (team sizes, budgets, geographies)
+- Key skills and tools they use
+- Industries and sectors they have worked in
+- Seniority level and who they report to or manage
+- Any specialisms or notable achievements
+
+Do NOT use their name. Do NOT use job title labels alone — describe the actual work.
+Write in third person present tense. Return ONLY the paragraph, no heading.
+
+CV:
+${(candidate.cv_text || "").slice(0, 6000)}`
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 300,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      })
+      const data = await res.json()
+      const summary = data.content?.[0]?.text?.trim() || ""
+      if (summary.length > 100) {
+        // Prepend structured fields so exact lookups still work
+        return [
+          candidate.current_title,
+          candidate.current_company,
+          candidate.location,
+          (candidate.tags || []).join(", "),
+          summary,
+        ].filter(Boolean).join("\n")
+      }
+    } catch {}
+  }
+
+  // Fallback: structured fields only (no CV text)
+  return [
+    candidate.name,
+    candidate.current_title,
+    candidate.current_company,
+    candidate.location,
+    (candidate.tags || []).join(", "),
+    candidate.notes || "",
+    (candidate.cv_text || "").slice(0, 4000),
+  ].filter(Boolean).join("\n")
+}
+
 export async function POST(req: NextRequest) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Get IDs that already have embeddings
   const { data: existing } = await supabase
-    .from("cv_embeddings")
-    .select("candidate_id")
-
+    .from("cv_embeddings").select("candidate_id")
   const existingIds = (existing || []).map((e: any) => e.candidate_id)
 
-  // Get all candidates
   const { data: allCandidates } = await supabase
     .from("candidates")
     .select("id, name, current_title, current_company, location, tags, cv_text, notes")
     .limit(500)
 
-  // Filter to only those without embeddings
-  const candidates = (allCandidates || []).filter(
-    (c: any) => !existingIds.includes(c.id)
-  ).slice(0, 50)
+  const candidates = (allCandidates || [])
+    .filter((c: any) => !existingIds.includes(c.id))
+    .slice(0, 50)
 
   if (!candidates.length) {
-    return NextResponse.json({ 
-      processed: 0, 
+    return NextResponse.json({
+      processed: 0,
       total_existing: existingIds.length,
-      message: "All candidates already have embeddings" 
+      message: "All candidates already have embeddings — search is ready."
     })
   }
 
@@ -39,15 +97,8 @@ export async function POST(req: NextRequest) {
 
   for (const candidate of candidates) {
     try {
-      const text = [
-        candidate.name,
-        candidate.current_title,
-        candidate.current_company,
-        candidate.location,
-        (candidate.tags || []).join(", "),
-        candidate.notes || "",
-        (candidate.cv_text || "").slice(0, 6000),
-      ].filter(Boolean).join("\n")
+      // Build rich semantic text — Claude summarises what they actually do
+      const text = await buildSemanticText(candidate)
 
       const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
         method: "POST",
@@ -62,9 +113,8 @@ export async function POST(req: NextRequest) {
       })
 
       if (!embeddingRes.ok) {
-        const err = await embeddingRes.json()
         failed++
-        results.push({ name: candidate.name, status: "failed", error: JSON.stringify(err) })
+        results.push({ name: candidate.name, status: "failed" })
         continue
       }
 
@@ -73,10 +123,7 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabase
         .from("cv_embeddings")
-        .upsert(
-          { candidate_id: candidate.id, embedding },
-          { onConflict: "candidate_id" }
-        )
+        .upsert({ candidate_id: candidate.id, embedding }, { onConflict: "candidate_id" })
 
       if (error) {
         failed++
@@ -86,7 +133,8 @@ export async function POST(req: NextRequest) {
         results.push({ name: candidate.name, status: "done" })
       }
 
-      await new Promise(r => setTimeout(r, 100))
+      // Small delay to avoid rate limits
+      await new Promise(r => setTimeout(r, 200))
 
     } catch (err: any) {
       failed++
@@ -94,5 +142,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processed, failed, remaining: candidates.length - processed - failed, results })
+  return NextResponse.json({ processed, failed, results })
 }
