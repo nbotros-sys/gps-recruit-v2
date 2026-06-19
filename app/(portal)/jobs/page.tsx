@@ -83,9 +83,9 @@ export default function JobsPage() {
             Egypt's specialist recruitment network — placing professionals across all functions and industries, in Egypt and the Gulf.
           </p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:"12px", justifyContent:"center" }}>
-            <a href="#roles" className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"15px", whiteSpace:"nowrap", padding:"12px 24px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, box-shadow .2s, background .2s", background:"#028090", color:"#fff", boxShadow:"0 10px 28px -8px rgba(2,128,144,.7)" }}>
+            <button onClick={() => { const el = document.getElementById("roles"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }) }} className="gps-hero-primary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:600, fontSize:"15px", whiteSpace:"nowrap", padding:"12px 24px", borderRadius:"10px", border:"none", cursor:"pointer", transition:"transform .2s, box-shadow .2s, background .2s", background:"#028090", color:"#fff", boxShadow:"0 10px 28px -8px rgba(2,128,144,.7)" }}>
               Browse open roles <ArrowRight size={15} />
-            </a>
+            </button>
             <a href="/send-cv" className="gps-hero-secondary" style={{ display:"inline-flex", alignItems:"center", gap:"10px", fontWeight:500, fontSize:"14px", whiteSpace:"nowrap", padding:"14px 24px", borderRadius:"10px", textDecoration:"none", transition:"transform .2s, border-color .2s, background .2s", background:"transparent", color:"rgba(168,213,209,0.8)", border:"1px solid rgba(168,213,209,.25)" }}>
               Send us your CV
             </a>
