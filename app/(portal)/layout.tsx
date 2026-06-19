@@ -72,7 +72,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
             {/* Open Roles — smooth scrolls to #roles if already on /jobs, otherwise navigates */}
             <a
-              href="/jobs"
+              href="/jobs#roles"
               onClick={e => {
                 if (window.location.pathname === "/jobs") {
                   e.preventDefault()
@@ -163,7 +163,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                               { label: "My Dashboard",  href: "/account",         sub: "Applications & activity" },
                               { label: "My Profile",    href: "/account/profile", sub: "Edit your details" },
                               { label: "Build my CV",   href: "/cv-builder",      sub: "AI-powered CV studio" },
-                              { label: "Browse Roles",  href: "/jobs",            sub: "Open mandates" },
+                              { label: "Browse Roles",  href: "/jobs#roles",      sub: "Open mandates" },
                             ].map(({ label, href, sub }) => (
                               <a key={label} href={href} onClick={() => setMenuOpen(false)}
                                 style={{ display: "flex", flexDirection: "column", gap: "1px", padding: "7px 12px", borderRadius: "10px", textDecoration: "none", transition: "background 0.1s" }}
@@ -220,7 +220,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 48px", fontSize: "13px" }}>
               {[
-                { label: "Open Roles", href: "/jobs" },
+                { label: "Open Roles", href: "/jobs#roles" },
                 { label: "How it works", href: "/how-it-works" },
                 { label: "Send your CV", href: "/send-cv" },
                 { label: "Register", href: "/join" },
