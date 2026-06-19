@@ -156,7 +156,10 @@ export default function ProfilePage() {
               {form.current_title}{form.current_company ? ` @ ${form.current_company}` : ""}
             </p>
           )}
-          <p style={{ color: "#aaa", fontSize: "13px" }}>{candidate.email}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+            <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#028090" }} />
+            <p style={{ color: "#028090", fontSize: "12px", fontWeight: 500, margin: 0 }}>GPS Talent Network member</p>
+          </div>
         </div>
 
         {/* Completion circle */}
