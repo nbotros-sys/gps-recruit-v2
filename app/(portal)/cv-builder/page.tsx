@@ -1,5 +1,6 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { ArrowRight, ArrowLeft, Upload, Sparkles, CheckCircle, Loader2, User, FileText, Briefcase, GraduationCap, Star, Download, Eye, RefreshCw, Camera, Plus, Trash2, ChevronDown } from "lucide-react"
 import Link from "next/link"
@@ -59,7 +60,10 @@ const INITIAL: FormData = {
 }
 
 export default function CVBuilderPage() {
-  const [activeTab, setActiveTab] = useState<"builder"|"reviewer">("builder")
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<"builder"|"reviewer">(
+    searchParams?.get("tab") === "reviewer" ? "reviewer" : "builder"
+  )
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormData>(INITIAL)
   const [selectedTemplate, setSelectedTemplate] = useState("executive")
