@@ -218,25 +218,34 @@ export default function CandidateProfile() {
               </span>
             )}
 
-            {/* Preview + Download CV — only shown when a stored PDF exists */}
+            {/* GPS Builder CV — formatted PDF */}
             {candidate.cv_pdf_url && (
               <>
-                <a
-                  href={candidate.cv_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary flex items-center gap-1.5 text-sm"
-                >
+                <a href={candidate.cv_pdf_url} target="_blank" rel="noopener noreferrer"
+                  className="btn-secondary flex items-center gap-1.5 text-sm">
                   <Eye size={14} /> Preview CV
                 </a>
-                <a
-                  href={candidate.cv_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <a href={candidate.cv_pdf_url} target="_blank" rel="noopener noreferrer"
                   className="btn-primary flex items-center gap-1.5 text-sm"
-                  download={`${candidate.name || "CV"}.pdf`}
-                >
+                  download={`${candidate.name || "CV"}.pdf`}>
                   <Download size={14} /> Download CV
+                </a>
+              </>
+            )}
+
+            {/* Original uploaded CV — PDF or DOCX */}
+            {!candidate.cv_pdf_url && candidate.cv_file_url && (
+              <>
+                {candidate.cv_file_type === "pdf" && (
+                  <a href={candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-1.5 text-sm">
+                    <Eye size={14} /> Preview CV
+                  </a>
+                )}
+                <a href={candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                  className="btn-primary flex items-center gap-1.5 text-sm"
+                  download={`${candidate.name || "CV"}.${candidate.cv_file_type || "pdf"}`}>
+                  <Download size={14} /> Download CV {candidate.cv_file_type ? `(${candidate.cv_file_type.toUpperCase()})` : ""}
                 </a>
               </>
             )}
