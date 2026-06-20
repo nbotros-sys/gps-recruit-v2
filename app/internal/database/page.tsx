@@ -96,22 +96,20 @@ export default function DatabaseImportPage() {
         if (inserted) savedId = inserted.id
       }
 
-      // Extract structured profile then generate embedding — runs automatically, no manual step needed
+      // Fire-and-forget: extract structured profile then embed — does NOT block the import
+      // Each CV is processed in the background after being saved
       if (savedId && cvText.trim()) {
-        try {
-          // Step 1: extract structured profile (what they actually do, skills, seniority etc)
-          await fetch("/api/extract-structured", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ candidateId: savedId, cv_text: cvText })
-          })
-          // Step 2: generate semantic embedding from the structured profile
-          await fetch("/api/generate-embedding", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ candidateId: savedId, text: cvText })
-          })
-        } catch (e) { console.log("Profile processing failed:", e) }
+        const capturedId = savedId
+        const capturedText = cvText
+        fetch("/api/extract-structured", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId: capturedId, cv_text: capturedText })
+        }).then(() => fetch("/api/generate-embedding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId: capturedId, text: capturedText.slice(0, 8000) })
+        })).catch(() => {})
       }
 
       // Extract photo from docx
