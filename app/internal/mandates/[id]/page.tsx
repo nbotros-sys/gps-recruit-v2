@@ -103,9 +103,10 @@ export default function MandateDetail() {
 
   useEffect(() => { loadData() }, [id])
 
-  async function loadInsight() {
+  async function loadInsight(deeper = false) {
     if (!mandate) return
-    setInsightLoading(true)
+    if (deeper) setDeeperSearching(true)
+    else setInsightLoading(true)
     try {
       const res = await fetch("/api/mandate-insight", {
         method: "POST",
@@ -114,12 +115,14 @@ export default function MandateDetail() {
           mandate_id: id,
           job_description: mandate.job_description,
           mandate_title: mandate.title,
+          deeper_search: deeper,
         })
       })
       const data = await res.json()
       setInsightData(data)
     } catch { setInsightData({ error: "Failed to load insight" }) }
-    setInsightLoading(false)
+    if (deeper) setDeeperSearching(false)
+    else setInsightLoading(false)
   }
 
   async function addFromInsight(candidate: any) {
@@ -856,9 +859,18 @@ export default function MandateDetail() {
                     <Brain size={16} className="text-teal" />
                     <h3 className="font-semibold text-gray-900">Talent Pool Report</h3>
                   </div>
-                  <button onClick={loadInsight} className="text-xs text-gray-400 hover:text-teal transition-colors">
-                    Refresh
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => loadInsight(false)} className="text-xs text-gray-400 hover:text-teal transition-colors">
+                      ↺ Refresh
+                    </button>
+                    {insightData?.deeper_search_available && (
+                      <button onClick={() => loadInsight(true)} disabled={deeperSearching}
+                        className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
+                        {deeperSearching ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />}
+                        {deeperSearching ? "Searching wider…" : "Deeper search"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">{insightData.summary}</p>
                 <div className="grid grid-cols-3 gap-3 mt-4">
@@ -981,11 +993,19 @@ export default function MandateDetail() {
               {insightData.strong_matches?.length === 0 && insightData.possible_matches?.length === 0 && (
                 <div className="card text-center py-12">
                   <Users size={32} className="mx-auto mb-3 text-gray-200" />
-                  <p className="text-gray-500">No matches found in your current database.</p>
-                  <p className="text-gray-400 text-sm mt-1">Import more CVs to grow your talent pool.</p>
-                  <a href="/internal/database" className="btn-primary mt-4 inline-flex items-center gap-2 text-sm">
-                    <Upload size={14} /> Import CVs
-                  </a>
+                  <p className="text-gray-500">No matches found in current talent pool.</p>
+                  <p className="text-gray-400 text-sm mt-1">Try a deeper search to cast a wider net, or import more CVs.</p>
+                  <div className="flex gap-3 justify-center mt-4">
+                    {insightData.deeper_search_available && (
+                      <button onClick={() => loadInsight(true)} disabled={deeperSearching}
+                        className="btn-secondary flex items-center gap-2 text-sm">
+                        {deeperSearching ? <><Loader2 size={13} className="animate-spin" /> Searching wider…</> : <><Search size={13} /> Deeper search</>}
+                      </button>
+                    )}
+                    <a href="/internal/database" className="btn-primary inline-flex items-center gap-2 text-sm">
+                      <Upload size={14} /> Import CVs
+                    </a>
+                  </div>
                 </div>
               )}
             </>
