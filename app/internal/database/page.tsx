@@ -96,32 +96,13 @@ export default function DatabaseImportPage() {
         if (inserted) savedId = inserted.id
       }
 
-      // Save original CV file to Supabase Storage (PDF or DOCX as-is, no conversion)
+      // Save original CV file via API route (server-side — avoids anon key storage permission issues)
       if (savedId) {
         try {
-          const ext = file.name.split(".").pop()?.toLowerCase() || "pdf"
-          const contentType = ext === "pdf" ? "application/pdf"
-            : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            : ext === "doc" ? "application/msword"
-            : "application/octet-stream"
-          const fileBytes = await file.arrayBuffer()
-          const { error: uploadErr } = await supabase.storage
-            .from("cv-files")
-            .upload(`${savedId}/cv.${ext}`, fileBytes, {
-              contentType,
-              upsert: true,
-              cacheControl: "3600",
-            })
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage
-              .from("cv-files")
-              .getPublicUrl(`${savedId}/cv.${ext}`)
-            const cv_file_url = `${urlData.publicUrl}?t=${Date.now()}`
-            await supabase.from("candidates").update({
-              cv_file_url,
-              cv_file_type: ext,
-            }).eq("id", savedId)
-          }
+          const cvFileForm = new FormData()
+          cvFileForm.append("file", file)
+          cvFileForm.append("candidateId", savedId)
+          await fetch("/api/upload-cv-file", { method: "POST", body: cvFileForm })
         } catch (e) { console.log("CV file upload failed:", e) }
       }
 
