@@ -149,8 +149,20 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
           {/* Overview */}
           {tab === "overview" && (
             <div className="space-y-5">
+              {/* AI Summary — always shown if available */}
+              {candidate.notes && (
+                <div className="bg-gray-50 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold text-teal uppercase tracking-wide">AI Summary</span>
+                    <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{candidate.notes}</p>
+                </div>
+              )}
+
+              {/* Mandate applications */}
               {candidate.applications?.length === 0 || !candidate.applications ? (
-                <div className="text-center py-10">
+                <div className="text-center py-6">
                   <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
                   <p className="text-gray-400 text-sm">Not assigned to any mandates yet.</p>
                 </div>
