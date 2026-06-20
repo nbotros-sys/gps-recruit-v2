@@ -182,9 +182,10 @@ export async function POST(req: NextRequest) {
       // Search entire DB — no cap on match_count, threshold 0.25 for maximum recall
       const { data: vectorResults, error: vecError } = await supabase.rpc("match_candidates", {
         query_embedding: queryVector,
-        match_threshold: 0.25,
-        match_count: 500,  // All of them — DB is small, AI will filter
+        match_threshold: 0.1,  // Very low — let AI do the filtering
+        match_count: 500,
       })
+      if (vecError) console.error("Vector search error:", vecError)
 
       if (!vecError && vectorResults?.length > 0) {
         const ids = vectorResults.map((r: any) => r.candidate_id)
