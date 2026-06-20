@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     if (!byEmail.has(key)) byEmail.set(key, [])
     byEmail.get(key)!.push(c)
   }
-  for (const group of byEmail.values()) {
+  for (const group of Array.from(byEmail.values())) {
     for (let i = 0; i < group.length; i++)
       for (let j = i + 1; j < group.length; j++)
         addPair(group[i], group[j], "definite", "Same email address")
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     if (!byLinkedIn.has(key)) byLinkedIn.set(key, [])
     byLinkedIn.get(key)!.push(c)
   }
-  for (const group of byLinkedIn.values()) {
+  for (const group of Array.from(byLinkedIn.values())) {
     for (let i = 0; i < group.length; i++)
       for (let j = i + 1; j < group.length; j++)
         addPair(group[i], group[j], "definite", "Same LinkedIn profile")
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     if (!byPhone.has(key)) byPhone.set(key, [])
     byPhone.get(key)!.push(c)
   }
-  for (const group of byPhone.values()) {
+  for (const group of Array.from(byPhone.values())) {
     for (let i = 0; i < group.length; i++)
       for (let j = i + 1; j < group.length; j++)
         addPair(group[i], group[j], "definite", "Same phone number")
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     if (!byName.has(key)) byName.set(key, [])
     byName.get(key)!.push(c)
   }
-  for (const group of byName.values()) {
+  for (const group of Array.from(byName.values())) {
     if (group.length < 2) continue
     for (let i = 0; i < group.length; i++) {
       for (let j = i + 1; j < group.length; j++) {
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
     if (!byTitleCompany.has(key)) byTitleCompany.set(key, [])
     byTitleCompany.get(key)!.push(c)
   }
-  for (const group of byTitleCompany.values()) {
+  for (const group of Array.from(byTitleCompany.values())) {
     if (group.length < 2) continue
     for (let i = 0; i < group.length; i++) {
       for (let j = i + 1; j < group.length; j++) {
