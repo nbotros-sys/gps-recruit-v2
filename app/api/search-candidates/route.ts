@@ -82,7 +82,7 @@ For each candidate, score them 0-100 based on TWO factors combined:
 
 Add both scores for the final 0-100.
 
-Include anyone with combined score >= 35. Do not exclude candidates just because their title differs — read what they actually do.
+Include anyone with combined score >= 20. Be generous — it is better to show too many than too few. Do not exclude candidates just because their title differs — read what they actually do.
 
 Return ONLY a JSON array (no markdown):
 [{ "id": "<id>", "score": <0-100>, "reason": "<one sentence explaining both suitability and seniority match>" }]`
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 
   // Sort by score and build final results
   const results = allScored
-    .filter((m: any) => m.score >= 35)
+    .filter((m: any) => m.score >= 20)
     .sort((a: any, b: any) => b.score - a.score)
     .map((m: any) => {
       const c = vectorCandidates.find((c: any) => c.id === m.id)
