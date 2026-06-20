@@ -68,6 +68,7 @@ export default function MandateDetail() {
   const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "notes">("overview")
   const [insightData, setInsightData] = useState<any>(null)
   const [insightLoading, setInsightLoading] = useState(false)
+  const [deeperSearching, setDeeperSearching] = useState(false)
   const [jdText, setJdText] = useState("")
   const [savingJd, setSavingJd] = useState(false)
   const [jdSaved, setJdSaved] = useState(false)
@@ -889,32 +890,59 @@ export default function MandateDetail() {
                     )}
                   </div>
                   {insightData.strong_matches.map((c: any) => (
-                    <div key={c.id} className="card flex items-center gap-4">
-                      <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
-                          {c.location ? ` · ${c.location}` : ""}
-                        </div>
-                        <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
-                        {c.tags?.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {c.tags.slice(0, 4).map((tag: string, i: number) => (
-                              <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{tag}</span>
-                            ))}
+                    <div key={c.id} className="card p-4">
+                      <div className="flex items-start gap-3">
+                        <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-gray-900 text-sm">{c.name}</span>
+                            {c.trajectory === "Rising" && <span className="text-xs text-green-600 font-medium">↑ Rising</span>}
+                            {c.trajectory === "Lateral" && <span className="text-xs text-gray-400 font-medium">→ Lateral</span>}
+                            {c.trajectory === "Declining" && <span className="text-xs text-amber-500 font-medium">↓ Declining</span>}
+                            {c.avg_tenure && c.avg_tenure < 1.5 && <span className="text-xs text-amber-500 font-medium">⚠ Avg {c.avg_tenure}yr tenure</span>}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-teal">{c.score}</div>
-                          <div className="text-xs text-gray-400">/100</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{c.location ? ` · ${c.location}` : ""}
+                            {c.total_years ? ` · ${c.total_years}yrs exp` : ""}
+                          </div>
+                          <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
+                          {/* Gap indicators */}
+                          {c.gaps && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {c.gaps.present?.slice(0,4).map((p: string, i: number) => (
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓ {p}</span>
+                              ))}
+                              {c.gaps.partial?.slice(0,2).map((p: string, i: number) => (
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">~ {p}</span>
+                              ))}
+                              {c.gaps.missing_hard?.slice(0,3).map((p: string, i: number) => (
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">✗ {p}</span>
+                              ))}
+                              {c.gaps.missing_soft?.slice(0,2).map((p: string, i: number) => (
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">○ {p}</span>
+                              ))}
+                            </div>
+                          )}
+                          {/* Skills */}
+                          {c.all_skills?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {c.all_skills.slice(0, 5).map((skill: string, i: number) => (
+                                <span key={i} className="badge bg-gray-100 text-gray-600 text-xs">{skill}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <button onClick={() => addFromInsight(c)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all">
-                          <UserPlus size={12} /> Add to pipeline
-                        </button>
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-teal">{c.score}</div>
+                            <div className="text-xs text-gray-400">/100</div>
+                          </div>
+                          <button onClick={() => addFromInsight(c)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all whitespace-nowrap">
+                            <UserPlus size={12} /> Add to pipeline
+                          </button>
+                          <a href={`/internal/candidates/${c.id}`} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
+                        </div>
                       </div>
                     </div>
                   ))}
