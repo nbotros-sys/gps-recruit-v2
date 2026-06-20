@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2,
   Edit3, Save, X, Star, FileText, MessageSquare,
-  CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2
+  CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2, Download
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import CandidateAvatar from "@/components/CandidateAvatar"
@@ -206,9 +206,31 @@ export default function CandidateProfile() {
             </div>
           </div>
 
-          {/* Edit / Save buttons */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Badges + actions */}
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {/* Source badge */}
             <span className="badge bg-gray-100 text-gray-500 text-xs">{candidate.source}</span>
+
+            {/* GPS CV badge — shown when CV was built through the GPS builder */}
+            {candidate.cv_source === "gps_builder" && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">
+                <span style={{ fontSize: "9px" }}>★</span> GPS CV
+              </span>
+            )}
+
+            {/* Download CV — only shown when a stored PDF exists */}
+            {candidate.cv_pdf_url && (
+              <a
+                href={candidate.cv_pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary flex items-center gap-1.5 text-sm"
+                download={`${candidate.name || "CV"}.pdf`}
+              >
+                <Download size={14} /> Download CV
+              </a>
+            )}
+
             {editing ? (
               <>
                 <button onClick={saveProfile} disabled={saving}
