@@ -739,7 +739,8 @@ export default function MandateDetail() {
                       return (
                         <div key={app.id}
                           className={`rounded-2xl p-4 border ${isCurrentMandate ? "border-teal/30 bg-teal/5" : "border-gray-100 bg-white"}`}>
-                          <div className="flex items-center justify-between gap-2">
+                          {/* Title + score */}
+                          <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-semibold text-gray-900 text-sm truncate">{app.mandate?.title}</p>
@@ -751,22 +752,38 @@ export default function MandateDetail() {
                                 {app.mandate?.client_name}{app.mandate?.location ? ` · ${app.mandate.location}` : ""}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {app.ai_score && (
-                                <span className="text-xs font-bold" style={{ color: scoreColor(app.ai_score) }}>
-                                  {app.ai_score}/100
-                                </span>
-                              )}
-                              <span className={`badge ${STAGE_COLORS[app.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>
-                                {app.stage}
+                            {app.ai_score && (
+                              <span className="text-xs font-bold flex-shrink-0" style={{ color: scoreColor(app.ai_score) }}>
+                                {app.ai_score}/100
                               </span>
-                            </div>
+                            )}
                           </div>
-                          {app.ai_score && (
-                            <div className="h-1 bg-gray-100 rounded-full mt-3">
-                              <div className="h-full rounded-full transition-all" style={{ width: `${app.ai_score}%`, background: scoreColor(app.ai_score) }} />
-                            </div>
-                          )}
+
+                          {/* Pipeline trail */}
+                          <div className="flex items-center gap-0.5 flex-wrap">
+                            {(["new","screening","interview","shortlisted","offered","placed"] as const).map((stage, idx, arr) => {
+                              const stageOrder = ["new","screening","interview","shortlisted","offered","placed"]
+                              const currentIdx = stageOrder.indexOf(app.stage)
+                              const thisIdx = stageOrder.indexOf(stage)
+                              const isPast = thisIdx < currentIdx
+                              const isCurrent = stage === app.stage
+                              const LABELS: Record<string,string> = { new:"New", screening:"Screening", interview:"Interview", shortlisted:"Shortlisted", offered:"Offered", placed:"Placed" }
+                              return (
+                                <div key={stage} className="flex items-center">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                    isCurrent ? "bg-teal text-white" :
+                                    isPast ? "bg-gray-200 text-gray-500" :
+                                    "text-gray-300"
+                                  }`}>
+                                    {LABELS[stage]}
+                                  </span>
+                                  {idx < arr.length - 1 && (
+                                    <span className={`text-xs mx-0.5 ${isPast || isCurrent ? "text-gray-400" : "text-gray-200"}`}>→</span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
                       )
                     })
