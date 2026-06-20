@@ -998,6 +998,15 @@ export default function CVBuilderPage() {
         })).catch(() => {})
       }
 
+      // Generate and store the PDF via Doppio — fire and forget, doesn't block redirect
+      if (candidateId) {
+        fetch("/api/generate-cv-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId, form, templateId: selectedTemplate })
+        }).catch(() => {})
+      }
+
       triggerPDFDownload()
       setSaved(true)
       window.location.href = "/cv-builder/success"
