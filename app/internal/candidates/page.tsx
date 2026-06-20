@@ -112,6 +112,11 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className={`badge ${SOURCE_COLORS[candidate.source] || "bg-gray-100 text-gray-600"} text-xs`}>{candidate.source}</span>
+            {(candidate as any).cv_source === "gps_builder" && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">
+                ★ GPS CV
+              </span>
+            )}
             <Link href={`/internal/candidates/${candidate.id}`}
               className="p-1.5 text-gray-400 hover:text-teal transition-colors rounded-lg hover:bg-gray-50" title="Full profile">
               <ExternalLink size={15} />
@@ -471,6 +476,9 @@ export default function CandidatesPage() {
                     </div>
                   )}
                   <span className={`badge ${SOURCE_COLORS[c.source] || SOURCE_COLORS.other} text-xs`}>{c.source}</span>
+                  {(c as any).cv_source === "gps_builder" && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">★ GPS CV</span>
+                  )}
                   <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
                 </div>
               </button>
