@@ -213,6 +213,35 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
           {/* CV */}
           {tab === "cv" && (
             <div>
+              {/* CV file actions — Preview + Download */}
+              {(candidate.cv_pdf_url || candidate.cv_file_url) && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <FileText size={15} className="text-teal flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-700 flex-1">
+                    {candidate.cv_source === "gps_builder" ? "GPS-built CV" : `Original CV${candidate.cv_file_type ? ` (${candidate.cv_file_type.toUpperCase()})` : ""}`}
+                  </span>
+                  {candidate.cv_source === "gps_builder" && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">★ GPS CV</span>
+                  )}
+                  <div className="flex gap-2">
+                    {/* Preview — PDF only */}
+                    {(candidate.cv_pdf_url || candidate.cv_file_type === "pdf") && (
+                      <a href={candidate.cv_pdf_url || candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal hover:text-teal transition-all">
+                        <Eye size={12} /> Preview
+                      </a>
+                    )}
+                    {/* Download */}
+                    <a href={candidate.cv_pdf_url || candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                      download={`${candidate.name || "CV"}.${candidate.cv_pdf_url ? "pdf" : candidate.cv_file_type || "pdf"}`}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal text-white text-xs font-semibold hover:opacity-90 transition-all">
+                      <Download size={12} /> Download
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* CV text below */}
               {candidate.cv_text ? (
                 <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5">
                   {candidate.cv_text}
@@ -342,7 +371,7 @@ export default function CandidatesPage() {
     setLoading(true)
     const { data } = await supabase
       .from("candidates")
-      .select("*, avatar_url, internal_notes, applications(id, stage, ai_score, created_at, mandate:mandates(id, title, client_name))")
+      .select("*, avatar_url, internal_notes, cv_file_url, cv_file_type, cv_source, cv_pdf_url, applications(id, stage, ai_score, created_at, mandate:mandates(id, title, client_name))")
       .order("created_at", { ascending: false })
     setCandidates(data || [])
     setLoading(false)
