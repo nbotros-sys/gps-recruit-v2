@@ -20,8 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <head>
         {/* Preconnect to Supabase so the first API call is faster */}
-        <link rel="preconnect" href="https://jysnwqsldzbbhyjgchvd.supabase.co" />
-        <link rel="dns-prefetch" href="https://jysnwqsldzbbhyjgchvd.supabase.co" />
+        <link rel="preconnect" href="https://lxzforzfjmtpqzbumspq.supabase.co" />
+        <link rel="dns-prefetch" href="https://lxzforzfjmtpqzbumspq.supabase.co" />
       </head>
       <body className={inter.className}>
         <div className="page-fade">
