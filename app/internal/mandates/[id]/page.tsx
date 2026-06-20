@@ -69,6 +69,41 @@ export default function MandateDetail() {
   const [insightData, setInsightData] = useState<any>(null)
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
+  const [scoringCandidate, setScoringCandidate] = useState(false)
+
+  async function scoreSelectedCandidate() {
+    if (!selectedApp || !mandate?.job_description) return
+    setScoringCandidate(true)
+    try {
+      const cvText = selectedApp.candidate?.cv_text || ""
+      const scoreRes = await fetch("/api/score-cv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cv_text: cvText,
+          job_description: mandate.job_description,
+          mandate_title: mandate.title,
+        })
+      })
+      const data = await scoreRes.json()
+      if (data.strengths || data.concerns) {
+        await supabase.from("applications").update({
+          ai_strengths: data.strengths || [],
+          ai_concerns: data.concerns || [],
+          ai_summary: data.summary || selectedApp.ai_summary,
+          ai_score: data.score || selectedApp.ai_score,
+        }).eq("id", selectedApp.id)
+        setSelectedApp((prev: any) => ({
+          ...prev,
+          ai_strengths: data.strengths || [],
+          ai_concerns: data.concerns || [],
+          ai_summary: data.summary || prev.ai_summary,
+          ai_score: data.score || prev.ai_score,
+        }))
+      }
+    } catch {}
+    setScoringCandidate(false)
+  }
   const [jdText, setJdText] = useState("")
   const [savingJd, setSavingJd] = useState(false)
   const [jdSaved, setJdSaved] = useState(false)
@@ -618,11 +653,11 @@ export default function MandateDetail() {
                       <p className="text-sm text-gray-600 leading-relaxed">{selectedApp.ai_summary || selectedApp.candidate?.notes}</p>
                     </div>
                   )}
-                  {(selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) && (
+                  {(selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) ? (
                     <div className="grid grid-cols-2 gap-3">
                       {selectedApp.ai_strengths?.length > 0 && (
                         <div className="bg-green-50 rounded-xl p-4">
-                          <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths</div>
+                          <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths for this role</div>
                           <ul className="space-y-1.5">
                             {selectedApp.ai_strengths.map((s: string, i: number) => (
                               <li key={i} className="text-xs text-green-800 flex gap-1.5"><span>•</span>{s}</li>
@@ -640,7 +675,20 @@ export default function MandateDetail() {
                           </ul>
                         </div>
                       )}
+                      <div className="col-span-2 flex justify-end">
+                        <button onClick={scoreSelectedCandidate} disabled={scoringCandidate}
+                          className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
+                          {scoringCandidate ? <><Loader2 size={11} className="animate-spin" /> Regenerating…</> : "↺ Regenerate for this JD"}
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    <button onClick={scoreSelectedCandidate} disabled={scoringCandidate}
+                      className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-teal hover:text-teal transition-all">
+                      {scoringCandidate
+                        ? <><Loader2 size={12} className="animate-spin" /> Analysing against this JD…</>
+                        : <><Zap size={12} /> Generate strengths & concerns for {mandate?.title}</>}
+                    </button>
                   )}
                 </div>
               )}
