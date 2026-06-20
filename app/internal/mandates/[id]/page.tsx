@@ -7,8 +7,8 @@ import {
   ArrowLeft, MapPin, DollarSign, Brain, Upload,
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
-  Mail, Phone, ExternalLink, Edit3, Save, MessageSquare
-, Settings2 } from "lucide-react"
+  Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
+  Settings2, Search } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
