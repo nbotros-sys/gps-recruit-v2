@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Mail, Phone, MapPin, Briefcase, Building2,
   Edit3, Save, X, Star, FileText, MessageSquare,
-  CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2, Download
+  CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2, Download, Eye
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import CandidateAvatar from "@/components/CandidateAvatar"
@@ -218,17 +218,27 @@ export default function CandidateProfile() {
               </span>
             )}
 
-            {/* Download CV — only shown when a stored PDF exists */}
+            {/* Preview + Download CV — only shown when a stored PDF exists */}
             {candidate.cv_pdf_url && (
-              <a
-                href={candidate.cv_pdf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary flex items-center gap-1.5 text-sm"
-                download={`${candidate.name || "CV"}.pdf`}
-              >
-                <Download size={14} /> Download CV
-              </a>
+              <>
+                <a
+                  href={candidate.cv_pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary flex items-center gap-1.5 text-sm"
+                >
+                  <Eye size={14} /> Preview CV
+                </a>
+                <a
+                  href={candidate.cv_pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary flex items-center gap-1.5 text-sm"
+                  download={`${candidate.name || "CV"}.pdf`}
+                >
+                  <Download size={14} /> Download CV
+                </a>
+              </>
             )}
 
             {editing ? (
