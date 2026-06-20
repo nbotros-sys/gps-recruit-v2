@@ -8,271 +8,312 @@ function toArray(val: any): string[] {
   return []
 }
 
-// Extract what the JD actually requires as a semantic description —
-// not bullet points, but what the person would actually do and be.
-async function expandJD(mandate_title: string, job_description: string): Promise<string> {
-  const prompt = `Read this job description and write a 150-200 word paragraph describing the ideal candidate — not the job requirements, but what the person would actually look like professionally.
+// Parse JD to extract hard requirements vs soft preferences
+async function parseJD(mandate_title: string, job_description: string) {
+  const prompt = `Read this job description and extract two things:
 
-Include:
-- What they do day to day in their current or previous roles
-- The scale of their experience (team sizes, budgets, scope)
-- Industries and sectors they may have worked in
-- Alternative job titles this person might hold right now
-- Skills and tools they would use routinely
-- Seniority level and who they typically report to or manage
+1. A 150-word paragraph describing the ideal candidate — what they would actually DO day-to-day, their real responsibilities, scope, team sizes, industries, alternative titles they might hold. Write as a candidate description, not a job spec.
 
-Job title: ${mandate_title}
-Job description: ${job_description.slice(0, 3000)}
+2. A structured list of requirements split into HARD (mandatory, non-negotiable) and SOFT (preferred, advantageous).
 
-Return ONLY the paragraph. No headings.`
+JOB TITLE: ${mandate_title}
+JOB DESCRIPTION: ${job_description.slice(0, 3000)}
+
+Return ONLY valid JSON (no markdown):
+{
+  "candidate_description": "<150 word paragraph>",
+  "hard_requirements": {
+    "certifications": ["<cert required>"],
+    "education": ["<degree required>"],
+    "languages": ["<language required>"],
+    "min_years_experience": <number or null>,
+    "industries": ["<sector required>"],
+    "skills": ["<must-have skill>"],
+    "other": ["<any other hard requirement>"]
+  },
+  "soft_preferences": {
+    "certifications": ["<cert preferred>"],
+    "education": ["<degree preferred>"],
+    "languages": ["<language preferred>"],
+    "industries": ["<sector preferred>"],
+    "skills": ["<nice-to-have skill>"],
+    "other": ["<any other preference>"]
+  }
+}`
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
-      }),
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
     })
     const data = await res.json()
-    return data.content?.[0]?.text?.trim() || job_description.slice(0, 2000)
-  } catch {
-    return job_description.slice(0, 2000)
+    const text = data.content?.[0]?.text || "{}"
+    return JSON.parse(text.replace(/```json|```/g, "").trim())
+  } catch { return { candidate_description: job_description.slice(0, 500), hard_requirements: {}, soft_preferences: {} } }
+}
+
+// Deep gap analysis for a single candidate against JD requirements
+function analyseGaps(structured: any, hard: any, soft: any) {
+  const present: string[] = []
+  const partial: string[] = []
+  const missing_hard: string[] = []
+  const missing_soft: string[] = []
+
+  const allSkills = toArray(structured?.all_skills).map((s: string) => s.toLowerCase())
+  const certs = toArray(structured?.certifications).map((s: string) => s.toLowerCase())
+  const langs = toArray(structured?.languages).map((l: any) => (l.language || l).toLowerCase())
+  const industries = toArray(structured?.industries).map((s: string) => s.toLowerCase())
+  const edu = toArray(structured?.education).map((e: any) => `${e.degree || ""} ${e.field || ""}`.toLowerCase())
+
+  function check(items: string[], pool: string[], label: string, isSoft = false) {
+    for (const item of items) {
+      const itemL = item.toLowerCase()
+      const exact = pool.some(p => p.includes(itemL) || itemL.includes(p))
+      const partial_match = !exact && pool.some(p => {
+        const words = itemL.split(" ").filter(w => w.length > 3)
+        return words.some(w => p.includes(w))
+      })
+      if (exact) present.push(item)
+      else if (partial_match) partial.push(`${item} (partial)`)
+      else if (isSoft) missing_soft.push(item)
+      else missing_hard.push(item)
+    }
   }
+
+  check(toArray(hard.skills), allSkills, "skill")
+  check(toArray(hard.certifications), certs, "cert")
+  check(toArray(hard.languages), langs, "language")
+  check(toArray(hard.industries), industries, "industry")
+  check(toArray(hard.education), edu, "education")
+  if (hard.min_years_experience && structured?.total_years_experience) {
+    if (structured.total_years_experience >= hard.min_years_experience) present.push(`${structured.total_years_experience}yrs experience`)
+    else missing_hard.push(`Min ${hard.min_years_experience}yrs (has ${structured.total_years_experience})`)
+  }
+  check(toArray(soft.skills), allSkills, "skill", true)
+  check(toArray(soft.certifications), certs, "cert", true)
+  check(toArray(soft.industries), industries, "industry", true)
+
+  return { present, partial, missing_hard, missing_soft }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { mandate_id, job_description, mandate_title } = await req.json()
+    const { mandate_id, job_description, mandate_title, deeper_search } = await req.json()
     if (!job_description) return NextResponse.json({ error: "No JD" }, { status: 400 })
 
     const supabase = createClient()
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const adminSupabase = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
-    // Get candidates already in this pipeline
-    const { data: existing } = await supabase
-      .from("applications").select("candidate_id").eq("mandate_id", mandate_id)
+    const { data: existing } = await supabase.from("applications").select("candidate_id").eq("mandate_id", mandate_id)
     const existingIds = (existing || []).map((a: any) => a.candidate_id)
 
-    // ── STEP 1: Expand JD into semantic candidate description ─────────────────
-    const expandedJD = await expandJD(mandate_title, job_description)
-    const searchText = `${mandate_title}\n${expandedJD}`
+    // ── Parse JD into candidate description + structured requirements ──────────
+    const jdParsed = await parseJD(mandate_title, job_description)
+    const searchText = `${mandate_title}\n${jdParsed.candidate_description}`
 
-    // ── STEP 2: Embed the expanded JD and vector search ───────────────────────
-    let vectorCandidateIds: string[] = []
+    // ── Vector search ─────────────────────────────────────────────────────────
+    const vectorThreshold = deeper_search ? 0.10 : 0.25
+    const vectorLimit = deeper_search ? 200 : 80
+    let vectorIds: string[] = []
 
     try {
-      const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
+      const embRes = await fetch("https://api.openai.com/v1/embeddings", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
         body: JSON.stringify({ model: "text-embedding-3-small", input: searchText.slice(0, 8000) }),
       })
-
-      if (embeddingRes.ok) {
-        const embeddingData = await embeddingRes.json()
-        const queryVector = embeddingData.data[0].embedding
-
-        const { data: vectorResults } = await adminSupabase.rpc("match_candidates", {
-          query_embedding: queryVector,
-          match_threshold: 0.25,   // Wide net — AI does the real filtering
-          match_count: 500,
+      if (embRes.ok) {
+        const embData = await embRes.json()
+        const { data: vecResults } = await adminSupabase.rpc("match_candidates", {
+          query_embedding: embData.data[0].embedding,
+          match_threshold: vectorThreshold,
+          match_count: vectorLimit,
         })
-
-        if (vectorResults?.length) {
-          vectorCandidateIds = vectorResults
-            .filter((r: any) => !existingIds.includes(r.candidate_id))
-            .map((r: any) => r.candidate_id)
+        if (vecResults?.length) {
+          vectorIds = vecResults.filter((r: any) => !existingIds.includes(r.candidate_id)).map((r: any) => r.candidate_id)
         }
       }
-    } catch (err) {
-      console.error("Vector search error:", err)
-    }
+    } catch (err) { console.error("Vector error:", err) }
 
-    // ── STEP 3: Fetch candidates — vector results first, then rest ────────────
+    // ── Fetch candidates with structured profiles ──────────────────────────────
     let available: any[] = []
-
-    if (vectorCandidateIds.length) {
-      const { data: vectorCands } = await supabase
-        .from("candidates")
-        .select("id, name, current_title, current_company, location, tags, notes, cv_text")
-        .in("id", vectorCandidateIds)
-
-      // Also fetch candidates without embeddings (new imports not yet embedded)
-      const { data: allCands } = await supabase
-        .from("candidates")
-        .select("id, name, current_title, current_company, location, tags, notes, cv_text")
-        .not("id", "in", `(${[...existingIds, ...vectorCandidateIds].join(",") || "null"})`)
-        .limit(100)
-
-      available = [
-        ...(vectorCands || []),
-        ...(allCands || []).filter((c: any) => !vectorCandidateIds.includes(c.id))
-      ].filter((c: any) => !existingIds.includes(c.id))
+    if (vectorIds.length) {
+      const { data: vCands } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+        .in("id", vectorIds)
+      // Also get non-embedded candidates (recent imports)
+      const { data: nonEmbedded } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+        .not("id", "in", `(${[...existingIds, ...vectorIds].join(",") || "null"})`)
+        .limit(50)
+      available = [...(vCands || []), ...(nonEmbedded || []).filter((c: any) => !vectorIds.includes(c.id))]
+        .filter((c: any) => !existingIds.includes(c.id))
     } else {
-      // No embeddings yet — fall back to all candidates
-      const { data: allCands } = await supabase
-        .from("candidates")
-        .select("id, name, current_title, current_company, location, tags, notes, cv_text")
+      const { data } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
         .order("created_at", { ascending: false })
-      available = (allCands || []).filter((c: any) => !existingIds.includes(c.id))
+      available = (data || []).filter((c: any) => !existingIds.includes(c.id))
     }
 
-    if (!available.length) {
-      return NextResponse.json({
-        total_available: 0,
-        strong_matches: [],
-        possible_matches: [],
-        summary: "No candidates available outside this pipeline yet.",
-      })
-    }
+    if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
-    // ── STEP 4: AI deep matching — reads actual CV content against JD ─────────
-    // Process in batches of 30, give AI real CV text to reason over
+    // ── PHASE 1: AI scoring using structured cards (fast) ─────────────────────
     const BATCH_SIZE = 30
-    const allMatches: any[] = []
+    const phase1Scores: any[] = []
 
     for (let i = 0; i < available.length; i += BATCH_SIZE) {
       const batch = available.slice(i, i + BATCH_SIZE)
+      const summaries = batch.map((c: any) => {
+        const s = c.cv_structured
+        return {
+          id: c.id,
+          title: c.current_title,
+          company: c.current_company,
+          // Use structured summary if available, fall back to CV snippet
+          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").slice(200, 1200),
+          skills: s ? toArray(s.all_skills).slice(0, 15) : toArray(c.tags),
+          seniority: s?.seniority_level,
+          years: s?.total_years_experience,
+          certifications: s ? toArray(s.certifications) : [],
+          industries: s ? toArray(s.industries) : [],
+          trajectory: s?.career_trajectory,
+        }
+      })
 
-      const summaries = batch.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        title: c.current_title,
-        company: c.current_company,
-        location: c.location,
-        tags: toArray(c.tags).slice(0, 6),
-        // Full CV content — skip first 200 chars (contact header noise),
-        // take up to 4000 chars covering full experience + skills sections
-        cv: (c.cv_text || c.notes || "").length > 300
-          ? (c.cv_text || c.notes || "").slice(200, 4200).trim()
-          : (c.cv_text || c.notes || "").trim(),
-      }))
-
-      const prompt = `You are a senior recruitment consultant reviewing candidates for a specific mandate.
+      const prompt = `You are a senior recruitment consultant. Score candidates for this role.
 
 ROLE: ${mandate_title}
+WHAT WE NEED: ${jdParsed.candidate_description}
 
-JOB DESCRIPTION:
-${job_description.slice(0, 2000)}
-
-CANDIDATES — read their full CV content carefully:
+CANDIDATES:
 ${JSON.stringify(summaries)}
 
-Score each candidate on TWO dimensions, then combine:
+Score each 0-100 combining:
+- SUITABILITY (0-60): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
+- SENIORITY (0-40): Is their level right? Too junior or overqualified both score lower.
 
-SUITABILITY (0-50 pts): Does what they actually DO match what this role requires?
-- Read their CV, not just their title. A "Financial Controller" managing P&L, teams and board reporting fits a "Finance Director" role well.
-- Look for matching responsibilities, industries, tools, scope of work.
-- Do not penalise for a different job title if the actual work aligns.
+Include anyone >=35. Do not exclude based on title — read their actual work.
 
-SENIORITY MATCH (0-50 pts): Is their experience level right for this role?
-- Consider: years of experience, team sizes managed, budget ownership, seniority of stakeholders they work with.
-- A strong match means they are ready for THIS level — not too junior, not overqualified.
-
-Add both for the final score (0-100).
-
-Tiers:
-- Score 70-100 → "strong": clearly qualified, ready to interview
-- Score 40-69 → "possible": relevant background, worth a conversation
-- Below 40 → omit entirely
-
-Return ONLY valid JSON (no markdown):
-{
-  "matches": [
-    { "id": "<id>", "score": <40-100>, "tier": "strong" or "possible", "reason": "<one sentence covering both suitability and seniority — be specific about what in their CV matches>" }
-  ]
-}`
+Return ONLY JSON array:
+[{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
 
       try {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY!,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-6",
-            max_tokens: 2000,
-            messages: [{ role: "user", content: prompt }],
-          }),
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
         })
         const data = await res.json()
-        const text = data.content?.[0]?.text || "{}"
-        const clean = text.replace(/```json|```/g, "").trim()
-        const parsed = JSON.parse(clean)
-        if (parsed.matches) allMatches.push(...parsed.matches)
+        const text = data.content?.[0]?.text || "[]"
+        const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+        phase1Scores.push(...parsed)
       } catch {}
     }
 
-    // ── STEP 5: Build summary via AI ──────────────────────────────────────────
-    const strongMatches = allMatches.filter(m => m.tier === "strong" || m.score >= 70)
-      .sort((a, b) => b.score - a.score)
-    const possibleMatches = allMatches.filter(m => m.tier === "possible" && m.score < 70)
-      .sort((a, b) => b.score - a.score)
+    // Sort by score, take top 20 for deep read
+    const phase1Sorted = phase1Scores.filter(m => m.score >= 35).sort((a, b) => b.score - a.score)
+    const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
 
-    const hydrate = (matches: any[]) =>
-      matches.map((m: any) => {
-        const cand = available.find((c: any) => c.id === m.id)
-        return cand ? { ...cand, score: m.score, reason: m.reason } : null
-      }).filter(Boolean)
+    // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
+    const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
+    const finalMatches: any[] = []
 
-    // Generate executive summary
+    for (const c of top20Candidates) {
+      const phase1Score = phase1Sorted.find((m: any) => m.id === c.id)
+      const fullCVText = (c.cv_text || "").slice(0, 8000)
+      const structured = c.cv_structured
+
+      // Gap analysis — use structured data if available, otherwise skip
+      let gaps = { present: [] as string[], partial: [] as string[], missing_hard: [] as string[], missing_soft: [] as string[] }
+      if (structured) {
+        gaps = analyseGaps(structured, jdParsed.hard_requirements || {}, jdParsed.soft_preferences || {})
+      }
+
+      // Deep score with full CV
+      let deepScore = phase1Score?.score || 50
+      let deepReason = phase1Score?.reason || ""
+      let tier = phase1Score?.tier || "possible"
+
+      if (fullCVText.length > 200) {
+        try {
+          const deepPrompt = `You are a senior recruitment consultant doing a thorough final assessment.
+
+ROLE: ${mandate_title}
+REQUIREMENTS: ${job_description.slice(0, 2000)}
+
+CANDIDATE FULL CV:
+${fullCVText}
+
+Give a final score 0-100 (suitability 0-60 + seniority 0-40) and a specific 1-sentence reason referencing actual CV content.
+
+Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "<specific reason>" }`
+
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: deepPrompt }] }),
+          })
+          const data = await res.json()
+          const parsed = JSON.parse((data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim())
+          if (parsed.score) { deepScore = parsed.score; deepReason = parsed.reason; tier = parsed.tier }
+        } catch {}
+      }
+
+      if (deepScore >= 35) {
+        finalMatches.push({
+          ...c,
+          score: deepScore,
+          tier,
+          reason: deepReason,
+          gaps,
+          // Enrichment signals
+          trajectory: structured?.career_trajectory || null,
+          avg_tenure: structured?.avg_tenure_years || null,
+          total_years: structured?.total_years_experience || null,
+          seniority_level: structured?.seniority_level || null,
+          certifications: structured ? toArray(structured.certifications) : [],
+          all_skills: structured ? toArray(structured.all_skills).slice(0, 12) : toArray(c.tags),
+        })
+      }
+    }
+
+    // Include phase1 matches not in top 20 (possible matches without deep read)
+    const remaining = phase1Sorted.slice(20).filter(m => m.score >= 40).map((m: any) => {
+      const c = available.find((c: any) => c.id === m.id)
+      return c ? { ...c, score: m.score, tier: "possible", reason: m.reason, gaps: null } : null
+    }).filter(Boolean)
+
+    const allMatches = [...finalMatches, ...remaining].sort((a, b) => b.score - a.score)
+    const strong_matches = allMatches.filter((m: any) => m.tier === "strong" || m.score >= 70)
+    const possible_matches = allMatches.filter((m: any) => m.tier !== "strong" && m.score < 70)
+
+    // Executive summary
     let summary = ""
     try {
-      const summaryPrompt = `Summarise these talent pool matching results in 2 sentences for a recruitment consultant.
-
-Role: ${mandate_title}
-Total candidates reviewed: ${available.length}
-Strong matches: ${strongMatches.length}
-Possible matches: ${possibleMatches.length}
-Top candidates: ${strongMatches.slice(0,3).map((m:any) => {
-  const c = available.find((c:any) => c.id === m.id)
-  return c ? \`\${c.name} (\${c.current_title})\` : ""
-}).filter(Boolean).join(", ")}
-
-Write 2 concise sentences: first summarise the match landscape, then give a recommendation on next steps.
-Return ONLY the sentences.`
-
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY!,
-          "anthropic-version": "2023-06-01",
-        },
+        headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 150,
-          messages: [{ role: "user", content: summaryPrompt }],
-        }),
+          model: "claude-sonnet-4-6", max_tokens: 120,
+          messages: [{ role: "user", content: `Summarise in 2 sentences for a recruiter: Role "${mandate_title}", ${available.length} candidates reviewed, ${strong_matches.length} strong matches, ${possible_matches.length} possible. Top candidates: ${strong_matches.slice(0,3).map((m:any)=>m.name).join(", ")}. Be direct about the talent availability.` }]
+        })
       })
       const data = await res.json()
       summary = data.content?.[0]?.text?.trim() || ""
     } catch {}
 
-    if (!summary) {
-      summary = `Found ${strongMatches.length} strong match${strongMatches.length !== 1 ? "es" : ""} and ${possibleMatches.length} possible match${possibleMatches.length !== 1 ? "es" : ""} from ${available.length} candidates reviewed.`
-    }
-
     return NextResponse.json({
       total_available: available.length,
-      summary,
-      strong_matches: hydrate(strongMatches),
-      possible_matches: hydrate(possibleMatches),
+      summary: summary || `Found ${strong_matches.length} strong and ${possible_matches.length} possible matches from ${available.length} candidates.`,
+      strong_matches,
+      possible_matches,
+      deeper_search_available: !deeper_search,
+      jd_requirements: jdParsed,
     })
 
   } catch (err) {
     console.error("Mandate insight error:", err)
-    return NextResponse.json({ error: "Failed to generate insight" }, { status: 500 })
+    return NextResponse.json({ error: "Failed" }, { status: 500 })
   }
 }
