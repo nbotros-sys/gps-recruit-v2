@@ -65,7 +65,7 @@ export default function MandateDetail() {
   const [selectedApp, setSelectedApp] = useState<any>(null)
   const [candidateNotes, setCandidateNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
-  const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "notes">("overview")
+  const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "roles" | "notes">("overview")
   const [insightData, setInsightData] = useState<any>(null)
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
@@ -544,6 +544,7 @@ export default function MandateDetail() {
               {[
                 { id: "overview", label: "Overview" },
                 { id: "cv", label: "CV" },
+                { id: "roles", label: "Roles" },
                 { id: "notes", label: "Notes" },
               ].map(({ id, label }) => (
                 <button key={id} onClick={() => setDrawerTab(id as any)}
@@ -585,8 +586,14 @@ export default function MandateDetail() {
                       <div className="h-full rounded-full" style={{ width: `${selectedApp.ai_score}%`, background: scoreColor(selectedApp.ai_score) }} />
                     </div>
                   )}
-                  {selectedApp.ai_summary && (
-                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4">{selectedApp.ai_summary}</p>
+                  {(selectedApp.ai_summary || selectedApp.candidate?.notes) && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-teal uppercase tracking-wide">AI Summary</span>
+                        <span className="text-xs bg-teal/10 text-teal px-1.5 py-0.5 rounded-full">Auto-generated</span>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">{selectedApp.ai_summary || selectedApp.candidate?.notes}</p>
+                    </div>
                   )}
                   {(selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) && (
                     <div className="grid grid-cols-2 gap-3">
@@ -653,6 +660,40 @@ export default function MandateDetail() {
                     <div className="text-center py-12">
                       <FileText size={32} className="mx-auto mb-3 text-gray-200" />
                       <p className="text-gray-400 text-sm">No CV stored for this candidate.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Roles */}
+              {drawerTab === "roles" && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 mb-3">All mandates this candidate is assigned to</p>
+                  {selectedApp.candidate?.id ? (
+                    <div className="border border-teal/20 rounded-2xl p-4 bg-teal/5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm">{mandate?.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{mandate?.client_name} · {mandate?.location}</p>
+                        </div>
+                        <span className={`badge ${STAGE_COLORS[selectedApp.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>{selectedApp.stage}</span>
+                      </div>
+                      {selectedApp.ai_score && (
+                        <div className="mt-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Star size={11} className="text-amber-400 fill-amber-400" />
+                            <span className="text-xs font-bold" style={{ color: scoreColor(selectedApp.ai_score) }}>{selectedApp.ai_score}/100 match score</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full">
+                            <div className="h-full rounded-full" style={{ width: `${selectedApp.ai_score}%`, background: scoreColor(selectedApp.ai_score) }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
+                      <p className="text-gray-400 text-sm">No role information available.</p>
                     </div>
                   )}
                 </div>
