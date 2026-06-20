@@ -163,37 +163,15 @@ export default function MandateDetail() {
   async function addFromInsight(candidate: any) {
     if (!mandate) return
     try {
-      // Generate mandate-specific strengths & concerns via score-cv
-      let ai_strengths: string[] = []
-      let ai_concerns: string[] = []
-      let ai_summary = candidate.reason || ""
-
-      if (mandate.job_description && candidate.cv_text) {
-        try {
-          const scoreRes = await fetch("/api/score-cv", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cv_text: candidate.cv_text,
-              job_description: mandate.job_description,
-              mandate_title: mandate.title,
-            })
-          })
-          const scoreData = await scoreRes.json()
-          if (scoreData.strengths) ai_strengths = scoreData.strengths
-          if (scoreData.concerns) ai_concerns = scoreData.concerns
-          if (scoreData.summary) ai_summary = scoreData.summary
-        } catch {}
-      }
-
+      // Strengths & concerns already generated during talent pool scan — use directly
       const { error } = await supabase.from("applications").insert([{
         candidate_id: candidate.id,
         mandate_id: id,
         stage: "new",
         ai_score: candidate.score,
-        ai_summary,
-        ai_strengths,
-        ai_concerns,
+        ai_summary: candidate.reason || "",
+        ai_strengths: Array.isArray(candidate.ai_strengths) ? candidate.ai_strengths : [],
+        ai_concerns: Array.isArray(candidate.ai_concerns) ? candidate.ai_concerns : [],
       }])
       if (!error) {
         setInsightData((prev: any) => ({
