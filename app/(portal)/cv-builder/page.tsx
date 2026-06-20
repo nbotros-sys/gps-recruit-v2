@@ -952,7 +952,7 @@ export default function CVBuilderPage() {
     if (!user) { setShowSignup(true); return }
     setSaving(true)
     try {
-      await supabase.from("candidates").upsert({
+      const { data: upserted } = await supabase.from("candidates").upsert({
         user_id: user.id,
         full_name: form.personal.name,
         email: form.personal.email || user.email,
@@ -966,7 +966,38 @@ export default function CVBuilderPage() {
         source: "cv_builder",
         template_used: selectedTemplate,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" })
+      }, { onConflict: "user_id" }).select("id").single()
+
+      // Auto-process: extract structured profile + embedding in background
+      // Build a text representation of the CV from form data
+      const candidateId = upserted?.id
+      if (candidateId) {
+        const cvTextFromForm = [
+          form.personal.name,
+          form.personal.title,
+          form.level,
+          form.job_function,
+          form.summary,
+          form.experience.map(e =>
+            `${e.title} at ${e.company}: ${e.bullets.filter(b=>b.trim()).join(". ")}`
+          ).join("\n"),
+          form.skills.join(", "),
+          form.education.map(e => `${e.degree} ${e.field} ${e.institution}`).join(", "),
+          form.languages.map(l => `${l.lang} ${l.level}`).join(", "),
+        ].filter(Boolean).join("\n")
+
+        // Fire and forget — don't block the user
+        fetch("/api/extract-structured", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId, cv_text: cvTextFromForm })
+        }).then(() => fetch("/api/generate-embedding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId, text: cvTextFromForm })
+        })).catch(() => {})
+      }
+
       triggerPDFDownload()
       setSaved(true)
       window.location.href = "/cv-builder/success"
@@ -1018,7 +1049,7 @@ export default function CVBuilderPage() {
         return
       }
       // Save to candidates table
-      await supabase.from("candidates").upsert({
+      const { data: reviewUpserted } = await supabase.from("candidates").upsert({
         email: reviewEmail,
         full_name: reviewResult?.name || "",
         name: reviewResult?.name || "",
@@ -1028,7 +1059,22 @@ export default function CVBuilderPage() {
         cv_score: reviewResult?.score || null,
         source: "cv_reviewer",
         updated_at: new Date().toISOString(),
-      }, { onConflict: "email" })
+      }, { onConflict: "email" }).select("id").single()
+
+      // Auto-process in background — extract structured profile + embedding
+      const reviewCandidateId = reviewUpserted?.id
+      if (reviewCandidateId && reviewText.trim()) {
+        fetch("/api/extract-structured", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId: reviewCandidateId, cv_text: reviewText.slice(0, 50000) })
+        }).then(() => fetch("/api/generate-embedding", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ candidateId: reviewCandidateId, text: reviewText.slice(0, 8000) })
+        })).catch(() => {})
+      }
+
       setReviewSaved(true)
     } catch (err: any) {
       setReviewAuthError(err.message || "Something went wrong")
