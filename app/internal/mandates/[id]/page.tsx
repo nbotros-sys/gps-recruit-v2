@@ -70,6 +70,16 @@ export default function MandateDetail() {
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
   const [scoringCandidate, setScoringCandidate] = useState(false)
+  const [candidateRoles, setCandidateRoles] = useState<any[]>([])
+
+  async function loadCandidateRoles(candidateId: string) {
+    const { data } = await supabase
+      .from("applications")
+      .select("id, stage, ai_score, mandate:mandates(id, title, client_name, location, status)")
+      .eq("candidate_id", candidateId)
+      .order("created_at", { ascending: false })
+    setCandidateRoles(data || [])
+  }
 
   async function scoreSelectedCandidate() {
     if (!selectedApp || !mandate?.job_description) return
@@ -474,7 +484,7 @@ export default function MandateDetail() {
                         <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
                         <div className="min-w-0 flex-1">
                           <button
-                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview") }}
+                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview"); setCandidateRoles([]); loadCandidateRoles((app as any).candidate?.id) }}
                             className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
                             {(app as any).candidate?.name || "Unknown"}
                           </button>
@@ -718,32 +728,48 @@ export default function MandateDetail() {
               {drawerTab === "roles" && (
                 <div className="space-y-3">
                   <p className="text-xs text-gray-400 mb-3">All mandates this candidate is assigned to</p>
-                  {selectedApp.candidate?.id ? (
-                    <div className="border border-teal/20 rounded-2xl p-4 bg-teal/5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm">{mandate?.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{mandate?.client_name} · {mandate?.location}</p>
-                        </div>
-                        <span className={`badge ${STAGE_COLORS[selectedApp.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>{selectedApp.stage}</span>
-                      </div>
-                      {selectedApp.ai_score && (
-                        <div className="mt-3">
-                          <div className="flex items-center gap-1 mb-1">
-                            <Star size={11} className="text-amber-400 fill-amber-400" />
-                            <span className="text-xs font-bold" style={{ color: scoreColor(selectedApp.ai_score) }}>{selectedApp.ai_score}/100 match score</span>
-                          </div>
-                          <div className="h-1.5 bg-gray-100 rounded-full">
-                            <div className="h-full rounded-full" style={{ width: `${selectedApp.ai_score}%`, background: scoreColor(selectedApp.ai_score) }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+                  {candidateRoles.length === 0 ? (
                     <div className="text-center py-8">
                       <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
-                      <p className="text-gray-400 text-sm">No role information available.</p>
+                      <p className="text-gray-400 text-sm">Loading roles...</p>
                     </div>
+                  ) : (
+                    candidateRoles.map((app: any) => {
+                      const isCurrentMandate = app.mandate?.id === id
+                      return (
+                        <div key={app.id}
+                          className={`rounded-2xl p-4 border ${isCurrentMandate ? "border-teal/30 bg-teal/5" : "border-gray-100 bg-white"}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-gray-900 text-sm truncate">{app.mandate?.title}</p>
+                                {isCurrentMandate && (
+                                  <span className="text-xs bg-teal/10 text-teal px-1.5 py-0.5 rounded-full flex-shrink-0">Current</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {app.mandate?.client_name}{app.mandate?.location ? ` · ${app.mandate.location}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {app.ai_score && (
+                                <span className="text-xs font-bold" style={{ color: scoreColor(app.ai_score) }}>
+                                  {app.ai_score}/100
+                                </span>
+                              )}
+                              <span className={`badge ${STAGE_COLORS[app.stage] || "bg-gray-100 text-gray-600"} capitalize text-xs`}>
+                                {app.stage}
+                              </span>
+                            </div>
+                          </div>
+                          {app.ai_score && (
+                            <div className="h-1 bg-gray-100 rounded-full mt-3">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${app.ai_score}%`, background: scoreColor(app.ai_score) }} />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               )}
