@@ -193,7 +193,7 @@ Score each 0-100 combining:
 - SUITABILITY (0-60): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
 - SENIORITY (0-40): Is their level right? Too junior or overqualified both score lower.
 
-Include anyone >=35. Do not exclude based on title — read their actual work.
+Include anyone >=20. Be generous — partial matches and adjacent backgrounds are worth surfacing. An accountant is relevant for payroll. An HR professional who handles compensation is relevant. Do not exclude based on title.
 
 Return ONLY JSON array:
 [{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
@@ -246,6 +246,7 @@ CANDIDATE FULL CV:
 ${fullCVText}
 
 Give a final score 0-100 (suitability 0-60 + seniority 0-40) and a specific 1-sentence reason referencing actual CV content.
+Be generous — score 25+ for any candidate with adjacent or partial relevance.
 
 Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "<specific reason>" }`
 
@@ -279,7 +280,7 @@ Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "
     }
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
-    const remaining = phase1Sorted.slice(20).filter(m => m.score >= 40).map((m: any) => {
+    const remaining = phase1Sorted.slice(20).filter(m => m.score >= 20).map((m: any) => {
       const c = available.find((c: any) => c.id === m.id)
       return c ? { ...c, score: m.score, tier: "possible", reason: m.reason, gaps: null } : null
     }).filter(Boolean)
