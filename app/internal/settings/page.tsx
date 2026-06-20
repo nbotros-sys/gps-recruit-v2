@@ -1,6 +1,6 @@
 "use client"
 import { useState, useRef } from "react"
-import { Loader2, CheckCircle, Database, Zap, Camera, Upload, X, Image } from "lucide-react"
+import { Loader2, CheckCircle, Database, Zap, Camera, Upload, X, Image, Sparkles } from "lucide-react"
 
 type PhotoResult = {
   filename: string
