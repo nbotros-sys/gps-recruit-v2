@@ -245,19 +245,32 @@ REQUIREMENTS: ${job_description.slice(0, 2000)}
 CANDIDATE FULL CV:
 ${fullCVText}
 
-Give a final score 0-100 (suitability 0-50 + seniority 0-50) and a specific 1-sentence reason referencing actual CV content.
+Give a final score 0-100 (suitability 0-50 + seniority 0-50), a specific 1-sentence reason, and 2-3 strengths and 1-2 areas to probe — all specific to THIS role, not generic.
 Be generous — score 25+ for any candidate with adjacent or partial relevance.
 
-Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "<specific reason>" }`
+Return ONLY JSON:
+{
+  "score": <0-100>,
+  "tier": "strong" | "possible",
+  "reason": "<specific 1-sentence reason referencing CV content>",
+  "strengths": ["<strength specific to this role>", "<strength 2>", "<strength 3>"],
+  "concerns": ["<area to probe specific to this role>", "<area 2>"]
+}`
 
           const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: deepPrompt }] }),
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, messages: [{ role: "user", content: deepPrompt }] }),
           })
           const data = await res.json()
           const parsed = JSON.parse((data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim())
-          if (parsed.score) { deepScore = parsed.score; deepReason = parsed.reason; tier = parsed.tier }
+          if (parsed.score) {
+            deepScore = parsed.score
+            deepReason = parsed.reason
+            tier = parsed.tier
+            if (parsed.strengths) c.ai_strengths = parsed.strengths
+            if (parsed.concerns) c.ai_concerns = parsed.concerns
+          }
         } catch {}
       }
 
@@ -268,6 +281,8 @@ Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "
           tier,
           reason: deepReason,
           gaps,
+          ai_strengths: c.ai_strengths || [],
+          ai_concerns: c.ai_concerns || [],
           // Enrichment signals
           trajectory: structured?.career_trajectory || null,
           avg_tenure: structured?.avg_tenure_years || null,
