@@ -254,6 +254,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
                 </div>
               )}
             </div>
+          </div>
           )}
 
           {/* Applications history */}
