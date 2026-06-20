@@ -835,7 +835,7 @@ export default function MandateDetail() {
               <p className="text-gray-400 text-sm max-w-md mx-auto mb-6">
                 AI will review every candidate in your database and identify who fits this role — before you post anywhere.
               </p>
-              <button onClick={loadInsight}
+              <button onClick={() => loadInsight()}
                 className="btn-primary flex items-center gap-2 mx-auto">
                 <Brain size={15} /> Scan database now
               </button>
