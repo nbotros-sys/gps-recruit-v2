@@ -13,6 +13,23 @@ type PhotoResult = {
 export default function SettingsPage() {
   const [embedding, setEmbedding] = useState(false)
   const [embedResult, setEmbedResult] = useState<any>(null)
+  const [extractingStructured, setExtractingStructured] = useState(false)
+  const [structuredResult, setStructuredResult] = useState<any>(null)
+  const [structuredProgress, setStructuredProgress] = useState("")
+
+  async function runExtractStructured() {
+    setExtractingStructured(true)
+    setStructuredResult(null)
+    setStructuredProgress("")
+    try {
+      // Fetch all candidates with cv_text but no cv_structured
+      const res = await fetch("/api/bulk-extract-structured", { method: "POST" })
+      const data = await res.json()
+      setStructuredResult(data)
+    } catch { setStructuredResult({ error: "Failed" }) }
+    setExtractingStructured(false)
+    setStructuredProgress("")
+  }
 
   // Bulk photo extraction state
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
@@ -213,6 +230,34 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Extract Structured Profiles */}
+      <div className="card p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <Sparkles size={18} className="text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900 mb-1">Extract Structured Profiles</h3>
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+              AI reads each candidate's full CV and extracts a rich structured profile — real responsibilities, skills (explicit and implied), certifications, seniority signals, career trajectory, and more. Run once per candidate. Powers intelligent talent pool matching.
+            </p>
+            <p className="text-xs text-gray-400 mb-4">⚡ Run this before generating embeddings for best search quality. Safe to run anytime — skips candidates already processed.</p>
+            <button onClick={runExtractStructured} disabled={extractingStructured} className="btn-primary flex items-center gap-2">
+              {extractingStructured
+                ? <><Loader2 size={14} className="animate-spin" /> Extracting profiles… {structuredProgress}</>
+                : <><Sparkles size={14} /> Extract structured profiles</>}
+            </button>
+            {structuredResult && (
+              <div className={`rounded-xl p-4 mt-4 text-sm ${structuredResult.error ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
+                {structuredResult.error ? <p>Error: {structuredResult.error}</p> : (
+                  <p className="font-semibold">✓ {structuredResult.processed} profiles extracted · {structuredResult.skipped} already done · {structuredResult.failed} failed</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Vector Embeddings */}
       <div className="card p-6">
         <div className="flex items-start gap-4">
@@ -222,7 +267,7 @@ export default function SettingsPage() {
           <div className="flex-1">
             <h3 className="font-bold text-gray-900 mb-1">Vector Embeddings</h3>
             <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-              Generate semantic search embeddings for all candidates. Run this after bulk importing CVs to enable accurate AI search across your full database.
+              Generate semantic search embeddings for all candidates. Run after extracting structured profiles for best results.
             </p>
 
             {embedResult && (
