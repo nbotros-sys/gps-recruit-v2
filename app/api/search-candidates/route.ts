@@ -161,10 +161,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── SEMANTIC SEARCH: expand query + vector search full DB ─────────────────
-  // Run query expansion and embedding in parallel for speed
-  const [expandedQuery] = await Promise.all([expandQuery(q)])
-
+  // ── SEMANTIC SEARCH: embed query directly, no expansion needed ─────────────
+  // Embeddings are rich enough that raw query finds semantically similar candidates
   let vectorCandidates: any[] = []
   let searchMethod = "semantic"
 
@@ -172,7 +170,7 @@ export async function POST(req: NextRequest) {
     const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({ model: "text-embedding-3-small", input: expandedQuery.slice(0, 8000) }),
+      body: JSON.stringify({ model: "text-embedding-3-small", input: q }),
     })
 
     if (embeddingRes.ok) {
@@ -213,22 +211,16 @@ export async function POST(req: NextRequest) {
 
   if (!vectorCandidates.length) return NextResponse.json({ results: [], searchMethod })
 
-  // ── AI RE-RANKING IN BATCHES ───────────────────────────────────────────────
-  // Process in batches of 40 so each AI call stays fast but we cover everyone.
-  // Vector similarity already sorted so best candidates come first.
+  // ── AI RE-RANKING IN PARALLEL BATCHES ────────────────────────────────────
+  // All batches run simultaneously — same quality, much faster
   const BATCH_SIZE = 40
-  const allScored: any[] = []
-
+  const batches: any[][] = []
   for (let i = 0; i < vectorCandidates.length; i += BATCH_SIZE) {
-    const batch = vectorCandidates.slice(i, i + BATCH_SIZE)
-    const scored = await aiRankBatch(q, batch)
-    allScored.push(...scored)
-
-    // If first batch already has strong results and DB is large, we can stop early
-    // But only if there are solid matches — don't sacrifice completeness for speed
-    const strongSoFar = allScored.filter(s => s.score >= 70).length
-    if (i >= BATCH_SIZE && strongSoFar >= 15 && vectorCandidates.length > 200) break
+    batches.push(vectorCandidates.slice(i, i + BATCH_SIZE))
   }
+
+  const batchResults = await Promise.all(batches.map(batch => aiRankBatch(q, batch)))
+  const allScored: any[] = batchResults.flat()
 
   // Sort by score and build final results
   const results = allScored
