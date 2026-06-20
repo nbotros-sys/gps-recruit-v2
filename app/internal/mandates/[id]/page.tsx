@@ -679,6 +679,7 @@ export default function MandateDetail() {
                     <textarea value={candidateNotes} onChange={e => setCandidateNotes(e.target.value)} rows={8}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
                       placeholder="Add interview feedback, observations, next steps..." />
+                  </div>
                   <div className="flex justify-end">
                     <button onClick={async () => {
                       setSavingNotes(true)
