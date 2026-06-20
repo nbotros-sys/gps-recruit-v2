@@ -8,7 +8,7 @@ import {
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search, Eye, Download } from "lucide-react"
+  Settings2, Search, Eye, Download, Briefcase } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
