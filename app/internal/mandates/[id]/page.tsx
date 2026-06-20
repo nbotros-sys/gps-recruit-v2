@@ -8,7 +8,7 @@ import {
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search } from "lucide-react"
+  Settings2, Search, Eye, Download } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -617,25 +617,68 @@ export default function MandateDetail() {
 
               {/* CV */}
               {drawerTab === "cv" && (
-                selectedApp.candidate?.cv_text ? (
-                  <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5">
-                    {selectedApp.candidate.cv_text}
-                  </pre>
-                ) : (
-                  <div className="text-center py-12">
-                    <FileText size={32} className="mx-auto mb-3 text-gray-200" />
-                    <p className="text-gray-400 text-sm">No CV stored for this candidate.</p>
-                  </div>
-                )
+                <div>
+                  {/* Preview + Download buttons */}
+                  {(selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_url) && (
+                    <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <FileText size={14} className="text-teal flex-shrink-0" />
+                      <span className="text-sm font-medium text-gray-700 flex-1">
+                        {selectedApp.candidate?.cv_source === "gps_builder" ? "GPS-built CV" : `Original CV${selectedApp.candidate?.cv_file_type ? ` (${selectedApp.candidate.cv_file_type.toUpperCase()})` : ""}`}
+                      </span>
+                      {selectedApp.candidate?.cv_source === "gps_builder" && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">★ GPS CV</span>
+                      )}
+                      <div className="flex gap-2">
+                        {(selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_type === "pdf") && (
+                          <a href={selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_url}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal hover:text-teal transition-all">
+                            <Eye size={11} /> Preview
+                          </a>
+                        )}
+                        <a href={selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_url}
+                          target="_blank" rel="noopener noreferrer"
+                          download={`${selectedApp.candidate?.name || "CV"}.${selectedApp.candidate?.cv_pdf_url ? "pdf" : selectedApp.candidate?.cv_file_type || "pdf"}`}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-teal text-white text-xs font-semibold hover:opacity-90 transition-all">
+                          <Download size={11} /> Download
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {selectedApp.candidate?.cv_text ? (
+                    <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5">
+                      {selectedApp.candidate.cv_text}
+                    </pre>
+                  ) : (
+                    <div className="text-center py-12">
+                      <FileText size={32} className="mx-auto mb-3 text-gray-200" />
+                      <p className="text-gray-400 text-sm">No CV stored for this candidate.</p>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Notes */}
               {drawerTab === "notes" && (
-                <div className="space-y-3">
-                  <p className="text-xs text-gray-400">Private notes — only visible to GPS team</p>
-                  <textarea value={candidateNotes} onChange={e => setCandidateNotes(e.target.value)} rows={10}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
-                    placeholder="Add your notes about this candidate..." />
+                <div className="space-y-4">
+                  {/* AI Summary */}
+                  {selectedApp.candidate?.notes && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-teal uppercase tracking-wide">AI Summary</span>
+                        <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4">
+                        {selectedApp.candidate.notes}
+                      </p>
+                    </div>
+                  )}
+                  {/* Manual notes */}
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">Internal notes — only visible to GPS team</p>
+                    <textarea value={candidateNotes} onChange={e => setCandidateNotes(e.target.value)} rows={8}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
+                      placeholder="Add interview feedback, observations, next steps..." />
                   <div className="flex justify-end">
                     <button onClick={async () => {
                       setSavingNotes(true)
