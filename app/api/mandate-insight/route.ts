@@ -212,7 +212,7 @@ Return ONLY JSON array:
     }
 
     // Sort by score, take top 20 for deep read
-    const phase1Sorted = phase1Scores.filter(m => m.score >= 35).sort((a, b) => b.score - a.score)
+    const phase1Sorted = phase1Scores.filter(m => m.score >= 20).sort((a, b) => b.score - a.score)
     const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
@@ -260,7 +260,7 @@ Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "
         } catch {}
       }
 
-      if (deepScore >= 35) {
+      if (deepScore >= 20) {
         finalMatches.push({
           ...c,
           score: deepScore,
