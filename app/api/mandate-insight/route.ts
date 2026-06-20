@@ -190,8 +190,8 @@ CANDIDATES:
 ${JSON.stringify(summaries)}
 
 Score each 0-100 combining:
-- SUITABILITY (0-60): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
-- SENIORITY (0-40): Is their level right? Too junior or overqualified both score lower.
+- SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
+- SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
 
 Include anyone >=20. Be generous — partial matches and adjacent backgrounds are worth surfacing. An accountant is relevant for payroll. An HR professional who handles compensation is relevant. Do not exclude based on title.
 
@@ -245,7 +245,7 @@ REQUIREMENTS: ${job_description.slice(0, 2000)}
 CANDIDATE FULL CV:
 ${fullCVText}
 
-Give a final score 0-100 (suitability 0-60 + seniority 0-40) and a specific 1-sentence reason referencing actual CV content.
+Give a final score 0-100 (suitability 0-50 + seniority 0-50) and a specific 1-sentence reason referencing actual CV content.
 Be generous — score 25+ for any candidate with adjacent or partial relevance.
 
 Return ONLY JSON: { "score": <0-100>, "tier": "strong" | "possible", "reason": "<specific reason>" }`
