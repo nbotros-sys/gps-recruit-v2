@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
     // ── PHASE 1: AI scoring using structured cards (fast) ─────────────────────
-    const BATCH_SIZE = 20
+    const BATCH_SIZE = 10
     const phase1Scores: any[] = []
 
     for (let i = 0; i < available.length; i += BATCH_SIZE) {
@@ -210,7 +210,13 @@ Score each 0-100 combining:
 - SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
 - SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
 
-Include anyone >=15. Be generous — read what the candidate actually DOES in their CV, not just their title. Examples: a VP Engineering or Head of Engineering scores 70+ for a CTO role. A CFO at any company scores 70+ for a CFO role. Only score below 15 if the candidate's entire career is in a completely unrelated function.
+Score generously. Read what each candidate actually DOES, not just their title.
+- A Group CEO or CEO of any company scores 70+ for a CEO role
+- A CFO at any company scores 70+ for a CFO role  
+- A VP Engineering or Head of Engineering scores 70+ for a CTO role
+- A VP Sales at any company scores 70+ for a VP Sales role
+- Only score below 15 if the candidate's entire career is completely unrelated (e.g. a supply chain manager for a CEO role)
+- When in doubt score 25-40, never score 0
 
 Return ONLY JSON array:
 [{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
@@ -231,7 +237,7 @@ Return ONLY JSON array:
     // Sort by score, take top 20 for deep read
     console.log(`[insight] phase1 raw scores: ${phase1Scores.length} candidates scored`)
     console.log(`[insight] phase1 sample scores: ${phase1Scores.slice(0,5).map((m:any) => `${m.score}`).join(', ')}`)
-    const phase1Sorted = phase1Scores.filter(m => m.score >= 15).sort((a, b) => b.score - a.score)
+    const phase1Sorted = phase1Scores.filter(m => m.score >= 10).sort((a, b) => b.score - a.score)
     console.log(`[insight] phase1 after filter (>=15): ${phase1Sorted.length} candidates`)
     const top20ids = phase1Sorted.slice(0, 10).map((m: any) => m.id)
 
