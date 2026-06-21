@@ -272,7 +272,7 @@ Return ONLY JSON:
         } catch {}
       }
 
-      if (deepScore >= 20) {
+      if (deepScore >= 15) {
         finalMatches.push({
           ...c,
           score: deepScore,
