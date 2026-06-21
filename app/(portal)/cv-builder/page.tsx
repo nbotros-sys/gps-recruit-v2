@@ -612,7 +612,21 @@ function DatePicker({ label, month, year, onMonth, onYear, disabled=false }:
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function CVBuilderPage() {
   const [activeTab, setActiveTab] = useState<"builder"|"reviewer">("builder")
-  useEffect(()=>{ if(typeof window!=="undefined"){ const p=new URLSearchParams(window.location.search); if(p.get("tab")==="reviewer") setActiveTab("reviewer") } },[])
+  const [pendingAutosave, setPendingAutosave] = useState(false)
+  useEffect(()=>{
+    if(typeof window!=="undefined"){
+      const p=new URLSearchParams(window.location.search)
+      if(p.get("tab")==="reviewer") setActiveTab("reviewer")
+      if(p.get("autosave")==="1") {
+        // User returned from login — go to template step and trigger save
+        setPendingAutosave(true)
+        // Clean URL
+        const url = new URL(window.location.href)
+        url.searchParams.delete("autosave")
+        window.history.replaceState({}, "", url.toString())
+      }
+    }
+  },[])
 
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormData>(INITIAL)
@@ -620,7 +634,20 @@ export default function CVBuilderPage() {
   const [generating, setGenerating] = useState(false)
   const [generatingBullet, setGeneratingBullet] = useState<number|null>(null)
   const [saving, setSaving] = useState(false)
+  // Trigger save when returning from login with autosave=1
+  useEffect(()=>{
+    if(!pendingAutosave) return
+    setPendingAutosave(false)
+    // Jump to template step so they see their CV, then auto-save
+    setStep(STEPS.length - 1)
+    setActiveTab("builder")
+    // Small delay so the component renders before we call save
+    setTimeout(()=>{ handleSaveAndDownload() }, 600)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pendingAutosave])
   const [showSignup, setShowSignup] = useState(false)
+  const [authMode, setAuthMode] = useState<"signup"|"signin"|"forgot">("signup")
+  const [authForgotSent, setAuthForgotSent] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [authLoading, setAuthLoading] = useState(false)
@@ -734,8 +761,33 @@ export default function CVBuilderPage() {
   async function handleSignupAndSave(){
     setAuthLoading(true); setAuthError("")
     const{error}=await supabase.auth.signUp({email,password})
-    if(error){ setAuthError(error.message); setAuthLoading(false); return }
+    if(error){
+      // Existing account — switch to signin mode with email pre-filled
+      if(error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("already exists")){
+        setAuthMode("signin")
+        setAuthError("You already have an account. Sign in below.")
+      } else {
+        setAuthError(error.message)
+      }
+      setAuthLoading(false); return
+    }
     setShowSignup(false); await handleSaveAndDownload(); setAuthLoading(false)
+  }
+
+  async function handleSigninAndSave(){
+    setAuthLoading(true); setAuthError("")
+    const{error}=await supabase.auth.signInWithPassword({email,password})
+    if(error){ setAuthError("Incorrect password. Try again or reset it below."); setAuthLoading(false); return }
+    setShowSignup(false); await handleSaveAndDownload(); setAuthLoading(false)
+  }
+
+  async function handleForgotPassword(){
+    setAuthLoading(true); setAuthError("")
+    const{error}=await supabase.auth.resetPasswordForEmail(email,{
+      redirectTo: `${window.location.origin}/cv-builder?autosave=1`
+    })
+    if(error){ setAuthError("Could not send reset email. Check your address."); setAuthLoading(false); return }
+    setAuthForgotSent(true); setAuthLoading(false)
   }
 
   async function handleReview(){
@@ -1299,30 +1351,89 @@ export default function CVBuilderPage() {
         </div>
       )}
 
-      {/* SIGNUP MODAL */}
+      {/* SIGNUP / SIGNIN / FORGOT MODAL — 3-state, no data loss */}
       {showSignup&&(
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:"24px" }}>
-          <div style={{ background:"white", borderRadius:"20px", padding:"32px", width:"100%", maxWidth:"380px", boxShadow:"0 24px 80px rgba(0,0,0,0.25)" }}>
-            <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
-              <div style={{ width:"44px", height:"44px", background:"#e6f5f3", borderRadius:"12px", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 10px" }}>
-                <CheckCircle size={20} color="#028090"/>
+          <div style={{ background:"white", borderRadius:"20px", padding:"32px", width:"100%", maxWidth:"400px", boxShadow:"0 24px 80px rgba(0,0,0,0.25)" }}>
+
+            {/* ── STATE: signup ── */}
+            {authMode==="signup"&&(<>
+              <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
+                <div style={{ width:"44px", height:"44px", background:"#e6f5f3", borderRadius:"12px", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 10px" }}>
+                  <CheckCircle size={20} color="#028090"/>
+                </div>
+                <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Almost there!</h2>
+                <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>
+                  Create a free account to save your CV to the GPS Talent Network — our recruiters will be able to find you instantly.
+                </p>
               </div>
-              <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Almost there!</h2>
-              <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>Create a free account to save your CV and join the GPS Talent Network.</p>
-            </div>
-            <div style={{ display:"flex", flexDirection:"column" as const, gap:"10px", marginBottom:"12px" }}>
-              <input style={inp} type="email" placeholder="Your email" value={email} onChange={e=>setEmail(e.target.value)}/>
-              <input style={inp} type="password" placeholder="Choose a password (min 6 chars)" value={password} onChange={e=>setPassword(e.target.value)}/>
-            </div>
-            {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
-            <button onClick={handleSignupAndSave} disabled={authLoading||!email||!password}
-              style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"8px" }}>
-              {authLoading?<><Loader2 size={14} className="animate-spin"/>Saving…</>:<>Save CV & Go Live<ArrowRight size={14}/></>}
-            </button>
-            <p style={{ textAlign:"center" as const, fontSize:"12px", color:"#9ca3af" }}>
-              Already have an account? <Link href="/login" style={{ color:"#028090", fontWeight:600 }}>Sign in</Link>
-            </p>
-            <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"4px" }}>Cancel</button>
+              <div style={{ display:"flex", flexDirection:"column" as const, gap:"10px", marginBottom:"12px" }}>
+                <input style={inp} type="email" placeholder="Your email" value={email} onChange={e=>setEmail(e.target.value)} autoFocus/>
+                <input style={inp} type="password" placeholder="Choose a password (min 6 chars)" value={password} onChange={e=>setPassword(e.target.value)}/>
+              </div>
+              {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
+              <button onClick={handleSignupAndSave} disabled={authLoading||!email||!password}
+                style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
+                {authLoading?<><Loader2 size={14} className="animate-spin"/>Saving…</>:<>Save CV & Go Live<ArrowRight size={14}/></>}
+              </button>
+              <p style={{ textAlign:"center" as const, fontSize:"12px", color:"#9ca3af" }}>
+                Already have an account?{" "}
+                <button onClick={()=>{setAuthMode("signin");setAuthError("")}} style={{ color:"#028090", fontWeight:600, background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>Sign in instead</button>
+              </p>
+              <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"4px" }}>Cancel</button>
+            </>)}
+
+            {/* ── STATE: signin ── */}
+            {authMode==="signin"&&(<>
+              <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
+                <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Welcome back</h2>
+                <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>Sign in to save your CV — your form data is still here.</p>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column" as const, gap:"10px", marginBottom:"12px" }}>
+                <input style={inp} type="email" placeholder="Your email" value={email} onChange={e=>setEmail(e.target.value)} autoFocus/>
+                <input style={inp} type="password" placeholder="Your password" value={password} onChange={e=>setPassword(e.target.value)}/>
+              </div>
+              {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
+              <button onClick={handleSigninAndSave} disabled={authLoading||!email||!password}
+                style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
+                {authLoading?<><Loader2 size={14} className="animate-spin"/>Signing in…</>:<>Sign in & Save CV<ArrowRight size={14}/></>}
+              </button>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px" }}>
+                <button onClick={()=>{setAuthMode("forgot");setAuthError("")}} style={{ color:"#6b7280", background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>Forgot password?</button>
+                <button onClick={()=>{setAuthMode("signup");setAuthError("")}} style={{ color:"#028090", fontWeight:600, background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>Create account</button>
+              </div>
+              <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"8px" }}>Cancel</button>
+            </>)}
+
+            {/* ── STATE: forgot ── */}
+            {authMode==="forgot"&&(<>
+              <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
+                <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Reset your password</h2>
+                <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>
+                  {authForgotSent
+                    ? `Check your inbox at ${email}. Click the link, then come back here and sign in.`
+                    : "We'll email you a reset link. Your CV data stays right here."}
+                </p>
+              </div>
+              {!authForgotSent&&(<>
+                <input style={{ ...inp, marginBottom:"12px" }} type="email" placeholder="Your email" value={email} onChange={e=>setEmail(e.target.value)} autoFocus/>
+                {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
+                <button onClick={handleForgotPassword} disabled={authLoading||!email}
+                  style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
+                  {authLoading?<><Loader2 size={14} className="animate-spin"/>Sending…</>:<>Send reset link</>}
+                </button>
+              </>)}
+              {authForgotSent&&(
+                <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"10px", padding:"14px 16px", marginBottom:"14px", textAlign:"center" as const }}>
+                  <CheckCircle size={20} color="#059669" style={{ margin:"0 auto 6px" }}/>
+                  <p style={{ fontSize:"13px", color:"#059669", fontWeight:600, margin:0 }}>Reset link sent!</p>
+                </div>
+              )}
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px" }}>
+                <button onClick={()=>{setAuthMode("signin");setAuthError("");setAuthForgotSent(false)}} style={{ color:"#6b7280", background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>← Back to sign in</button>
+              </div>
+              <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"8px" }}>Cancel — I'll do this later</button>
+            </>)}
           </div>
         </div>
       )}
