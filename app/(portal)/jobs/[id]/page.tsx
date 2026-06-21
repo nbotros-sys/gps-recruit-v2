@@ -300,17 +300,28 @@ export default function JobDetailPage() {
                   ) : (
                     <p className="text-sm text-gray-500 leading-relaxed">No account needed. Takes 2 minutes. Your CV stays confidential.</p>
                   )}
-                  <button onClick={() => setApplying(true)}
-                    className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all"
-                    style={{ background: "#028090" }}>
-                    Apply now →
-                  </button>
-                  <div className="border-t border-gray-100 pt-4 text-center">
-                    <p className="text-xs text-gray-400 mb-2">Not the right fit?</p>
-                    <a href="/join" className="text-sm font-medium hover:underline" style={{ color: "#028090" }}>
-                      Join our talent network
-                    </a>
-                  </div>
+                  {alreadyApplied ? (
+                    <div className="w-full py-3.5 rounded-xl text-sm text-center font-semibold border-2" style={{ borderColor: "#028090", color: "#028090", background: "#f0faf8" }}>
+                      ✓ Application Submitted
+                    </div>
+                  ) : (
+                    <button onClick={() => setApplying(true)}
+                      className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all"
+                      style={{ background: "#028090" }}>
+                      Apply now →
+                    </button>
+                  )}
+                  {!alreadyApplied && (
+                    <div className="border-t border-gray-100 pt-4 text-center">
+                      <p className="text-xs text-gray-400 mb-2">Not the right fit?</p>
+                      <a href="/join" className="text-sm font-medium hover:underline" style={{ color: "#028090" }}>
+                        Join our talent network
+                      </a>
+                    </div>
+                  )}
+                  {alreadyApplied && (
+                    <p className="text-xs text-center text-gray-400">You've already applied for this role. We'll be in touch.</p>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={submit} className="space-y-4">
