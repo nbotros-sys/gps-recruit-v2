@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       phase1Batches.push(available.slice(i, i + BATCH_SIZE))
     }
 
-    async function scorePhase1Batch(batch: any[]): Promise<any[]> {
+    const scorePhase1Batch = async (batch: any[]): Promise<any[]> => {
       const summaries = batch.map((c: any) => ({
         id: c.id,
         title: c.current_title || "Unknown",
