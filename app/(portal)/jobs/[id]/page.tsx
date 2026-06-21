@@ -37,13 +37,13 @@ export default function JobDetailPage() {
             phone: cand.phone || "",
           })
           // Check if already applied to this mandate
-          const { data: existingApp } = await supabase
+          const { count, error: appError } = await supabase
             .from("applications")
-            .select("id")
+            .select("id", { count: "exact", head: true })
             .eq("candidate_id", cand.id)
             .eq("mandate_id", id)
-            .maybeSingle()
-          if (existingApp) setAlreadyApplied(true)
+          if (appError) console.error("Application check error:", appError)
+          if (count && count > 0) setAlreadyApplied(true)
         } else {
           // Logged in but no candidate record yet — pre-fill email only
           setForm({ name: "", email: user.email || "", phone: "" })
