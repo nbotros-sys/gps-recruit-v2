@@ -1,7 +1,7 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
-import { ArrowRight, ArrowLeft, Upload, Sparkles, CheckCircle, Loader2, User, FileText, Briefcase, GraduationCap, Star, Download, Eye, Camera, Plus, Trash2, RefreshCw } from "lucide-react"
+import { ArrowRight, ArrowLeft, Upload, Sparkles, CheckCircle, Loader2, User, FileText, Briefcase, GraduationCap, Star, Download, Camera, Plus, Trash2, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","C-Suite / Executive","Other"]
@@ -1223,16 +1223,11 @@ export default function CVBuilderPage() {
                       <p style={{ fontSize:"11px", color:"#15803d", margin:0 }}>Full RTL Arabic version. Save now and we'll notify you.</p>
                     </div>
                   </div>
-                  <button onClick={()=>triggerPDFDownload()}
-                    style={{ width:"100%", marginBottom:"10px", padding:"10px", background:"white", border:"1.5px solid #e5e7eb", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", color:"#374151" }}>
-                    <Eye size={14} /> Preview PDF (print dialog)
+                  <button onClick={handleSaveAndDownload} disabled={saving}
+                    style={{ width:"100%", padding:"14px", background:"#028090", color:"white", border:"none", borderRadius:"12px", fontWeight:700, fontSize:"15px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px" }}>
+                    {saving ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Download size={15} /> Save & Download PDF</>}
                   </button>
-                  <button onClick={handleSaveAndDownload} disabled={saving||!form.personal.name}
-                    style={{ width:"100%", padding:"13px", background:form.personal.name?"#028090":"#e5e7eb", color:form.personal.name?"white":"#9ca3af", border:"none", borderRadius:"12px", fontWeight:700, fontSize:"14px", cursor:form.personal.name?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px" }}>
-                    {saving ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Download size={15} /> Save to GPS & Download</>}
-                  </button>
-                  {!form.personal.name && <p style={{ textAlign:"center" as const, fontSize:"11px", color:"#ef4444", marginTop:"6px" }}>Enter your name on step 1 to continue</p>}
-                  <p style={{ textAlign:"center" as const, fontSize:"11px", color:"#9ca3af", marginTop:"6px" }}>Your CV is saved to our recruiter database immediately.</p>
+                  <p style={{ textAlign:"center" as const, fontSize:"11px", color:"#9ca3af", marginTop:"8px" }}>Saves to GPS recruiter database · Free download · No watermark</p>
                 </div>
               )}
 
