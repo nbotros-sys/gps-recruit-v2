@@ -191,7 +191,7 @@ Score each 0-100 combining:
 - SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
 - SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
 
-Include anyone >=20. Be generous — partial matches and adjacent backgrounds are worth surfacing. An accountant is relevant for payroll. An HR professional who handles compensation is relevant. Do not exclude based on title.
+Include anyone >=10. Be VERY generous — a CFO at a bank is highly relevant for a CFO manufacturing role. A Finance Director is relevant for a CFO search. Adjacent sectors count heavily. Only exclude candidates with completely unrelated functions (e.g. sales candidates for a finance role). Do not exclude based on title or sector alone.
 
 Return ONLY JSON array:
 [{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
@@ -210,8 +210,8 @@ Return ONLY JSON array:
     }
 
     // Sort by score, take top 20 for deep read
-    const phase1Sorted = phase1Scores.filter(m => m.score >= 20).sort((a, b) => b.score - a.score)
-    const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
+    const phase1Sorted = phase1Scores.filter(m => m.score >= 10).sort((a, b) => b.score - a.score)
+    const top20ids = phase1Sorted.slice(0, 30).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
     const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
@@ -293,7 +293,7 @@ Return ONLY JSON:
     }
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
-    const remaining = phase1Sorted.slice(20).filter(m => m.score >= 20).map((m: any) => {
+    const remaining = phase1Sorted.slice(30).filter(m => m.score >= 10).map((m: any) => {
       const c = available.find((c: any) => c.id === m.id)
       return c ? { ...c, score: m.score, tier: "possible", reason: m.reason, gaps: null } : null
     }).filter(Boolean)
