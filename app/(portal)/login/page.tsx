@@ -19,13 +19,18 @@ export default function CandidateLogin() {
   const [info, setInfo] = useState("")
   const supabase = createClient()
 
+  // Read return destination from URL
+  const returnTo = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("return") || ""
+    : ""
+
   // Step 1: Normal login
   async function login(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError("")
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setError("Invalid email or password.")
-    else window.location.href = "/account"
+    else window.location.href = returnTo === "cv-builder" ? "/cv-builder?autosave=1" : "/account"
     setLoading(false)
   }
 
@@ -64,7 +69,7 @@ export default function CandidateLogin() {
     setLoading(true); setError("")
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) setError("Could not update password. Please try again.")
-    else window.location.href = "/account"
+    else window.location.href = returnTo === "cv-builder" ? "/cv-builder?autosave=1" : "/account"
     setLoading(false)
   }
 
