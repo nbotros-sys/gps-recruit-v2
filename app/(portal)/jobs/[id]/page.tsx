@@ -42,7 +42,7 @@ export default function JobDetailPage() {
             .select("id")
             .eq("candidate_id", cand.id)
             .eq("mandate_id", id)
-            .single()
+            .maybeSingle()
           if (existingApp) setAlreadyApplied(true)
         } else {
           // Logged in but no candidate record yet — pre-fill email only
