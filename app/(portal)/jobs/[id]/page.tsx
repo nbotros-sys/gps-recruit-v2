@@ -12,14 +12,44 @@ export default function JobDetailPage() {
   const [applying, setApplying] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [form, setForm] = useState({ name: "", email: "", phone: "+20 " })
+  const [form, setForm] = useState({ name: "", email: "", phone: "" })
   const [submitting, setSubmitting] = useState(false)
+  const [candidate, setCandidate] = useState<any>(null)
+  const [alreadyApplied, setAlreadyApplied] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from("mandates").select("*").eq("id", id).eq("status", "active").single()
-      setMandate(data)
+      // Load mandate
+      const { data: m } = await supabase.from("mandates").select("*").eq("id", id).eq("status", "active").single()
+      setMandate(m)
+
+      // Check if user is logged in and has a candidate profile
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: cand } = await supabase.from("candidates").select("*").eq("email", user.email).single()
+        if (cand) {
+          setCandidate(cand)
+          // Pre-fill form with their existing data
+          setForm({
+            name: cand.name || "",
+            email: cand.email || user.email || "",
+            phone: cand.phone || "",
+          })
+          // Check if already applied to this mandate
+          const { data: existingApp } = await supabase
+            .from("applications")
+            .select("id")
+            .eq("candidate_id", cand.id)
+            .eq("mandate_id", id)
+            .single()
+          if (existingApp) setAlreadyApplied(true)
+        } else {
+          // Logged in but no candidate record yet — pre-fill email only
+          setForm({ name: "", email: user.email || "", phone: "" })
+        }
+      }
+
       setLoading(false)
     }
     load()
@@ -27,19 +57,27 @@ export default function JobDetailPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!file || !mandate) return
+    if (!mandate) return
+    // Require either an uploaded file or an existing CV on file
+    if (!file && !candidate?.cv_text) return
     setSubmitting(true)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
-      const { text: cvText } = await extractRes.json()
+      let cvText = candidate?.cv_text || ""
+
+      // Only extract from file if they uploaded a new one
+      if (file) {
+        const formData = new FormData()
+        formData.append("file", file)
+        const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
+        const { text } = await extractRes.json()
+        cvText = text || ""
+      }
 
       const [profileRes, scoreRes] = await Promise.all([
         fetch("/api/build-profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cv_text: cvText || "", filename: file.name })
+          body: JSON.stringify({ cv_text: cvText || "", filename: file?.name || "profile" })
         }),
         fetch("/api/score-cv", {
           method: "POST",
@@ -50,41 +88,52 @@ export default function JobDetailPage() {
       const profile = await profileRes.json()
       const score = await scoreRes.json()
 
-      // Check if candidate already exists by email
-      let candidateId: string | null = null
-      const { data: existing } = await supabase
-        .from("candidates")
-        .select("id")
-        .eq("email", form.email)
-        .single()
+      let candidateId: string | null = candidate?.id || null
 
-      if (existing) {
-        candidateId = existing.id
-        // Update CV if re-applying
-        await supabase.from("candidates").update({
-          cv_text: cvText || "",
-          tags: profile.tags || [],
-          notes: profile.summary || "",
-          current_title: profile.current_title,
-        }).eq("id", existing.id)
+      if (candidate) {
+        // Already have a candidate record — update CV if they uploaded a new file
+        if (file && cvText) {
+          await supabase.from("candidates").update({
+            cv_text: cvText,
+            tags: profile.tags || candidate.tags || [],
+            notes: profile.summary || candidate.notes || "",
+            current_title: profile.current_title || candidate.current_title,
+          }).eq("id", candidate.id)
+        }
       } else {
-        const { data: newCand } = await supabase.from("candidates").insert([{
-          name: form.name || profile.name,
-          email: form.email,
-          phone: form.phone || profile.phone,
-          current_title: profile.current_title,
-          current_company: profile.current_company,
-          location: profile.location,
-          cv_text: cvText || "",
-          tags: profile.tags || [],
-          source: "direct",
-          notes: profile.summary || "",
-        }]).select().single()
-        if (newCand) candidateId = newCand.id
+        // No candidate record yet — create one
+        const { data: existingByEmail } = await supabase
+          .from("candidates")
+          .select("id")
+          .eq("email", form.email)
+          .single()
+
+        if (existingByEmail) {
+          candidateId = existingByEmail.id
+          await supabase.from("candidates").update({
+            cv_text: cvText || "",
+            tags: profile.tags || [],
+            notes: profile.summary || "",
+            current_title: profile.current_title,
+          }).eq("id", existingByEmail.id)
+        } else {
+          const { data: newCand } = await supabase.from("candidates").insert([{
+            name: form.name || profile.name,
+            email: form.email,
+            phone: form.phone || profile.phone,
+            current_title: profile.current_title,
+            current_company: profile.current_company,
+            location: profile.location,
+            cv_text: cvText || "",
+            tags: profile.tags || [],
+            source: "direct",
+            notes: profile.summary || "",
+          }]).select().single()
+          if (newCand) candidateId = newCand.id
+        }
       }
 
       if (candidateId) {
-        // Check if already applied to this mandate
         const { data: existingApp } = await supabase
           .from("applications")
           .select("id")
@@ -104,7 +153,7 @@ export default function JobDetailPage() {
           }])
         }
       }
-      // Send confirmation email to candidate + internal alert to GPS
+
       try {
         await fetch("/api/send-email", {
           method: "POST",
@@ -126,9 +175,9 @@ export default function JobDetailPage() {
             candidateName: form.name || profile.name || "Candidate",
             candidateEmail: form.email,
             candidatePhone: form.phone || profile.phone,
-            candidateTitle: profile.current_title,
-            candidateCompany: profile.current_company,
-            candidateLocation: profile.location || mandate.location,
+            candidateTitle: profile.current_title || candidate?.current_title,
+            candidateCompany: profile.current_company || candidate?.current_company,
+            candidateLocation: profile.location || candidate?.location || mandate.location,
             aiScore: score.score,
             roleTitle: mandate.title,
             clientName: mandate.client_name,
@@ -212,8 +261,6 @@ export default function JobDetailPage() {
               <h2 className="font-bold text-gray-900 text-lg mb-5">About this role</h2>
               <div className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{mandate.job_description}</div>
             </div>
-
-            {/* Trust indicators */}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { icon: Shield, text: "Fully confidential" },
@@ -231,10 +278,28 @@ export default function JobDetailPage() {
           {/* Right: Apply */}
           <div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-24">
-              {!applying ? (
+              {alreadyApplied ? (
+                <div className="text-center space-y-3 py-4">
+                  <CheckCircle size={32} className="mx-auto" style={{ color: "#028090" }} />
+                  <p className="font-bold text-gray-900">Already applied</p>
+                  <p className="text-sm text-gray-500">You've already applied to this role. GPS will be in touch if your profile is a match.</p>
+                  <Link href="/account" className="text-sm font-medium hover:underline block mt-2" style={{ color: "#028090" }}>
+                    View my applications →
+                  </Link>
+                </div>
+              ) : !applying ? (
                 <div className="space-y-4">
                   <h3 className="font-bold text-gray-900">Apply for this role</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">No account needed. Takes 2 minutes. Your CV stays confidential.</p>
+                  {candidate ? (
+                    <div className="rounded-xl p-3 text-sm" style={{ background: "#f0faf8", border: "1px solid #A8D5D1" }}>
+                      <p className="font-semibold text-gray-800 text-xs mb-0.5">Applying as</p>
+                      <p className="text-gray-700 font-medium">{candidate.name}</p>
+                      <p className="text-gray-500 text-xs">{candidate.email}</p>
+                      {candidate.cv_text && <p className="text-xs mt-1" style={{ color: "#028090" }}>✓ CV on file</p>}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 leading-relaxed">No account needed. Takes 2 minutes. Your CV stays confidential.</p>
+                  )}
                   <button onClick={() => setApplying(true)}
                     className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all"
                     style={{ background: "#028090" }}>
@@ -250,24 +315,57 @@ export default function JobDetailPage() {
               ) : (
                 <form onSubmit={submit} className="space-y-4">
                   <h3 className="font-bold text-gray-900">Your application</h3>
-                  {[
-                    { label: "Full Name *", key: "name", type: "text", placeholder: "Your full name", required: true },
-                    { label: "Email *", key: "email", type: "email", placeholder: "your@email.com", required: true },
-                    { label: "Phone", key: "phone", type: "tel", placeholder: "+20 ...", required: false },
-                  ].map(({ label, key, type, placeholder, required }) => (
-                    <div key={key}>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
-                      <input required={required} type={type}
-                        value={form[key as keyof typeof form]}
-                        onChange={e => setForm({...form, [key]: e.target.value})}
-                        placeholder={placeholder}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                        style={{ "--tw-ring-color": "#028090" } as any} />
-                    </div>
-                  ))}
+
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Full Name *</label>
+                    <input required type="text"
+                      value={form.name}
+                      onChange={e => setForm({...form, name: e.target.value})}
+                      placeholder="Your full name"
+                      readOnly={!!candidate?.name}
+                      className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent ${candidate?.name ? "bg-gray-50 text-gray-500" : ""}`}
+                      style={{ "--tw-ring-color": "#028090" } as any} />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Email *</label>
+                    <input required type="email"
+                      value={form.email}
+                      onChange={e => setForm({...form, email: e.target.value})}
+                      placeholder="your@email.com"
+                      readOnly={!!candidate?.email}
+                      className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent ${candidate?.email ? "bg-gray-50 text-gray-500" : ""}`}
+                      style={{ "--tw-ring-color": "#028090" } as any} />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone</label>
+                    <input type="tel"
+                      value={form.phone}
+                      onChange={e => setForm({...form, phone: e.target.value})}
+                      placeholder="+20 100 123 4567"
+                      readOnly={!!candidate?.phone}
+                      className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent ${candidate?.phone ? "bg-gray-50 text-gray-500" : ""}`}
+                      style={{ "--tw-ring-color": "#028090" } as any} />
+                  </div>
+
+                  {/* CV — show on-file state or upload */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">CV / Resume *</label>
-                    {file ? (
+                    {candidate?.cv_text && !file ? (
+                      <div className="rounded-xl p-3 border" style={{ background: "#f0faf8", borderColor: "#A8D5D1" }}>
+                        <p className="text-xs font-semibold" style={{ color: "#028090" }}>✓ CV on file</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Your existing CV will be used for this application.</p>
+                        <label className="text-xs underline cursor-pointer mt-1 block" style={{ color: "#028090" }}>
+                          Upload a different CV instead
+                          <input type="file" accept=".pdf,.doc,.docx" className="hidden"
+                            onChange={e => setFile(e.target.files?.[0] || null)} />
+                        </label>
+                      </div>
+                    ) : file ? (
                       <div className="flex items-center gap-2 p-3 rounded-xl border" style={{ background: "#f0faf8", borderColor: "#A8D5D1" }}>
                         <div className="flex-1 text-xs text-gray-700 truncate">{file.name}</div>
                         <button type="button" onClick={() => setFile(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
@@ -282,7 +380,8 @@ export default function JobDetailPage() {
                       </label>
                     )}
                   </div>
-                  <button type="submit" disabled={!file || submitting}
+
+                  <button type="submit" disabled={(!file && !candidate?.cv_text) || submitting}
                     className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     style={{ background: "#028090" }}>
                     {submitting ? <><Loader2 size={14} className="animate-spin" /> Submitting...</> : "Submit application"}
