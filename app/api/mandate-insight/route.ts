@@ -156,11 +156,62 @@ export async function POST(req: NextRequest) {
 
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
-    // ── PHASE 1: Skip for small pools — send all candidates to deep read ────────
-    // Phase 1 pre-filtering only makes sense for 500+ candidate pools
-    // For pools under 100, go straight to deep read on everyone
-    const phase1Sorted = available.map((c: any) => ({ id: c.id, score: 50, tier: "possible", reason: "" }))
-    const top20ids = available.map((c: any) => c.id)
+    // ── PHASE 1: Parallel batch scoring (fast pre-filter) ────────────────────
+    const BATCH_SIZE = 26
+    const phase1Batches: any[][] = []
+    for (let i = 0; i < available.length; i += BATCH_SIZE) {
+      phase1Batches.push(available.slice(i, i + BATCH_SIZE))
+    }
+
+    async function scorePhase1Batch(batch: any[]): Promise<any[]> {
+      const summaries = batch.map((c: any) => ({
+        id: c.id,
+        title: c.current_title || "Unknown",
+        company: c.current_company || "Unknown",
+        cv: (c.cv_text || c.notes || "").replace(/[^\x00-\x7F]/g, " ").slice(0, 1500),
+      }))
+
+      const prompt = `You are a recruitment consultant. Quickly score these candidates for the role below.
+
+ROLE: ${mandate_title}
+WHAT THE ROLE NEEDS: ${jdParsed.candidate_description}
+
+CANDIDATES (read their CV content):
+${JSON.stringify(summaries)}
+
+Score each 0-100:
+- 70-100: Strong functional match, right seniority level
+- 40-69: Partial match or adjacent background  
+- 15-39: Some relevance but significant gaps
+- 0-14: Completely unrelated function
+
+CRITICAL RULES:
+- Read the CV content carefully, not just the job title
+- A VP Engineering scores high for a CTO role
+- A CFO at any sector scores high for a CFO role  
+- Only score 0-14 if the candidate's entire function is unrelated (e.g. a sales person for a tech role)
+- When in doubt, score higher not lower
+
+Return ONLY a JSON array, no markdown:
+[{"id":"<id>","score":<number>,"reason":"<10 words max>"}]`
+
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+        })
+        const data = await res.json()
+        const text = data.content?.[0]?.text || "[]"
+        return JSON.parse(text.replace(/```json|```/g, "").trim())
+      } catch { return [] }
+    }
+
+    // Run ALL batches in parallel — much faster than sequential
+    const phase1Results = await Promise.all(phase1Batches.map(scorePhase1Batch))
+    const phase1Scores = phase1Results.flat()
+    const phase1Sorted = phase1Scores.filter((m: any) => m.score >= 15).sort((a: any, b: any) => b.score - a.score)
+    const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
     const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
