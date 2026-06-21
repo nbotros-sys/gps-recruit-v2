@@ -58,13 +58,12 @@ const INITIAL: FormData = {
   achievements: "",
 }
 
-// ── DENSITY CALCULATOR ────────────────────────────────────────────────────────
-// ── TYPESETTING ENGINE ───────────────────────────────────────────────────────
-// Smooth interpolation between sparse (t=0) and dense (t=1) extremes.
-// Candidate never sees this — it runs silently on every form change.
+// ── DENSITY ENGINE ────────────────────────────────────────────────────────────
+// All sizing is in em units relative to a base font-size set on the container.
+// The container base font-size scales with the preview box width,
+// so the entire CV scales proportionally at any size — browser or Doppio PDF.
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t }
-function lerpR(a: number, b: number, t: number) { return Math.round(lerp(a, b, t)) }
-function lerpF(a: number, b: number, t: number) { return parseFloat(lerp(a, b, t).toFixed(2)) }
+function lerpF(a: number, b: number, t: number) { return parseFloat(lerp(a, b, t).toFixed(3)) }
 
 function getContentDensity(form: FormData) {
   const expCount    = form.experience.filter(e => e.title || e.company).length
@@ -76,7 +75,6 @@ function getContentDensity(form: FormData) {
   const hasHobbies  = !!form.hobbies.trim()
   const hasAchievements = !!form.achievements?.trim()
 
-  // Density score 0–100
   let score = 0
   score += Math.min(expCount * 20, 40)
   score += Math.min(bulletCount * 4, 20)
@@ -87,47 +85,41 @@ function getContentDensity(form: FormData) {
   score += hasHobbies ? 4 : 0
   score += hasAchievements ? 3 : 0
   score = Math.min(score, 100)
-
-  // t = 0 at sparse (score=0), t = 1 at dense (score=100)
   const t = score / 100
 
   return {
-    score,
-    t,
+    score, t,
     isSparse: score < 45,
     isLight:  score < 65,
 
-    // ── Typography — all smooth ──────────────────────────────────────────
-    // Body text: bigger when sparse so it fills space, tighter when dense
-    fontSize:       lerpF(9.5,  7.5,  t),   // px — body copy
-    bulletSize:     lerpF(9.0,  7.5,  t),   // px — bullet points
-    secLabelSize:   lerpF(8.5,  7.0,  t),   // px — section headings
-    lineHeight:     lerpF(1.95, 1.50, t),   // ratio — line spacing
-    letterSpacing:  lerpF(0.04, 0.1,  t),   // em — section label tracking
+    // All in EM — relative to container base font size
+    // Base font size set on container: ~9px for A4 preview, scales via CSS
+    bodyEm:       lerpF(1.05, 0.85, t),   // body copy
+    bulletEm:     lerpF(1.00, 0.82, t),   // bullet points
+    secLabelEm:   lerpF(0.78, 0.68, t),   // section headings
+    lineHeight:   lerpF(1.90, 1.50, t),
+    letterSp:     lerpF(0.04, 0.10, t),   // em — section label tracking
 
-    // ── Sizing ───────────────────────────────────────────────────────────
-    nameSize:       lerpF(17,   13,   t),   // px — name in header
-    titleSize:      lerpF(10,   8,    t),   // px — job title in header
-    photoSize:      lerpR(68,   44,   t),   // px — avatar circle diameter
+    // Sizing in em
+    nameEm:       lerpF(2.00, 1.55, t),   // name
+    titleEm:      lerpF(1.10, 0.90, t),   // job title
+    photoEm:      lerpF(7.50, 5.00, t),   // avatar
 
-    // ── Spacing ──────────────────────────────────────────────────────────
-    sectionGap:     lerpR(22,   8,    t),   // px — gap above each section
-    headerPadV:     lerpR(26,   14,   t),   // px — header top/bottom padding
-    headerPadH:     lerpR(22,   18,   t),   // px — header left/right padding
-    bodyPad:        lerpR(20,   12,   t),   // px — main content padding
+    // Spacing in em
+    sectionGapEm: lerpF(2.00, 0.90, t),
+    headerPadVEm: lerpF(2.60, 1.50, t),
+    headerPadHEm: lerpF(2.20, 1.80, t),
+    bodyPadEm:    lerpF(1.80, 1.20, t),
+    sidebarWidthEm: lerpF(15.0, 12.0, t),
 
-    // ── Layout ───────────────────────────────────────────────────────────
-    sidebarWidth:   lerpR(155,  118,  t),   // px — sidebar column width
-
-    // ── Content visibility ───────────────────────────────────────────────
-    showHobbies:       hasHobbies || score < 58,
-    showAchievements:  hasAchievements || score < 42,
-
-    // ── AI generation hints ───────────────────────────────────────────────
-    summaryTargetWords: lerpR(85, 42, t),
+    showHobbies:      hasHobbies || score < 58,
+    showAchievements: hasAchievements || score < 42,
+    summaryTargetWords: Math.round(lerp(85, 42, t)),
     minBulletsPerRole:  score < 45 ? 4 : 3,
   }
 }
+
+type D = ReturnType<typeof getContentDensity>
 
 // ── SHARED HELPERS ────────────────────────────────────────────────────────────
 function fmtDate(ym: string) {
@@ -136,7 +128,6 @@ function fmtDate(ym: string) {
   const months = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
   return `${months[parseInt(m)] || ""} ${y}`
 }
-
 function initials(name: string) {
   const p = name.trim().split(" ")
   return ((p[0]?.[0] || "") + (p[1]?.[0] || "")).toUpperCase() || "?"
@@ -150,7 +141,7 @@ const PH = {
   phone: "+20 100 123 4567",
   location: "Cairo, Egypt",
   linkedin: "linkedin.com/in/ahmed",
-  summary: "Experienced finance professional with 8+ years across banking and FMCG sectors in Egypt and the Gulf. Proven track record in financial planning, team leadership and stakeholder management across Cairo and the Gulf region. Consistently delivers operational improvements and measurable cost savings.",
+  summary: "Experienced finance professional with 8+ years across banking and FMCG sectors in Egypt and the Gulf. Proven track record in financial planning, team leadership and stakeholder management. Consistently delivers operational improvements and measurable cost savings.",
   experience: [
     { company:"ABC Group", title:"Finance Manager", start:"2020-01", end:"", current:true, bullets:["Led financial reporting for EGP 50M portfolio across 3 business units, improving accuracy by 40%","Managed team of 6 accountants, reducing month-end close from 7 to 3 days","Built Power BI dashboards eliminating 12 hours of manual reporting per week"] },
     { company:"XYZ Bank", title:"Senior Accountant", start:"2017-03", end:"2019-12", current:false, bullets:["Prepared monthly management accounts for EGP 120M portfolio","Coordinated external audit with zero material misstatements for 3 consecutive years"] },
@@ -162,355 +153,425 @@ const PH = {
   achievements: "CMA certified · Top performer award Q3 2022 · Implemented first automated reporting system",
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 1 — EXECUTIVE DARK (dark left sidebar)
-// ══════════════════════════════════════════════════════════════════════════════
-function TplExecutive({ form, density }: { form: FormData; density: ReturnType<typeof getContentDensity> }) {
+// ════════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 1 — PRESTIGE
+// Dark slate sidebar, cream main, Playfair-style name, clean serif body.
+// Audience: finance, C-suite, legal, consulting. Feel: boardroom-ready.
+// ════════════════════════════════════════════════════════════════════════════════
+function TplPrestige({ form, d }: { form: FormData; d: D }) {
   const f = form
-  const name = f.personal.name || PH.name
-  const title = f.personal.title || PH.title
-  const email = f.personal.email || PH.email
-  const phone = f.personal.phone || PH.phone
-  const location = f.personal.location || PH.location
-  const linkedin = f.personal.linkedin || PH.linkedin
-  const summary = f.summary || PH.summary
-  const exps = f.experience.some(e => e.title) ? f.experience : PH.experience
-  const edus = f.education.some(e => e.institution) ? f.education : PH.education
-  const skills = f.skills.length > 0 ? f.skills : PH.skills
-  const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
-  const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
-  const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
-          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
-          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
+  const name        = f.personal.name || PH.name
+  const title       = f.personal.title || PH.title
+  const email       = f.personal.email || PH.email
+  const phone       = f.personal.phone || PH.phone
+  const location    = f.personal.location || PH.location
+  const linkedin    = f.personal.linkedin || PH.linkedin
+  const summary     = f.summary || PH.summary
+  const exps        = f.experience.some(e => e.title) ? f.experience : PH.experience
+  const edus        = f.education.some(e => e.institution) ? f.education : PH.education
+  const skills      = f.skills.length > 0 ? f.skills : PH.skills
+  const langs       = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
+  const hobbies     = f.hobbies || (d.showHobbies ? PH.hobbies : "")
+  const achievements = f.achievements || (d.showAchievements ? PH.achievements : "")
 
-  const secLabel = (label: string) => (
-    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"rgba(2,128,144,0.9)", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 5px`, paddingBottom:"4px", borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
+  // Palette
+  const SLATE = "#1C2B35"       // sidebar bg
+  const GOLD  = "#B8966E"       // accent — warm gold
+  const CREAM = "#FAFAF8"       // main bg
+  const INK   = "#1A1A1A"       // body text
+
+  const sideSecLabel = (label: string) => (
+    <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:GOLD, letterSpacing:`${d.letterSp + 0.04}em`, textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm}em`, marginBottom:"0.5em", paddingBottom:"0.3em", borderBottom:`1px solid rgba(184,150,110,0.3)` }}>
       {label}
     </div>
   )
-  const mainSec = (label: string) => (
-    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"1px solid rgba(2,128,144,0.2)" }}>
-      {label}
+
+  const mainSecLabel = (label: string) => (
+    <div style={{ display:"flex", alignItems:"center", gap:"0.6em", marginTop:`${d.sectionGapEm}em`, marginBottom:"0.6em" }}>
+      <div style={{ width:"0.25em", height:"1.2em", background:GOLD, borderRadius:"2px", flexShrink:0 }} />
+      <span style={{ fontFamily:"Georgia,serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:SLATE, letterSpacing:`${d.letterSp}em`, textTransform:"uppercase" as const }}>
+        {label}
+      </span>
+      <div style={{ flex:1, height:"0.5px", background:"#E0DDD8" }} />
     </div>
   )
 
   return (
-    <div style={{ display:"flex", height:"100%", fontFamily:"Georgia, serif" }}>
-      {/* Dark sidebar — width scales with density */}
-      <div style={{ width:`${sw}px`, flexShrink:0, background:"#0a1f24", padding:`${hpv}px ${Math.round(sw*0.09)}px`, display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
+    <div style={{ display:"flex", height:"100%", fontFamily:"Georgia,serif" }}>
+      {/* ── Sidebar ── */}
+      <div style={{ width:`${d.sidebarWidthEm}em`, flexShrink:0, background:SLATE, padding:`${d.headerPadVEm}em ${d.headerPadHEm * 0.8}em`, display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
+
+        {/* Photo */}
         {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(2,128,144,0.5)", marginBottom:`${Math.round(ph*0.18)}px` }} />
+          <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm}em`, height:`${d.photoEm}em`, borderRadius:"50%", objectFit:"cover", border:`0.15em solid ${GOLD}`, marginBottom:`${d.sectionGapEm * 0.6}em`, flexShrink:0 }} />
         ) : (
-          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid rgba(2,128,144,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:`${Math.round(ph*0.18)}px`, fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>
+          <div style={{ width:`${d.photoEm}em`, height:`${d.photoEm}em`, borderRadius:"50%", background:"rgba(184,150,110,0.18)", border:`0.12em solid rgba(184,150,110,0.45)`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:`${d.sectionGapEm * 0.6}em`, flexShrink:0, color:"rgba(255,255,255,0.45)", fontSize:`${d.photoEm * 0.3}em`, fontWeight:700 }}>
             {initials(name)}
           </div>
         )}
-        <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"3px" }}>{name}</div>
-        <div style={{ fontSize:`${ts}px`, color:"rgba(168,213,209,0.8)", letterSpacing:".06em", fontFamily:"sans-serif", marginBottom:`${sg}px` }}>{title}</div>
-        <div style={{ width:"24px", height:"2px", background:"#028090", marginBottom:`${sg}px` }} />
-        {secLabel("Contact")}
-        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.55)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:"2px" }}>
-          {email && <div>{email}</div>}
-          {phone && <div>{phone}</div>}
-          {location && <div>{location}</div>}
-          {linkedin && <div style={{ color:"rgba(2,128,144,0.8)" }}>{linkedin.replace("https://","")}</div>}
+
+        {/* Name + title */}
+        <div style={{ fontSize:`${d.nameEm}em`, fontWeight:700, color:"#FFFFFF", lineHeight:1.15, marginBottom:"0.25em" }}>{name}</div>
+        <div style={{ fontSize:`${d.titleEm * 0.88}em`, color:GOLD, letterSpacing:"0.08em", fontFamily:"Arial,sans-serif", fontWeight:400, marginBottom:`${d.sectionGapEm * 0.5}em`, textTransform:"uppercase" as const }}>{title}</div>
+        <div style={{ width:"1.6em", height:"0.12em", background:GOLD, marginBottom:`${d.sectionGapEm * 0.5}em` }} />
+
+        {/* Contact */}
+        {sideSecLabel("Contact")}
+        <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"rgba(255,255,255,0.52)", lineHeight:d.lineHeight * 0.95 }}>
+          {email    && <div style={{ marginBottom:"0.2em" }}>{email}</div>}
+          {phone    && <div style={{ marginBottom:"0.2em" }}>{phone}</div>}
+          {location && <div style={{ marginBottom:"0.2em" }}>{location}</div>}
+          {linkedin && <div style={{ color:GOLD, marginBottom:"0.2em" }}>{linkedin.replace("https://","")}</div>}
         </div>
-        {secLabel("Skills")}
-        <div style={{ display:"flex", flexDirection:"column" as const, gap:"3px", marginBottom:"4px" }}>
-          {skills.slice(0,8).map((s,i) => (
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:"5px" }}>
-              <div style={{ width:"3px", height:"3px", borderRadius:"50%", background:"#028090", flexShrink:0 }} />
-              <span style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.6)", fontFamily:"sans-serif" }}>{s}</span>
+
+        {/* Skills */}
+        {sideSecLabel("Skills")}
+        <div style={{ display:"flex", flexDirection:"column" as const, gap:"0.32em" }}>
+          {skills.slice(0, 9).map((s, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:"0.5em" }}>
+              <div style={{ width:"0.28em", height:"0.28em", background:GOLD, borderRadius:"50%", flexShrink:0 }} />
+              <span style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"rgba(255,255,255,0.58)" }}>{s}</span>
             </div>
           ))}
         </div>
-        {secLabel("Languages")}
-        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.6)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:"4px" }}>
-          {langs.filter(l=>l.lang).map((l,i)=>(
-            <div key={i}><span style={{ fontWeight:600, color:"rgba(255,255,255,0.8)" }}>{l.lang}</span> <span style={{ color:"rgba(255,255,255,0.4)" }}>· {l.level}</span></div>
-          ))}
-        </div>
-        {edus.filter(e=>e.institution).length > 0 && (<>
-          {secLabel("Education")}
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"6px" }}>
-              <div style={{ fontSize:"7.5px", fontWeight:700, color:"rgba(255,255,255,0.8)", fontFamily:"sans-serif" }}>{e.degree}</div>
-              {e.field && <div style={{ fontSize:"7px", color:"rgba(255,255,255,0.45)", fontFamily:"sans-serif" }}>{e.field}</div>}
-              <div style={{ fontSize:"7px", color:"rgba(2,128,144,0.7)", fontFamily:"sans-serif" }}>{e.institution}</div>
-              {e.endYear && <div style={{ fontSize:"6.5px", color:"rgba(255,255,255,0.3)", fontFamily:"sans-serif" }}>{e.endYear}</div>}
-            </div>
-          ))}
-        </>)}
+
+        {/* Languages */}
+        {sideSecLabel("Languages")}
+        {langs.filter(l => l.lang).map((l, i) => (
+          <div key={i} style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"rgba(255,255,255,0.58)", marginBottom:"0.28em", lineHeight:1.4 }}>
+            <span style={{ color:"rgba(255,255,255,0.8)", fontWeight:600 }}>{l.lang}</span>
+            <span style={{ color:"rgba(255,255,255,0.35)" }}> · {l.level}</span>
+          </div>
+        ))}
+
+        {/* Hobbies */}
         {hobbies && (<>
-          {secLabel("Interests")}
-          <div style={{ fontSize:"7px", color:"rgba(255,255,255,0.45)", lineHeight:1.7, fontFamily:"sans-serif" }}>
-            {hobbies.split(",").map(h=>h.trim()).map((h,i)=><div key={i}>{h}</div>)}
+          {sideSecLabel("Interests")}
+          <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"rgba(255,255,255,0.4)", lineHeight:d.lineHeight * 0.9 }}>
+            {hobbies}
           </div>
         </>)}
       </div>
-      {/* Main content */}
-      <div style={{ flex:1, padding:`${hpv}px ${bp}px`, overflow:"hidden" }}>
-        {mainSec("Professional Summary")}
-        <p style={{ fontSize:`${fs}px`, color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
-        {mainSec("Work Experience")}
-        {exps.filter(e=>e.title||e.company).map((e,i)=>(
-          <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
-              <div>
-                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600 }}>{e.company}</div>
-              </div>
-              {(e.start||e.end) && (
-                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
-                  {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
+
+      {/* ── Main ── */}
+      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm + 0.4}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const }}>
+
+        {/* Summary */}
+        {mainSecLabel("Professional Profile")}
+        <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#3A3A3A", lineHeight:d.lineHeight, marginBottom:0 }}>{summary}</p>
+
+        {/* Experience */}
+        {mainSecLabel("Professional Experience")}
+        {exps.filter(e => e.title || e.company).map((e, i) => (
+          <div key={i} style={{ marginBottom:`${d.sectionGapEm * 0.75}em` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:"0.18em" }}>
+              <div style={{ fontSize:`${d.bodyEm * 1.08}em`, fontWeight:700, color:INK, fontFamily:"Georgia,serif" }}>{e.title}</div>
+              {(e.start || e.end || e.current) && (
+                <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm * 0.85}em`, color:"#9B8B7A", flexShrink:0, marginLeft:"0.8em", letterSpacing:"0.02em" }}>
+                  {fmtDate(e.start)}{(e.start || e.end || e.current) ? ` – ${e.current ? "Present" : fmtDate(e.end)}` : ""}
                 </div>
               )}
             </div>
-            {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-              <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.92}em`, color:GOLD, fontWeight:600, marginBottom:"0.35em" }}>{e.company}</div>
+            {e.bullets.filter(b => b.trim()).map((b, j) => (
+              <div key={j} style={{ display:"flex", gap:"0.55em", marginBottom:"0.18em" }}>
+                <span style={{ color:GOLD, fontSize:`${d.bulletEm * 0.9}em`, flexShrink:0, marginTop:"0.25em", lineHeight:1 }}>—</span>
+                <p style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4A4A4A", lineHeight:d.lineHeight, margin:0 }}>{b}</p>
               </div>
             ))}
           </div>
         ))}
+
+        {/* Achievements */}
         {achievements && (
-          <div style={{ background:"#f0fdf4", borderRadius:"6px", padding:"10px 12px", borderLeft:"3px solid #028090", marginTop:`${sg}px` }}>
-            <div style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24", marginBottom:"4px" }}>Key achievements</div>
-            <div style={{ fontSize:"7.5px", color:"#374151", lineHeight:1.75 }}>
-              {achievements.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-                <div key={i} style={{ display:"flex", gap:"5px", marginBottom:"2px" }}>
-                  <span style={{ color:"#028090", flexShrink:0 }}>✓</span>{a}
-                </div>
-              ))}
-            </div>
+          <div style={{ background:"rgba(184,150,110,0.07)", border:`0.5px solid rgba(184,150,110,0.3)`, borderRadius:"0.4em", padding:"0.7em 0.9em", marginBottom:`${d.sectionGapEm * 0.5}em` }}>
+            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.secLabelEm * 0.85}em`, fontWeight:700, color:GOLD, letterSpacing:"0.06em", textTransform:"uppercase" as const, marginBottom:"0.4em" }}>Key Achievements</div>
+            {achievements.split("·").map(a => a.trim()).filter(Boolean).map((a, i) => (
+              <div key={i} style={{ display:"flex", gap:"0.5em", marginBottom:"0.2em" }}>
+                <span style={{ color:GOLD, flexShrink:0, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm * 0.85}em` }}>✓</span>
+                <span style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm * 0.9}em`, color:"#4A4A4A", lineHeight:d.lineHeight * 0.9 }}>{a}</span>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* Education */}
+        {mainSecLabel("Education")}
+        {edus.filter(e => e.institution).map((e, i) => (
+          <div key={i} style={{ marginBottom:"0.5em" }}>
+            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm * 1.0}em`, fontWeight:700, color:INK }}>{e.degree}{e.field ? ` — ${e.field}` : ""}</div>
+            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"#6B6B6B" }}>{e.institution}{e.endYear ? ` · ${e.endYear}` : ""}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 2 — MODERN STRIPE (full-width header, skill pills, single col)
-// ══════════════════════════════════════════════════════════════════════════════
-function TplModern({ form, density }: { form: FormData; density: ReturnType<typeof getContentDensity> }) {
+// ════════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 2 — ARCHITECT
+// White. Strong typographic hierarchy. No sidebar. Left rule accent.
+// Name in very large weight-900 sans. Audience: tech, strategy, operations, marketing.
+// Feel: modern European — like a McKinsey deck on one page.
+// ════════════════════════════════════════════════════════════════════════════════
+function TplArchitect({ form, d }: { form: FormData; d: D }) {
   const f = form
-  const name = f.personal.name || PH.name
-  const title = f.personal.title || PH.title
-  const email = f.personal.email || PH.email
-  const phone = f.personal.phone || PH.phone
-  const location = f.personal.location || PH.location
-  const summary = f.summary || PH.summary
-  const exps = f.experience.some(e => e.title) ? f.experience : PH.experience
-  const edus = f.education.some(e => e.institution) ? f.education : PH.education
-  const skills = f.skills.length > 0 ? f.skills : PH.skills
-  const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
-  const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
-  const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
-          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
-          bodyPad:bp, letterSpacing:lsp } = density
+  const name        = f.personal.name || PH.name
+  const title       = f.personal.title || PH.title
+  const email       = f.personal.email || PH.email
+  const phone       = f.personal.phone || PH.phone
+  const location    = f.personal.location || PH.location
+  const linkedin    = f.personal.linkedin || PH.linkedin
+  const summary     = f.summary || PH.summary
+  const exps        = f.experience.some(e => e.title) ? f.experience : PH.experience
+  const edus        = f.education.some(e => e.institution) ? f.education : PH.education
+  const skills      = f.skills.length > 0 ? f.skills : PH.skills
+  const langs       = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
+  const hobbies     = f.hobbies || (d.showHobbies ? PH.hobbies : "")
+  const achievements = f.achievements || (d.showAchievements ? PH.achievements : "")
 
-  const secLine = (label: string) => (
-    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 6px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
+  const TEAL  = "#026B77"    // single brand accent — one shade darker than #028090 for premium
+  const INK   = "#111827"
+  const MIST  = "#F8F9FA"    // section backgrounds
+
+  const sec = (label: string) => (
+    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:800, color:TEAL, letterSpacing:"0.12em", textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm * 0.9}em`, marginBottom:"0.55em", display:"flex", alignItems:"center", gap:"0.7em" }}>
+      {label}
+      <div style={{ flex:1, height:"1.5px", background:"#E8EAEC" }} />
+    </div>
+  )
+
+  return (
+    <div style={{ background:"#FFFFFF", height:"100%", fontFamily:"Georgia,serif" }}>
+      {/* ── Header ── */}
+      <div style={{ padding:`${d.headerPadVEm * 0.85}em ${d.headerPadHEm * 1.1}em`, borderBottom:`3px solid ${TEAL}`, display:"flex", alignItems:"flex-start", gap:"1.2em" }}>
+        {f.personal.photo && (
+          <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm * 0.88}em`, height:`${d.photoEm * 0.88}em`, objectFit:"cover", borderRadius:"0.3em", flexShrink:0, border:"0.5px solid #E0E0E0" }} />
+        )}
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontWeight:900, fontSize:`${d.nameEm * 1.05}em`, color:INK, letterSpacing:"-0.025em", lineHeight:1.05, marginBottom:"0.22em" }}>{name.toUpperCase()}</div>
+          <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.titleEm * 0.92}em`, color:TEAL, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" as const, marginBottom:"0.5em" }}>{title}</div>
+          <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"1.2em" }}>
+            {[email, phone, location, linkedin && linkedin.replace("https://","")].filter(Boolean).map((c, i) => (
+              <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"#6B7280" }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body — 2 column ── */}
+      <div style={{ display:"grid", gridTemplateColumns:`1fr ${d.sidebarWidthEm * 0.78}em`, height:`calc(100% - ${d.headerPadVEm * 1.7 + 3.5}em)` }}>
+
+        {/* Left — main content */}
+        <div style={{ padding:`${d.bodyPadEm * 0.7}em ${d.bodyPadEm * 0.9}em ${d.bodyPadEm * 0.7}em ${d.headerPadHEm * 1.1}em`, overflow:"hidden" }}>
+          {sec("Profile")}
+          <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:`0 0 0.3em` }}>{summary}</p>
+
+          {sec("Experience")}
+          {exps.filter(e => e.title || e.company).map((e, i) => (
+            <div key={i} style={{ marginBottom:`${d.sectionGapEm * 0.65}em`, paddingLeft:"0.7em", borderLeft:`0.18em solid ${i === 0 ? TEAL : "#D1D5DB"}` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 1.05}em`, fontWeight:700, color:INK }}>{e.title}</span>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm * 0.82}em`, color:"#9CA3AF", flexShrink:0, marginLeft:"0.6em" }}>
+                  {fmtDate(e.start)}{(e.start || e.end || e.current) ? ` – ${e.current ? "Present" : fmtDate(e.end)}` : ""}
+                </span>
+              </div>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:TEAL, fontWeight:600, marginBottom:"0.3em" }}>{e.company}</div>
+              {e.bullets.filter(b => b.trim()).map((b, j) => (
+                <div key={j} style={{ display:"flex", gap:"0.45em", marginBottom:"0.15em" }}>
+                  <span style={{ color:TEAL, fontWeight:700, fontSize:`${d.bulletEm * 0.85}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1, fontFamily:"Arial,sans-serif" }}>›</span>
+                  <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0 }}>{b}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {achievements && (
+            <div style={{ background:MIST, borderRadius:"0.35em", padding:"0.65em 0.85em", borderLeft:`0.2em solid ${TEAL}`, marginTop:`${d.sectionGapEm * 0.5}em` }}>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm * 0.82}em`, fontWeight:800, color:TEAL, letterSpacing:"0.1em", textTransform:"uppercase" as const, marginBottom:"0.35em" }}>Key Achievements</div>
+              {achievements.split("·").map(a => a.trim()).filter(Boolean).map((a, i) => (
+                <div key={i} style={{ display:"flex", gap:"0.45em", marginBottom:"0.15em" }}>
+                  <span style={{ color:TEAL, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm * 0.85}em`, flexShrink:0 }}>✓</span>
+                  <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm * 0.9}em`, color:"#374151", lineHeight:d.lineHeight * 0.88 }}>{a}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right sidebar */}
+        <div style={{ padding:`${d.bodyPadEm * 0.7}em ${d.bodyPadEm * 0.75}em`, borderLeft:"1px solid #E8EAEC", background:MIST, overflow:"hidden" }}>
+          {sec("Skills")}
+          <div style={{ display:"flex", flexDirection:"column" as const, gap:"0.28em" }}>
+            {skills.map((s, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:"0.4em" }}>
+                <div style={{ width:"0.22em", height:"0.22em", background:TEAL, borderRadius:"50%", flexShrink:0 }} />
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"#374151" }}>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          {sec("Education")}
+          {edus.filter(e => e.institution).map((e, i) => (
+            <div key={i} style={{ marginBottom:"0.55em" }}>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm * 0.96}em`, fontWeight:700, color:INK, lineHeight:1.3 }}>{e.degree}{e.field ? ` — ${e.field}` : ""}</div>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"#6B7280" }}>{e.institution}</div>
+              {e.endYear && <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.78}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
+            </div>
+          ))}
+
+          {sec("Languages")}
+          {langs.filter(l => l.lang).map((l, i) => (
+            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"#374151", marginBottom:"0.25em", lineHeight:1.5 }}>
+              <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
+              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
+            </div>
+          ))}
+
+          {hobbies && (<>
+            {sec("Interests")}
+            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"#6B7280", lineHeight:d.lineHeight * 0.9 }}>
+              {hobbies.split(",").map(h => h.trim()).map((h, i, arr) => (
+                <span key={i}>{h}{i < arr.length - 1 ? " · " : ""}</span>
+              ))}
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 3 — MERIDIAN
+// Full-bleed top colour band, name reversed out in white, rest all white.
+// Two-column body. Clean, warm, contemporary. 
+// Audience: HR, sales, marketing, general management. Feel: Kickresume-level polish.
+// ════════════════════════════════════════════════════════════════════════════════
+function TplMeridian({ form, d }: { form: FormData; d: D }) {
+  const f = form
+  const name        = f.personal.name || PH.name
+  const title       = f.personal.title || PH.title
+  const email       = f.personal.email || PH.email
+  const phone       = f.personal.phone || PH.phone
+  const location    = f.personal.location || PH.location
+  const linkedin    = f.personal.linkedin || PH.linkedin
+  const summary     = f.summary || PH.summary
+  const exps        = f.experience.some(e => e.title) ? f.experience : PH.experience
+  const edus        = f.education.some(e => e.institution) ? f.education : PH.education
+  const skills      = f.skills.length > 0 ? f.skills : PH.skills
+  const langs       = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
+  const hobbies     = f.hobbies || (d.showHobbies ? PH.hobbies : "")
+  const achievements = f.achievements || (d.showAchievements ? PH.achievements : "")
+
+  const NAVY  = "#0D2B45"
+  const AQUA  = "#028090"
+  const WHITE = "#FFFFFF"
+  const INK   = "#1A1A2E"
+
+  const sec = (label: string, color = NAVY) => (
+    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color, letterSpacing:"0.1em", textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm * 0.85}em`, marginBottom:"0.5em", paddingBottom:"0.3em", borderBottom:`1.5px solid ${color === NAVY ? "#E2E8F0" : "rgba(255,255,255,0.2)"}` }}>
       {label}
     </div>
   )
 
   return (
-    <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ background:"#028090", padding:`${hpv}px ${hph}px 0` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"14px", marginBottom:`${sg}px` }}>
+    <div style={{ background:WHITE, height:"100%", fontFamily:"Georgia,serif" }}>
+
+      {/* ── Colour band header ── */}
+      <div style={{ background:`linear-gradient(135deg, ${NAVY} 0%, #164B6E 100%)`, padding:`${d.headerPadVEm * 0.9}em ${d.headerPadHEm * 1.1}em` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"1.2em" }}>
           {f.personal.photo ? (
-            <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(255,255,255,0.3)", flexShrink:0 }} />
+            <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm * 0.9}em`, height:`${d.photoEm * 0.9}em`, borderRadius:"50%", objectFit:"cover", border:`0.18em solid ${AQUA}`, flexShrink:0 }} />
           ) : (
-            <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(255,255,255,0.15)", border:"1.5px solid rgba(255,255,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.32)}px`, fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
+            <div style={{ width:`${d.photoEm * 0.9}em`, height:`${d.photoEm * 0.9}em`, borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:`0.12em solid ${AQUA}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${d.photoEm * 0.27}em`, fontWeight:700, color:"rgba(255,255,255,0.65)", flexShrink:0, fontFamily:"Arial,sans-serif" }}>
               {initials(name)}
             </div>
           )}
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", marginBottom:"3px" }}>{name}</div>
-            <div style={{ fontSize:`${ts}px`, color:"rgba(255,255,255,0.75)", letterSpacing:".08em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
-            <div style={{ display:"flex", gap:"14px", marginTop:"5px", flexWrap:"wrap" as const }}>
-              {email && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{email}</span>}
-              {phone && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{phone}</span>}
-              {location && <span style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{location}</span>}
+            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.nameEm}em`, fontWeight:700, color:WHITE, lineHeight:1.1, marginBottom:"0.2em" }}>{name}</div>
+            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.titleEm * 0.85}em`, color:AQUA, letterSpacing:"0.1em", textTransform:"uppercase" as const, fontWeight:600, marginBottom:"0.45em" }}>{title}</div>
+            <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.9em" }}>
+              {[email, phone, location, linkedin && linkedin.replace("https://","")].filter(Boolean).map((c, i) => (
+                <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"rgba(255,255,255,0.55)" }}>{c}</span>
+              ))}
             </div>
           </div>
         </div>
-        <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" as const, paddingBottom:"14px" }}>
-          {skills.slice(0,10).map((s,i)=>(
-            <span key={i} style={{ background:"rgba(255,255,255,0.15)", color:"white", fontSize:"7.5px", padding:"3px 9px", borderRadius:"99px", fontFamily:"sans-serif", fontWeight:600 }}>{s}</span>
+
+        {/* Skills strip inside header */}
+        <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.4em", marginTop:"0.8em" }}>
+          {skills.slice(0, 9).map((s, i) => (
+            <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.78}em`, color:WHITE, background:"rgba(255,255,255,0.12)", border:"0.5px solid rgba(255,255,255,0.18)", padding:"0.2em 0.65em", borderRadius:"999px", fontWeight:500 }}>{s}</span>
           ))}
         </div>
       </div>
-      <div style={{ padding:`${bp}px ${hph}px`, overflow:"hidden" }}>
-        {secLine("Professional Summary")}
-        <p style={{ fontSize:`${fs}px`, color:"#374151", lineHeight:lh, marginBottom:`${sg}px` }}>{summary}</p>
-        {secLine("Work Experience")}
-        {exps.filter(e=>e.title||e.company).map((e,i)=>(
-          <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
-              <div>
-                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600 }}>{e.company}</div>
-              </div>
-              {(e.start||e.end) && (
-                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
-                  {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
-                </div>
-              )}
-            </div>
-            {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-              <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
-              </div>
-            ))}
-          </div>
-        ))}
-        {achievements && (
-          <div style={{ background:"#f0fdf4", borderRadius:"6px", padding:"10px 12px", borderLeft:"3px solid #028090", marginBottom:`${sg}px` }}>
-            <div style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24", marginBottom:"4px" }}>Key achievements</div>
-            <div style={{ fontSize:"7.5px", color:"#374151", lineHeight:1.75 }}>
-              {achievements.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-                <div key={i} style={{ display:"flex", gap:"5px", marginBottom:"2px" }}><span style={{ color:"#028090", flexShrink:0 }}>✓</span>{a}</div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px", marginTop:`${sg}px` }}>
-          <div>
-            {secLine("Education")}
-            {edus.filter(e=>e.institution).map((e,i)=>(
-              <div key={i} style={{ marginBottom:"8px" }}>
-                <div style={{ fontSize:"8.5px", fontWeight:700, color:"#0a1f24" }}>{e.degree}{e.field ? ` — ${e.field}` : ""}</div>
-                <div style={{ fontSize:"8px", color:"#6b7280" }}>{e.institution}{e.endYear ? ` · ${e.endYear}` : ""}</div>
-              </div>
-            ))}
-          </div>
-          <div>
-            {secLine("Languages")}
-            {langs.filter(l=>l.lang).map((l,i)=>(
-              <div key={i} style={{ fontSize:"8px", color:"#374151", lineHeight:1.9 }}>
-                <span style={{ fontWeight:600 }}>{l.lang}</span> <span style={{ color:"#9ca3af" }}>· {l.level}</span>
-              </div>
-            ))}
-            {hobbies && (<>
-              {secLine("Interests")}
-              <div style={{ fontSize:"7.5px", color:"#6b7280", lineHeight:1.7 }}>{hobbies}</div>
-            </>)}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 3 — MINIMAL EDGE (white, typographic, left border accent, 2-col)
-// ══════════════════════════════════════════════════════════════════════════════
-function TplMinimal({ form, density }: { form: FormData; density: ReturnType<typeof getContentDensity> }) {
-  const f = form
-  const name = f.personal.name || PH.name
-  const title = f.personal.title || PH.title
-  const email = f.personal.email || PH.email
-  const phone = f.personal.phone || PH.phone
-  const location = f.personal.location || PH.location
-  const linkedin = f.personal.linkedin || PH.linkedin
-  const summary = f.summary || PH.summary
-  const exps = f.experience.some(e => e.title) ? f.experience : PH.experience
-  const edus = f.education.some(e => e.institution) ? f.education : PH.education
-  const skills = f.skills.length > 0 ? f.skills : PH.skills
-  const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
-  const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
-  const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
-          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
-          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
+      {/* ── Body ── */}
+      <div style={{ display:"grid", gridTemplateColumns:`1fr ${d.sidebarWidthEm * 0.72}em`, height:`calc(100% - ${(d.headerPadVEm * 1.8) + d.photoEm * 0.9 * 0.6 + 2.5}em)` }}>
 
-  const sec = (label: string) => (
-    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 7px`, paddingBottom:"4px", borderBottom:"2px solid #028090" }}>
-      {label}
-    </div>
-  )
+        {/* Main left */}
+        <div style={{ padding:`${d.bodyPadEm * 0.7}em ${d.bodyPadEm}em`, overflow:"hidden" }}>
+          {sec("Profile")}
+          <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.3em" }}>{summary}</p>
 
-  return (
-    <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ padding:`${hpv}px ${hph}px ${Math.round(hpv*0.6)}px`, borderBottom:"1px solid #e8ecef" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"14px" }}>
-          {f.personal.photo && (
-            <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"4px", objectFit:"cover", border:"1px solid #e5e7eb", flexShrink:0 }} />
-          )}
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:`${ns + 6}px`, fontWeight:700, color:"#0a1f24", letterSpacing:"-0.5px", lineHeight:1.1, marginBottom:"4px" }}>{name}</div>
-            <div style={{ fontSize:`${ts + 1}px`, color:"#028090", letterSpacing:".12em", textTransform:"uppercase" as const, fontFamily:"sans-serif", fontWeight:600, marginBottom:`${sg * 0.4}px` }}>{title}</div>
-            <div style={{ display:"flex", gap:"14px", flexWrap:"wrap" as const }}>
-              {[email, phone, location, linkedin].filter(Boolean).map((c,i)=>(
-                <span key={i} style={{ fontSize:`${fs - 0.5}px`, color:"#6b7280", fontFamily:"sans-serif" }}>{c}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:`1fr ${sw}px`, gap:"0", height:`calc(100% - ${hpv * 2 + 60}px)` }}>
-        <div style={{ padding:`${bp}px ${bp + 4}px`, borderRight:"1px solid #e8ecef", overflow:"hidden" }}>
           {sec("Experience")}
-          {exps.filter(e=>e.title||e.company).map((e,i)=>(
-            <div key={i} style={{ marginBottom:`${sg + 2}px`, paddingLeft:"12px", borderLeft:"2px solid #028090" }}>
-              <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-              <div style={{ fontSize:`${fs}px`, color:"#028090", fontWeight:600, marginBottom:"3px" }}>
-                {e.company}{(e.start||e.end) && <span style={{ color:"#9ca3af", fontWeight:400, fontFamily:"sans-serif" }}> · {fmtDate(e.start)} – {e.current ? "Present" : fmtDate(e.end)}</span>}
+          {exps.filter(e => e.title || e.company).map((e, i) => (
+            <div key={i} style={{ marginBottom:`${d.sectionGapEm * 0.65}em` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.5em" }}>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 1.05}em`, fontWeight:700, color:INK }}>{e.title}</span>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm * 0.82}em`, color:"#9CA3AF", flexShrink:0 }}>
+                  {fmtDate(e.start)}{(e.start || e.end || e.current) ? ` – ${e.current ? "Present" : fmtDate(e.end)}` : ""}
+                </span>
               </div>
-              {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-                <div key={j} style={{ display:"flex", gap:"4px", marginTop:"2px" }}>
-                  <span style={{ color:"#028090", fontSize:`${bs}px`, flexShrink:0 }}>▸</span>
-                  <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.9}em`, color:AQUA, fontWeight:600, marginBottom:"0.32em" }}>{e.company}</div>
+              {e.bullets.filter(b => b.trim()).map((b, j) => (
+                <div key={j} style={{ display:"flex", gap:"0.45em", marginBottom:"0.15em" }}>
+                  <span style={{ color:AQUA, fontWeight:700, fontSize:`${d.bulletEm * 0.85}em`, flexShrink:0, marginTop:"0.2em", lineHeight:1, fontFamily:"Arial,sans-serif" }}>▸</span>
+                  <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0 }}>{b}</p>
                 </div>
               ))}
             </div>
           ))}
+
           {achievements && (
-            <div style={{ background:"#f8fafc", borderRadius:"5px", padding:"8px 10px", borderLeft:"2px solid #028090", marginTop:`${sg}px` }}>
-              <div style={{ fontSize:"7.5px", fontWeight:700, color:"#0a1f24", marginBottom:"3px" }}>Key achievements</div>
-              {achievements.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-                <div key={i} style={{ fontSize:"7.5px", color:"#4b5563", lineHeight:1.7, display:"flex", gap:"4px" }}><span style={{ color:"#028090" }}>✓</span>{a}</div>
+            <div style={{ background:"#F0F7F8", borderRadius:"0.4em", padding:"0.65em 0.85em", borderLeft:`0.2em solid ${AQUA}`, marginTop:`${d.sectionGapEm * 0.4}em` }}>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm * 0.82}em`, fontWeight:700, color:NAVY, letterSpacing:"0.08em", textTransform:"uppercase" as const, marginBottom:"0.35em" }}>Key Achievements</div>
+              {achievements.split("·").map(a => a.trim()).filter(Boolean).map((a, i) => (
+                <div key={i} style={{ display:"flex", gap:"0.45em", marginBottom:"0.15em" }}>
+                  <span style={{ color:AQUA, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm * 0.85}em`, flexShrink:0 }}>✓</span>
+                  <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm * 0.9}em`, color:"#374151", lineHeight:d.lineHeight * 0.88 }}>{a}</span>
+                </div>
               ))}
             </div>
           )}
-          {sec("Summary")}
-          <p style={{ fontSize:"8px", color:"#374151", lineHeight:lh }}>{summary}</p>
         </div>
-        <div style={{ padding:"16px 14px", overflow:"hidden" }}>
-          {sec("Skills")}
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:"3px", marginBottom:`${sg}px` }}>
-            {skills.map((s,i)=>(
-              <div key={i} style={{ fontSize:"7.5px", color:"#374151", fontFamily:"sans-serif", padding:"3px 0", borderBottom:"0.5px solid #f3f4f6" }}>{s}</div>
-            ))}
-          </div>
+
+        {/* Right panel */}
+        <div style={{ padding:`${d.bodyPadEm * 0.7}em ${d.bodyPadEm * 0.75}em`, borderLeft:"1px solid #E8EEF2", overflow:"hidden" }}>
           {sec("Education")}
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"8px" }}>
-              <div style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24" }}>{e.degree}</div>
-              {e.field && <div style={{ fontSize:"7.5px", color:"#6b7280" }}>{e.field}</div>}
-              <div style={{ fontSize:"7.5px", color:"#028090" }}>{e.institution}</div>
-              {e.endYear && <div style={{ fontSize:"7px", color:"#9ca3af" }}>{e.endYear}</div>}
+          {edus.filter(e => e.institution).map((e, i) => (
+            <div key={i} style={{ marginBottom:"0.55em" }}>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm * 0.96}em`, fontWeight:700, color:INK }}>{e.degree}{e.field ? ` — ${e.field}` : ""}</div>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.84}em`, color:"#6B7280" }}>{e.institution}</div>
+              {e.endYear && <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.78}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
             </div>
           ))}
+
           {sec("Languages")}
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:"4px", marginBottom:`${sg}px` }}>
-            {langs.filter(l=>l.lang).map((l,i)=>(
-              <div key={i} style={{ fontSize:"7.5px", color:"#374151", fontFamily:"sans-serif" }}>
-                <span style={{ fontWeight:600 }}>{l.lang}</span> · {l.level}
-              </div>
-            ))}
-          </div>
+          {langs.filter(l => l.lang).map((l, i) => (
+            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.88}em`, color:"#374151", marginBottom:"0.28em", lineHeight:1.5 }}>
+              <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
+              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
+            </div>
+          ))}
+
           {hobbies && (<>
             {sec("Interests")}
-            <div style={{ fontSize:"7px", color:"#6b7280", lineHeight:1.7 }}>
-              {hobbies.split(",").map(h=>h.trim()).map((h,i)=><div key={i}>{h}</div>)}
+            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm * 0.82}em`, color:"#6B7280", lineHeight:d.lineHeight * 0.9 }}>
+              {hobbies.split(",").map(h => h.trim()).map((h, i, arr) => (
+                <span key={i}>{h}{i < arr.length - 1 ? " · " : ""}</span>
+              ))}
             </div>
           </>)}
         </div>
@@ -519,261 +580,38 @@ function TplMinimal({ form, density }: { form: FormData; density: ReturnType<typ
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 4 — BOLD SPLIT (40% dark brand panel, 60% white content)
-// ══════════════════════════════════════════════════════════════════════════════
-function TplBold({ form, density }: { form: FormData; density: ReturnType<typeof getContentDensity> }) {
-  const f = form
-  const name = f.personal.name || PH.name
-  const title = f.personal.title || PH.title
-  const email = f.personal.email || PH.email
-  const phone = f.personal.phone || PH.phone
-  const location = f.personal.location || PH.location
-  const summary = f.summary || PH.summary
-  const exps = f.experience.some(e => e.title) ? f.experience : PH.experience
-  const edus = f.education.some(e => e.institution) ? f.education : PH.education
-  const skills = f.skills.length > 0 ? f.skills : PH.skills
-  const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
-  const hobbies = f.hobbies || (density.showHobbies ? PH.hobbies : "")
-  const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
-          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
-          bodyPad:bp, sidebarWidth:sw, letterSpacing:lsp } = density
-
-  const skillLevels = [92,85,95,88,80,78,83,72]
-
-  return (
-    <div style={{ display:"flex", height:"100%", fontFamily:"Georgia, serif" }}>
-      {/* Bold dark left panel — width scales */}
-      <div style={{ width:`${sw + 30}px`, flexShrink:0, background:"#3D5A4E", padding:`${hpv}px ${Math.round((sw+30)*0.1)}px`, display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
-        {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"10px", objectFit:"cover", border:"1.5px solid rgba(255,255,255,0.2)", marginBottom:`${Math.round(ph*0.2)}px` }} />
-        ) : (
-          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"10px", background:"rgba(255,255,255,0.08)", border:"1.5px solid rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.5)", marginBottom:`${Math.round(ph*0.2)}px`, fontFamily:"sans-serif" }}>
-            {initials(name)}
-          </div>
-        )}
-        <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", lineHeight:1.2, marginBottom:"4px" }}>{name}</div>
-        <div style={{ width:"28px", height:"2.5px", background:"#028090", margin:`${Math.round(sg*0.5)}px 0` }} />
-        <div style={{ fontSize:`${ts}px`, color:"rgba(255,255,255,0.55)", letterSpacing:".1em", fontFamily:"sans-serif", marginBottom:`${sg}px` }}>{title.toUpperCase()}</div>
-        <div style={{ fontSize:`${sls}px`, color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:"6px" }}>Contact</div>
-        <div style={{ fontSize:`${fs}px`, color:"rgba(255,255,255,0.55)", lineHeight:lh, fontFamily:"sans-serif", marginBottom:`${sg}px` }}>
-          {email && <div>{email}</div>}{phone && <div>{phone}</div>}{location && <div>{location}</div>}
-        </div>
-        <div style={{ fontSize:`${sls}px`, color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:"10px" }}>Skills</div>
-        <div style={{ display:"flex", flexDirection:"column" as const, gap:"7px", marginBottom:"14px" }}>
-          {skills.slice(0,7).map((s,i)=>(
-            <div key={i}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"3px" }}>
-                <span style={{ fontSize:"7px", color:"rgba(255,255,255,0.55)", fontFamily:"sans-serif" }}>{s}</span>
-              </div>
-              <div style={{ height:"3px", background:"rgba(255,255,255,0.1)", borderRadius:"2px" }}>
-                <div style={{ height:"3px", background:"#028090", borderRadius:"2px", width:`${skillLevels[i % skillLevels.length]}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"6px" }}>Languages</div>
-        <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.55)", lineHeight:1.9, fontFamily:"sans-serif", marginBottom:"14px" }}>
-          {langs.filter(l=>l.lang).map((l,i)=>(
-            <div key={i}><span style={{ fontWeight:600, color:"rgba(255,255,255,0.75)" }}>{l.lang}</span> · {l.level}</div>
-          ))}
-        </div>
-        {edus.filter(e=>e.institution).length > 0 && (<>
-          <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"6px" }}>Education</div>
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"6px" }}>
-              <div style={{ fontSize:"7.5px", fontWeight:700, color:"rgba(255,255,255,0.75)", fontFamily:"sans-serif" }}>{e.degree}</div>
-              <div style={{ fontSize:"7px", color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif" }}>{e.institution}{e.endYear ? ` · ${e.endYear}` : ""}</div>
-            </div>
-          ))}
-        </>)}
-        {hobbies && (<>
-          <div style={{ fontSize:"7.5px", color:"rgba(255,255,255,0.4)", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, marginBottom:"6px", marginTop:`${sg}px` }}>Interests</div>
-          <div style={{ fontSize:"7px", color:"rgba(255,255,255,0.45)", lineHeight:1.7, fontFamily:"sans-serif" }}>
-            {hobbies.split(",").map(h=>h.trim()).map((h,i)=><div key={i}>{h}</div>)}
-          </div>
-        </>)}
-      </div>
-      {/* White right content */}
-      <div style={{ flex:1, background:"white", padding:`${hpv}px ${bp}px`, overflow:"hidden" }}>
-        <p style={{ fontSize:`${fs}px`, color:"#4b5563", lineHeight:lh, paddingBottom:`${sg}px`, borderBottom:"1px solid #f0f0f0", marginBottom:`${sg}px` }}>{summary}</p>
-        <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#3D5A4E", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, marginBottom:`${sg}px` }}>Experience</div>
-        {exps.filter(e=>e.title||e.company).map((e,i)=>(
-          <div key={i} style={{ marginBottom:`${sg + 2}px` }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"3px" }}>
-              <div>
-                <div style={{ fontSize:`${fs + 1}px`, fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:`${fs}px`, color:"#3D5A4E", fontWeight:600 }}>{e.company}</div>
-              </div>
-              {(e.start||e.end) && (
-                <div style={{ fontSize:`${fs - 0.5}px`, color:"#9ca3af", flexShrink:0, marginLeft:"8px", fontFamily:"sans-serif" }}>
-                  {fmtDate(e.start)}{" – "}{e.current ? "Present" : fmtDate(e.end)}
-                </div>
-              )}
-            </div>
-            {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-              <div key={j} style={{ display:"flex", gap:"5px", marginTop:"3px" }}>
-                <span style={{ color:"#3D5A4E", fontSize:`${bs}px`, flexShrink:0, marginTop:"1px" }}>▸</span>
-                <p style={{ fontSize:`${bs}px`, color:"#4b5563", lineHeight:lh, margin:0 }}>{b}</p>
-              </div>
-            ))}
-          </div>
-        ))}
-        {achievements && (
-          <div style={{ background:"#f4f8f6", borderRadius:"6px", padding:"10px 12px", borderLeft:"3px solid #3D5A4E", marginTop:`${sg}px` }}>
-            <div style={{ fontSize:"8px", fontWeight:700, color:"#0a1f24", marginBottom:"4px" }}>Key achievements</div>
-            {achievements.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-              <div key={i} style={{ fontSize:"7.5px", color:"#374151", lineHeight:1.7, display:"flex", gap:"4px" }}><span style={{ color:"#3D5A4E" }}>✓</span>{a}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 5 — INFOGRAPHIC (timeline spine, skill bars, data-forward)
-// ══════════════════════════════════════════════════════════════════════════════
-function TplInfographic({ form, density }: { form: FormData; density: ReturnType<typeof getContentDensity> }) {
-  const f = form
-  const name = f.personal.name || PH.name
-  const title = f.personal.title || PH.title
-  const email = f.personal.email || PH.email
-  const location = f.personal.location || PH.location
-  const summary = f.summary || PH.summary
-  const exps = f.experience.some(e => e.title) ? f.experience : PH.experience
-  const edus = f.education.some(e => e.institution) ? f.education : PH.education
-  const skills = f.skills.length > 0 ? f.skills : PH.skills
-  const langs = f.languages.filter(l => l.lang).length > 0 ? f.languages : PH.languages
-  const achievements = f.achievements || (density.showAchievements ? PH.achievements : "")
-  const { fontSize:fs, bulletSize:bs, secLabelSize:sls, lineHeight:lh, sectionGap:sg,
-          nameSize:ns, titleSize:ts, photoSize:ph, headerPadV:hpv, headerPadH:hph,
-          bodyPad:bp, letterSpacing:lsp } = density
-  const totalYears = exps.filter(e=>e.title).length > 0 ? `${exps.filter(e=>e.title).length * 3}+` : "8+"
-  const skillBars = [92,85,95,88,80,78,83,72,76,68]
-  const langBars: Record<string,number> = { Native:100, Fluent:88, Advanced:72, Intermediate:55, Basic:30 }
-
-  const sec = (label: string) => (
-    <div style={{ fontSize:`${sls}px`, fontWeight:700, color:"#028090", letterSpacing:`${lsp}em`, textTransform:"uppercase" as const, margin:`${sg}px 0 8px`, display:"flex", alignItems:"center", gap:"8px" }}>
-      {label}<div style={{ flex:1, height:"1px", background:"#e5e7eb" }} />
-    </div>
-  )
-
-  return (
-    <div style={{ fontFamily:"Georgia, serif", height:"100%" }}>
-      <div style={{ background:"#0a1f24", padding:`${hpv}px ${hph}px`, display:"flex", alignItems:"center", gap:"14px" }}>
-        {f.personal.photo ? (
-          <img src={f.personal.photo} alt="" style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", objectFit:"cover", border:"2px solid #028090", flexShrink:0 }} />
-        ) : (
-          <div style={{ width:`${ph}px`, height:`${ph}px`, borderRadius:"50%", background:"rgba(2,128,144,0.25)", border:"1.5px solid #028090", display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${Math.round(ph*0.3)}px`, fontWeight:700, color:"rgba(255,255,255,0.7)", flexShrink:0, fontFamily:"sans-serif" }}>
-            {initials(name)}
-          </div>
-        )}
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:`${ns}px`, fontWeight:700, color:"white", marginBottom:"2px" }}>{name}</div>
-          <div style={{ fontSize:`${ts}px`, color:"#a8d5d1", letterSpacing:".1em", fontFamily:"sans-serif" }}>{title.toUpperCase()}</div>
-          <div style={{ fontSize:`${fs - 0.5}px`, color:"rgba(255,255,255,0.4)", fontFamily:"sans-serif", marginTop:"4px" }}>
-            {[email, location].filter(Boolean).join(" · ")}
-          </div>
-        </div>
-        <div style={{ textAlign:"right" as const }}>
-          <div style={{ fontSize:"22px", fontWeight:700, color:"#028090" }}>{totalYears}</div>
-          <div style={{ fontSize:"7px", color:"rgba(255,255,255,0.35)", fontFamily:"sans-serif" }}>Years exp.</div>
-        </div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0", height:"calc(100% - 78px)" }}>
-        <div style={{ padding:"14px 16px", borderRight:"1px solid #e8ecef", overflow:"hidden" }}>
-          {sec("Experience")}
-          {exps.filter(e=>e.title||e.company).map((e,i)=>(
-            <div key={i} style={{ display:"flex", gap:"8px", marginBottom:`${sg}px` }}>
-              <div style={{ display:"flex", flexDirection:"column" as const, alignItems:"center", flexShrink:0 }}>
-                <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: i===0 ? "#028090" : "#9ca3af", border:"1.5px solid white", boxShadow:`0 0 0 1px ${i===0?"#028090":"#9ca3af"}`, marginTop:"2px", flexShrink:0 }} />
-                {i < exps.filter(e=>e.title||e.company).length - 1 && (
-                  <div style={{ width:"1.5px", flex:1, background:"#e5e7eb", margin:"4px 0" }} />
-                )}
-              </div>
-              <div style={{ paddingBottom:"4px" }}>
-                <div style={{ fontSize:"8.5px", fontWeight:700, color:"#0a1f24" }}>{e.title}</div>
-                <div style={{ fontSize:"7.5px", color:"#028090", fontWeight:600, marginBottom:"3px" }}>
-                  {e.company} <span style={{ color:"#9ca3af", fontWeight:400, fontFamily:"sans-serif" }}>
-                    {fmtDate(e.start)}{(e.start||e.end||e.current) ? ` – ${e.current?"Present":fmtDate(e.end)}` : ""}
-                  </span>
-                </div>
-                {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-                  <div key={j} style={{ fontSize:`${bs - 0.5}px`, color:"#6b7280", lineHeight:lh * 0.9, paddingLeft:"6px", borderLeft:"1.5px solid #f0f0f0", marginBottom:"2px" }}>{b}</div>
-                ))}
-              </div>
-            </div>
-          ))}
-          {sec("Education")}
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"6px" }}>
-              <div style={{ fontSize:"8.5px", fontWeight:700, color:"#0a1f24" }}>{e.degree}{e.field ? ` — ${e.field}` : ""}</div>
-              <div style={{ fontSize:"7.5px", color:"#028090" }}>{e.institution}{e.endYear ? ` · ${e.endYear}` : ""}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ padding:"14px 16px", overflow:"hidden" }}>
-          {sec("Core skills")}
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:"6px", marginBottom:`${sg}px` }}>
-            {skills.map((s,i)=>(
-              <div key={i}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                  <span style={{ fontSize:"7.5px", color:"#374151", fontFamily:"sans-serif" }}>{s}</span>
-                  <span style={{ fontSize:"7px", color:"#028090", fontWeight:700, fontFamily:"sans-serif" }}>{skillBars[i % skillBars.length]}%</span>
-                </div>
-                <div style={{ height:"3.5px", background:"#f3f4f6", borderRadius:"2px" }}>
-                  <div style={{ height:"3.5px", background:"#028090", borderRadius:"2px", width:`${skillBars[i % skillBars.length]}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          {sec("Languages")}
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:"6px", marginBottom:`${sg}px` }}>
-            {langs.filter(l=>l.lang).map((l,i)=>(
-              <div key={i}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"2px" }}>
-                  <span style={{ fontSize:"7.5px", color:"#374151", fontFamily:"sans-serif", fontWeight:600 }}>{l.lang}</span>
-                  <span style={{ fontSize:"7px", color:"#9ca3af", fontFamily:"sans-serif" }}>{l.level}</span>
-                </div>
-                <div style={{ height:"3px", background:"#f3f4f6", borderRadius:"2px" }}>
-                  <div style={{ height:"3px", background:"#028090", borderRadius:"2px", width:`${langBars[l.level] || 60}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          {sec("Summary")}
-          <p style={{ fontSize:"7.5px", color:"#4b5563", lineHeight:lh }}>{summary}</p>
-          {achievements && (<>
-            {sec("Achievements")}
-            {achievements.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-              <div key={i} style={{ fontSize:"7.5px", color:"#374151", lineHeight:1.7, display:"flex", gap:"4px", marginBottom:"2px" }}>
-                <span style={{ color:"#028090", flexShrink:0 }}>✓</span>{a}
-              </div>
-            ))}
-          </>)}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── TEMPLATE REGISTRY ─────────────────────────────────────────────────────────
+// ── TEMPLATE REGISTRY — 3 templates only ─────────────────────────────────────
 const TEMPLATES = [
-  { id:"executive",   name:"Executive",     sub:"C-Suite · Finance · Legal",      component: TplExecutive },
-  { id:"modern",      name:"Modern Stripe",  sub:"HR · Sales · Marketing",         component: TplModern },
-  { id:"minimal",     name:"Minimal Edge",   sub:"Tech · Engineering · Intl",      component: TplMinimal },
-  { id:"bold",        name:"Bold Split",     sub:"Creative · Consulting",          component: TplBold },
-  { id:"infographic", name:"Infographic",    sub:"Data · Strategy · Tech",         component: TplInfographic },
+  { id:"prestige",  name:"Prestige",   sub:"Finance · C-Suite · Legal",     component: TplPrestige },
+  { id:"architect", name:"Architect",  sub:"Tech · Strategy · Consulting",  component: TplArchitect },
+  { id:"meridian",  name:"Meridian",   sub:"HR · Sales · Marketing",        component: TplMeridian },
 ]
 
 // ── CV PREVIEW WRAPPER ────────────────────────────────────────────────────────
+// Base font size: set to a fraction of the preview box width so em units scale perfectly
 function CVPreview({ form, templateId }: { form: FormData; templateId: string }) {
+  const [basePx, setBasePx] = useState(9.5)
+  const boxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    const update = () => {
+      // A4 is 210mm wide. At 96dpi that's ~794px. We want base font ~9.5px at full width.
+      // Scale linearly with box width.
+      const w = el.getBoundingClientRect().width
+      setBasePx(Math.max(5.5, Math.min(11, w * 0.012)))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const density = getContentDensity(form)
   const tpl = TEMPLATES.find(t => t.id === templateId) || TEMPLATES[0]
   const TplComponent = tpl.component
+
   return (
     <div style={{ background:"#1a2228", padding:"16px", borderRadius:"10px", height:"100%", display:"flex", flexDirection:"column" as const }}>
       <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"10px" }}>
@@ -781,7 +619,7 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" as const }}>Live preview</span>
         <span style={{ marginLeft:"auto", fontSize:"10px", color:"rgba(255,255,255,0.2)" }}>A4</span>
       </div>
-      <div style={{ flex:1, display:"flex", alignItems:"flex-start", justifyContent:"center" }}>
+      <div ref={boxRef} style={{ flex:1, display:"flex", alignItems:"flex-start", justifyContent:"center" }}>
         <div id="cv-preview-print" style={{
           background:"white",
           borderRadius:"3px",
@@ -790,8 +628,9 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
           width:"100%",
           aspectRatio:"210/297",
           position:"relative" as const,
+          fontSize:`${basePx}px`,  // ← THE KEY: all em units scale from here
         }}>
-          <TplComponent form={form} density={density} />
+          <TplComponent form={form} d={density} />
         </div>
       </div>
       {density.isSparse && (
@@ -815,7 +654,7 @@ export default function CVBuilderPage() {
 
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormData>(INITIAL)
-  const [selectedTemplate, setSelectedTemplate] = useState("executive")
+  const [selectedTemplate, setSelectedTemplate] = useState("prestige")
   const [generating, setGenerating] = useState(false)
   const [generatingBullet, setGeneratingBullet] = useState<number|null>(null)
   const [saved, setSaved] = useState(false)
@@ -941,7 +780,7 @@ export default function CVBuilderPage() {
   function triggerPDFDownload() {
     if (typeof window === "undefined") return
     const style = document.createElement("style")
-    style.innerHTML = `@media print { body * { visibility:hidden } #cv-preview-print, #cv-preview-print * { visibility:visible } #cv-preview-print { position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0 } }`
+    style.innerHTML = `@media print { body * { visibility:hidden } #cv-preview-print, #cv-preview-print * { visibility:visible } #cv-preview-print { position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;font-size:9.5px } }`
     document.head.appendChild(style)
     window.print()
     setTimeout(() => document.head.removeChild(style), 1000)
@@ -968,8 +807,6 @@ export default function CVBuilderPage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" }).select("id").single()
 
-      // Auto-process: extract structured profile + embedding in background
-      // Build a text representation of the CV from form data
       const candidateId = upserted?.id
       if (candidateId) {
         const cvTextFromForm = [
@@ -986,7 +823,6 @@ export default function CVBuilderPage() {
           form.languages.map(l => `${l.lang} ${l.level}`).join(", "),
         ].filter(Boolean).join("\n")
 
-        // Fire and forget — don't block the user
         fetch("/api/extract-structured", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -998,7 +834,6 @@ export default function CVBuilderPage() {
         })).catch(() => {})
       }
 
-      // Generate and store the PDF via Doppio — fire and forget, doesn't block redirect
       if (candidateId) {
         fetch("/api/generate-cv-pdf", {
           method: "POST",
@@ -1038,7 +873,6 @@ export default function CVBuilderPage() {
         body: JSON.stringify({ type:"review", cvText: text.slice(0,4000) })
       })
       const data = await res.json()
-      // Pre-fill email from extracted CV data
       if (data.email) setReviewEmail(data.email)
       setReviewResult(data)
     } catch {}
@@ -1050,14 +884,12 @@ export default function CVBuilderPage() {
     setReviewSaving(true)
     setReviewAuthError("")
     try {
-      // Sign up
       const { error: signUpError } = await supabase.auth.signUp({ email: reviewEmail, password: reviewPassword })
       if (signUpError && !signUpError.message.includes("already registered")) {
         setReviewAuthError(signUpError.message)
         setReviewSaving(false)
         return
       }
-      // Save to candidates table
       const { data: reviewUpserted } = await supabase.from("candidates").upsert({
         email: reviewEmail,
         full_name: reviewResult?.name || "",
@@ -1070,7 +902,6 @@ export default function CVBuilderPage() {
         updated_at: new Date().toISOString(),
       }, { onConflict: "email" }).select("id").single()
 
-      // Auto-process in background — extract structured profile + embedding
       const reviewCandidateId = reviewUpserted?.id
       if (reviewCandidateId && reviewText.trim()) {
         fetch("/api/extract-structured", {
@@ -1093,12 +924,10 @@ export default function CVBuilderPage() {
 
   const suggestedSkills = SKILL_SUGGESTIONS[form.job_function] || Object.values(SKILL_SUGGESTIONS).flat().slice(0,12)
 
-  // ── SHARED INPUT STYLES ──
   const inp: React.CSSProperties = { width:"100%", padding:"10px 13px", border:"1.5px solid #e5e7eb", borderRadius:"10px", fontSize:"13px", color:"#0a1f24", outline:"none", fontFamily:"inherit", background:"white" }
   const sel: React.CSSProperties = { ...inp, cursor:"pointer" }
-  const label: React.CSSProperties = { display:"block", fontSize:"11px", fontWeight:600, color:"#6b7280", marginBottom:"5px", letterSpacing:".02em" }
+  const labelStyle: React.CSSProperties = { display:"block", fontSize:"11px", fontWeight:600, color:"#6b7280", marginBottom:"5px", letterSpacing:".02em" }
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight:"100vh", background:"#f5f6f7" }}>
       {/* Top bar */}
@@ -1179,8 +1008,6 @@ export default function CVBuilderPage() {
                     <Sparkles size={13} /> Rebuild with AI builder
                   </button>
                 </div>
-
-                {/* Save to GPS Network CTA */}
                 {!reviewSaved ? (
                   <div style={{ background:"linear-gradient(135deg,#0a1f24,#1a3a3a)", borderRadius:"16px", padding:"20px 22px" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px" }}>
@@ -1191,25 +1018,11 @@ export default function CVBuilderPage() {
                       GPS recruiters will be able to find you when a matching role comes up. Free — takes 10 seconds.
                     </p>
                     <div style={{ display:"flex", flexDirection:"column" as const, gap:"8px", marginBottom:"12px" }}>
-                      <input
-                        style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }}
-                        type="email" placeholder="Your email"
-                        value={reviewEmail}
-                        onChange={e => setReviewEmail(e.target.value)}
-                      />
-                      <input
-                        style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }}
-                        type="password" placeholder="Choose a password (min 6 chars)"
-                        value={reviewPassword}
-                        onChange={e => setReviewPassword(e.target.value)}
-                      />
+                      <input style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }} type="email" placeholder="Your email" value={reviewEmail} onChange={e => setReviewEmail(e.target.value)} />
+                      <input style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }} type="password" placeholder="Choose a password (min 6 chars)" value={reviewPassword} onChange={e => setReviewPassword(e.target.value)} />
                     </div>
                     {reviewAuthError && <p style={{ color:"#fca5a5", fontSize:"12px", marginBottom:"8px" }}>{reviewAuthError}</p>}
-                    <button
-                      onClick={handleReviewSave}
-                      disabled={reviewSaving || !reviewEmail || !reviewPassword}
-                      style={{ width:"100%", padding:"11px", background:"#028090", border:"none", borderRadius:"9px", fontWeight:700, fontSize:"13px", cursor:"pointer", color:"white", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", opacity: (!reviewEmail||!reviewPassword) ? 0.5 : 1 }}
-                    >
+                    <button onClick={handleReviewSave} disabled={reviewSaving || !reviewEmail || !reviewPassword} style={{ width:"100%", padding:"11px", background:"#028090", border:"none", borderRadius:"9px", fontWeight:700, fontSize:"13px", cursor:"pointer", color:"white", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", opacity: (!reviewEmail||!reviewPassword) ? 0.5 : 1 }}>
                       {reviewSaving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : <>Save to GPS Network <ArrowRight size={13} /></>}
                     </button>
                   </div>
@@ -1255,9 +1068,9 @@ export default function CVBuilderPage() {
             </div>
 
             {/* Template pills — always visible */}
-            <div style={{ padding:"10px 20px 0", display:"flex", gap:"5px", flexWrap:"wrap" as const, borderBottom:"1px solid #f9fafb" }}>
+            <div style={{ padding:"10px 20px 0", display:"flex", gap:"5px", borderBottom:"1px solid #f9fafb" }}>
               {TEMPLATES.map(t => (
-                <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:"4px 11px", borderRadius:"99px", border: selectedTemplate===t.id ? "1.5px solid #028090" : "1.5px solid #e5e7eb", background: selectedTemplate===t.id ? "#e6f5f3" : "white", color: selectedTemplate===t.id ? "#028090" : "#6b7280", fontSize:"11px", fontWeight:600, cursor:"pointer", transition:"all .15s" }}>
+                <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:"5px 14px", borderRadius:"99px", border: selectedTemplate===t.id ? "1.5px solid #028090" : "1.5px solid #e5e7eb", background: selectedTemplate===t.id ? "#028090" : "white", color: selectedTemplate===t.id ? "white" : "#6b7280", fontSize:"11px", fontWeight:700, cursor:"pointer", transition:"all .15s" }}>
                   {t.name}
                 </button>
               ))}
@@ -1294,24 +1107,51 @@ export default function CVBuilderPage() {
                     </div>
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
-                    <div><label style={label}>Full name *</label><input style={inp} placeholder="Ahmed Hassan" value={form.personal.name} onChange={e => setPersonal("name", e.target.value)} /></div>
-                    <div><label style={label}>Job title *</label><input style={inp} placeholder="Finance Manager" value={form.personal.title} onChange={e => setPersonal("title", e.target.value)} /></div>
-                    <div><label style={label}>Email *</label><input style={inp} type="email" placeholder="name@email.com" value={form.personal.email} onChange={e => setPersonal("email", e.target.value)} /></div>
+                    <div style={{ gridColumn:"1/-1" }}>
+                      <label style={labelStyle}>Full name *</label>
+                      <input style={inp} placeholder="Ahmed Hassan" value={form.personal.name} onChange={e => setPersonal("name", e.target.value)} />
+                    </div>
+                    <div style={{ gridColumn:"1/-1" }}>
+                      <label style={labelStyle}>Job title *</label>
+                      <input style={inp} placeholder="Finance Manager" value={form.personal.title} onChange={e => setPersonal("title", e.target.value)} />
+                    </div>
                     <div>
-                      <label style={label}>Phone</label>
-                      <div style={{ display:"flex", border:"1.5px solid #e5e7eb", borderRadius:"10px", overflow:"hidden", background:"white" }}>
-                        <div style={{ padding:"10px 12px", background:"#f5f5f5", borderRight:"1.5px solid #e5e7eb", fontSize:"13px", fontWeight:700, color:"#555", userSelect:"none" as const, flexShrink:0 }}>+20</div>
-                        <input type="tel" placeholder="100 123 4567" value={form.personal.phone.replace(/^\+20\s?/,"")} onChange={e => setPersonal("phone", "+20 " + e.target.value.replace(/[^0-9 ]/g,""))} style={{ flex:1, padding:"10px 12px", border:"none", outline:"none", fontSize:"13px", background:"transparent" }} />
-                      </div>
+                      <label style={labelStyle}>Email</label>
+                      <input style={inp} type="email" placeholder="ahmed@email.com" value={form.personal.email} onChange={e => setPersonal("email", e.target.value)} />
                     </div>
-                    <div><label style={label}>Location</label><input style={inp} placeholder="Cairo, Egypt" value={form.personal.location} onChange={e => setPersonal("location", e.target.value)} /></div>
-                    <div><label style={label}>Nationality</label><select style={sel} value={form.personal.nationality} onChange={e => setPersonal("nationality", e.target.value)}><option value="">Select</option>{NATIONALITIES.map(n=><option key={n} value={n}>{n}</option>)}</select></div>
-                    <div><label style={label}>LinkedIn</label><input style={inp} placeholder="linkedin.com/in/yourname" value={form.personal.linkedin} onChange={e => setPersonal("linkedin", e.target.value)} /></div>
-                    <div><label style={label}>Date of birth <span style={{ color:"#9ca3af", fontWeight:400 }}>(MENA norm)</span></label>
-                      <input style={inp} type="date" value={form.personal.dob} onChange={e => setPersonal("dob", e.target.value)} />
+                    <div>
+                      <label style={labelStyle}>Phone</label>
+                      <input style={inp} placeholder="+20 100 123 4567" value={form.personal.phone} onChange={e => setPersonal("phone", e.target.value)} />
                     </div>
-                    <div><label style={label}>Function</label><select style={sel} value={form.job_function} onChange={e => setForm(f=>({...f,job_function:e.target.value}))}><option value="">Select function</option>{FUNCTIONS.map(fn=><option key={fn} value={fn}>{fn}</option>)}</select></div>
-                    <div><label style={label}>Seniority level</label><select style={sel} value={form.level} onChange={e => setForm(f=>({...f,level:e.target.value}))}><option value="">Select level</option>{LEVELS.map(l=><option key={l} value={l}>{l}</option>)}</select></div>
+                    <div>
+                      <label style={labelStyle}>Location</label>
+                      <input style={inp} placeholder="Cairo, Egypt" value={form.personal.location} onChange={e => setPersonal("location", e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Nationality</label>
+                      <select style={sel} value={form.personal.nationality} onChange={e => setPersonal("nationality", e.target.value)}>
+                        <option value="">Select</option>
+                        {NATIONALITIES.map(n => <option key={n}>{n}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ gridColumn:"1/-1" }}>
+                      <label style={labelStyle}>LinkedIn URL</label>
+                      <input style={inp} placeholder="linkedin.com/in/yourname" value={form.personal.linkedin} onChange={e => setPersonal("linkedin", e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Function</label>
+                      <select style={sel} value={form.job_function} onChange={e => setForm(f => ({ ...f, job_function: e.target.value }))}>
+                        <option value="">Select</option>
+                        {FUNCTIONS.map(fn => <option key={fn}>{fn}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Level</label>
+                      <select style={sel} value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}>
+                        <option value="">Select</option>
+                        {LEVELS.map(l => <option key={l}>{l}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1320,136 +1160,138 @@ export default function CVBuilderPage() {
               {currentStepId === "experience" && (
                 <div>
                   <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Work experience</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Add rough notes — AI rewrites them as powerful, quantified bullet points.</p>
-                  {form.experience.map((exp, i) => (
-                    <div key={i} style={{ border:"1.5px solid #e5e7eb", borderRadius:"12px", padding:"16px", marginBottom:"14px" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
-                        <p style={{ fontWeight:700, color:"#0a1f24", fontSize:"13px", margin:0 }}>Role {i+1}</p>
-                        {form.experience.length > 1 && <button onClick={() => removeExp(i)} style={{ background:"none", border:"none", cursor:"pointer", color:"#ef4444", display:"flex", alignItems:"center", gap:"4px", fontSize:"12px" }}><Trash2 size={12} /> Remove</button>}
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Add your roles. Use the AI button to write strong, quantified bullet points.</p>
+                  {form.experience.map((e, i) => (
+                    <div key={i} style={{ background:"#f9fafb", borderRadius:"12px", padding:"16px", marginBottom:"14px", border:"1px solid #e8ecef" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+                        <span style={{ fontSize:"12px", fontWeight:700, color:"#0a1f24" }}>Role {i+1}</span>
+                        {form.experience.length > 1 && (
+                          <button onClick={() => removeExp(i)} style={{ background:"none", border:"none", cursor:"pointer", color:"#9ca3af", display:"flex", alignItems:"center", gap:"3px", fontSize:"11px" }}>
+                            <Trash2 size={12} /> Remove
+                          </button>
+                        )}
                       </div>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"10px" }}>
-                        <div><label style={label}>Job title *</label><input style={inp} placeholder="Finance Manager" value={exp.title} onChange={e => updateExp(i,"title",e.target.value)} /></div>
-                        <div><label style={label}>Company *</label><input style={inp} placeholder="ABC Company" value={exp.company} onChange={e => updateExp(i,"company",e.target.value)} /></div>
-                        <div>
-                          <label style={label}>Start</label>
-                          <div style={{ display:"flex", gap:"6px" }}>
-                            <select style={{ ...sel, flex:1.4 }} value={exp.start ? exp.start.split("-")[1] : ""} onChange={e => { const y=exp.start?exp.start.split("-")[0]:""; updateExp(i,"start",`${y||new Date().getFullYear()}-${e.target.value||"01"}`)}}>
-                              <option value="">Month</option>
-                              {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,mi)=><option key={m} value={String(mi+1).padStart(2,"0")}>{m}</option>)}
-                            </select>
-                            <select style={{ ...sel, flex:1 }} value={exp.start ? exp.start.split("-")[0] : ""} onChange={e => { const m=exp.start?exp.start.split("-")[1]:"01"; updateExp(i,"start",`${e.target.value||new Date().getFullYear()}-${m}`)}}>
-                              <option value="">Year</option>
-                              {Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}
-                            </select>
-                          </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
+                        <div style={{ gridColumn:"1/-1" }}>
+                          <label style={labelStyle}>Job title</label>
+                          <input style={inp} placeholder="Finance Manager" value={e.title} onChange={ev => updateExp(i, "title", ev.target.value)} />
+                        </div>
+                        <div style={{ gridColumn:"1/-1" }}>
+                          <label style={labelStyle}>Company</label>
+                          <input style={inp} placeholder="ABC Group" value={e.company} onChange={ev => updateExp(i, "company", ev.target.value)} />
                         </div>
                         <div>
-                          <label style={label}>End</label>
-                          <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
-                            {!exp.current && (<>
-                              <select style={{ ...sel, flex:1.4 }} value={exp.end ? exp.end.split("-")[1] : ""} onChange={e => { const y=exp.end?exp.end.split("-")[0]:""; updateExp(i,"end",`${y||new Date().getFullYear()}-${e.target.value||"01"}`)}}>
-                                <option value="">Month</option>
-                                {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,mi)=><option key={m} value={String(mi+1).padStart(2,"0")}>{m}</option>)}
-                              </select>
-                              <select style={{ ...sel, flex:1 }} value={exp.end ? exp.end.split("-")[0] : ""} onChange={e => { const m=exp.end?exp.end.split("-")[1]:"01"; updateExp(i,"end",`${e.target.value||new Date().getFullYear()}-${m}`)}}>
-                                <option value="">Year</option>
-                                {Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}
-                              </select>
-                            </>)}
-                            <label style={{ display:"flex", alignItems:"center", gap:"4px", fontSize:"11px", color:"#374151", whiteSpace:"nowrap" as const, cursor:"pointer", flexShrink:0 }}>
-                              <input type="checkbox" checked={exp.current} onChange={e => updateExp(i,"current",e.target.checked)} /> Present
-                            </label>
-                          </div>
+                          <label style={labelStyle}>Start date</label>
+                          <input style={inp} type="month" value={e.start} onChange={ev => updateExp(i, "start", ev.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>End date</label>
+                          <input style={inp} type="month" value={e.end} disabled={e.current} onChange={ev => updateExp(i, "end", ev.target.value)} />
+                          <label style={{ ...labelStyle, marginTop:"6px", display:"flex", alignItems:"center", gap:"5px", cursor:"pointer" }}>
+                            <input type="checkbox" checked={e.current} onChange={ev => updateExp(i, "current", ev.target.checked)} />
+                            Current role
+                          </label>
                         </div>
                       </div>
-                      <label style={label}>Bullet points <span style={{ color:"#9ca3af", fontWeight:400 }}>(rough notes — AI will polish)</span></label>
-                      {exp.bullets.map((b, j) => (
-                        <div key={j} style={{ display:"flex", gap:"6px", marginBottom:"6px" }}>
-                          <input style={{ ...inp, flex:1 }} placeholder={j===0?"e.g. managed accounts team of 8":"Add another bullet…"} value={b} onChange={e => updateBullet(i,j,e.target.value)} />
-                          {j === exp.bullets.length-1 && <button onClick={() => { const updated=[...form.experience]; updated[i].bullets=[...updated[i].bullets,""]; setForm(f=>({...f,experience:updated})) }} style={{ padding:"0 10px", background:"#f3f4f6", border:"none", borderRadius:"8px", cursor:"pointer", color:"#6b7280", fontSize:"18px" }}>+</button>}
+                      <div style={{ marginTop:"12px" }}>
+                        <label style={labelStyle}>Bullet points — what you did & achieved</label>
+                        {e.bullets.map((b, j) => (
+                          <div key={j} style={{ display:"flex", gap:"6px", marginBottom:"6px" }}>
+                            <span style={{ color:"#028090", fontSize:"16px", marginTop:"8px", flexShrink:0 }}>▸</span>
+                            <input style={{ ...inp, fontSize:"12px" }} placeholder={`Achievement or responsibility ${j+1}`} value={b} onChange={ev => updateBullet(i, j, ev.target.value)} />
+                          </div>
+                        ))}
+                        <div style={{ display:"flex", gap:"8px", marginTop:"4px" }}>
+                          <button onClick={() => { const u=[...form.experience]; u[i].bullets=[...u[i].bullets,""]; setForm(f=>({...f,experience:u})) }} style={{ fontSize:"11px", color:"#028090", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>+ Add bullet</button>
+                          <button onClick={() => generateBullets(i)} disabled={!e.title || !e.company || generatingBullet===i} style={{ fontSize:"11px", color:"white", background: (!e.title||!e.company) ? "#d1d5db" : "#028090", border:"none", borderRadius:"6px", padding:"4px 10px", cursor: (!e.title||!e.company) ? "default" : "pointer", fontWeight:600, display:"flex", alignItems:"center", gap:"4px" }}>
+                            {generatingBullet===i ? <><Loader2 size={10} className="animate-spin" /> Writing…</> : <><Sparkles size={10} /> AI write</>}
+                          </button>
                         </div>
-                      ))}
-                      <button onClick={() => generateBullets(i)} disabled={generatingBullet===i || !exp.title} style={{ display:"flex", alignItems:"center", gap:"5px", padding:"8px 14px", background:exp.title?"#0a1f24":"#e5e7eb", color:exp.title?"white":"#9ca3af", border:"none", borderRadius:"8px", fontWeight:600, fontSize:"12px", cursor:exp.title?"pointer":"default", marginTop:"6px" }}>
-                        {generatingBullet===i ? <><Loader2 size={11} className="animate-spin" /> Rewriting…</> : <><Sparkles size={11} /> AI rewrite bullets</>}
-                      </button>
+                      </div>
                     </div>
                   ))}
-                  <button onClick={addExp} style={{ display:"flex", alignItems:"center", gap:"6px", padding:"10px 16px", background:"white", border:"1.5px dashed #d1d5db", borderRadius:"10px", cursor:"pointer", color:"#6b7280", fontSize:"13px", fontWeight:500 }}>
-                    <Plus size={13} /> Add another role
-                  </button>
+                  <button onClick={addExp} style={{ width:"100%", padding:"10px", border:"1.5px dashed #d1d5db", borderRadius:"10px", background:"white", color:"#6b7280", fontSize:"13px", cursor:"pointer", fontWeight:600 }}>+ Add another role</button>
                 </div>
               )}
 
               {/* STEP 3: SKILLS */}
               {currentStepId === "skills" && (
                 <div>
-                  <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Skills</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Select from suggestions or add your own. These appear as polished tags on your CV.</p>
+                  <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Skills & languages</h2>
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Select your top skills. Add your languages below.</p>
                   <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"7px", marginBottom:"20px" }}>
                     {suggestedSkills.map(s => (
-                      <button key={s} onClick={() => toggleSkill(s)} style={{ padding:"7px 13px", borderRadius:"99px", border: form.skills.includes(s) ? "2px solid #028090" : "1.5px solid #e5e7eb", background: form.skills.includes(s) ? "#e6f5f3" : "white", color: form.skills.includes(s) ? "#028090" : "#374151", fontSize:"12px", fontWeight:500, cursor:"pointer", transition:"all .15s" }}>
-                        {form.skills.includes(s) && "✓ "}{s}
+                      <button key={s} onClick={() => toggleSkill(s)} style={{ padding:"6px 13px", borderRadius:"999px", border:"1.5px solid", fontSize:"12px", fontWeight:600, cursor:"pointer", transition:"all .12s", borderColor: form.skills.includes(s) ? "#028090" : "#e5e7eb", background: form.skills.includes(s) ? "#028090" : "white", color: form.skills.includes(s) ? "white" : "#374151" }}>
+                        {s}
                       </button>
                     ))}
                   </div>
-                  <div>
-                    <label style={label}>Add a custom skill</label>
-                    <div style={{ display:"flex", gap:"8px" }}>
-                      <input id="custom-skill" style={{ ...inp, flex:1 }} placeholder="e.g. Power BI" onKeyDown={e => { if(e.key==="Enter"){ const v=(e.target as HTMLInputElement).value.trim(); if(v){ toggleSkill(v);(e.target as HTMLInputElement).value="" }}}} />
-                      <button onClick={() => { const el=document.getElementById("custom-skill") as HTMLInputElement; if(el?.value.trim()){ toggleSkill(el.value.trim()); el.value="" }}} style={{ padding:"10px 14px", background:"#0a1f24", color:"white", border:"none", borderRadius:"10px", cursor:"pointer", fontSize:"13px", fontWeight:600 }}>Add</button>
-                    </div>
-                  </div>
-                  {form.skills.length > 0 && (
-                    <div style={{ marginTop:"16px" }}>
-                      <p style={{ fontSize:"12px", color:"#6b7280", marginBottom:"8px" }}>Selected ({form.skills.length}):</p>
-                      <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"6px" }}>
-                        {form.skills.map(s => <span key={s} style={{ padding:"5px 11px", background:"#028090", color:"white", borderRadius:"99px", fontSize:"11px", fontWeight:500 }}>{s}</span>)}
+                  <div style={{ marginBottom:"16px" }}>
+                    <label style={labelStyle}>Languages</label>
+                    {form.languages.map((l, i) => (
+                      <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:"8px", marginBottom:"8px", alignItems:"center" }}>
+                        <select style={sel} value={l.lang} onChange={e => { const u=[...form.languages]; u[i]={...u[i],lang:e.target.value}; setForm(f=>({...f,languages:u})) }}>
+                          {LANGUAGES.map(ln => <option key={ln}>{ln}</option>)}
+                        </select>
+                        <select style={sel} value={l.level} onChange={e => { const u=[...form.languages]; u[i]={...u[i],level:e.target.value}; setForm(f=>({...f,languages:u})) }}>
+                          {["Native","Fluent","Advanced","Intermediate","Basic"].map(lv => <option key={lv}>{lv}</option>)}
+                        </select>
+                        {form.languages.length > 1 && (
+                          <button onClick={() => setForm(f => ({ ...f, languages: f.languages.filter((_,idx)=>idx!==i) }))} style={{ background:"none", border:"none", cursor:"pointer", color:"#9ca3af" }}><Trash2 size={14} /></button>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    ))}
+                    <button onClick={() => setForm(f => ({ ...f, languages: [...f.languages, { lang:"English", level:"Intermediate" }] }))} style={{ fontSize:"11px", color:"#028090", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>+ Add language</button>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Hobbies & interests (optional)</label>
+                    <input style={inp} placeholder="e.g. Football, reading, photography" value={form.hobbies} onChange={e => setForm(f => ({ ...f, hobbies: e.target.value }))} />
+                  </div>
                 </div>
               )}
 
               {/* STEP 4: EDUCATION */}
               {currentStepId === "education" && (
                 <div>
-                  <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Education & languages</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Your academic background, language skills, and anything that adds personality.</p>
-                  <h3 style={{ fontSize:"14px", fontWeight:700, color:"#374151", marginBottom:"12px" }}>Education</h3>
-                  {form.education.map((edu, i) => (
-                    <div key={i} style={{ border:"1.5px solid #e5e7eb", borderRadius:"12px", padding:"14px", marginBottom:"10px" }}>
+                  <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Education</h2>
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>Add your degrees and any relevant certifications.</p>
+                  {form.education.map((e, i) => (
+                    <div key={i} style={{ background:"#f9fafb", borderRadius:"12px", padding:"16px", marginBottom:"12px", border:"1px solid #e8ecef" }}>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-                        <div><label style={label}>Institution</label><input style={inp} placeholder="Cairo University" value={edu.institution} onChange={e => updateEdu(i,"institution",e.target.value)} /></div>
-                        <div><label style={label}>Degree</label><input style={inp} placeholder="Bachelor's" value={edu.degree} onChange={e => updateEdu(i,"degree",e.target.value)} /></div>
-                        <div style={{ gridColumn:"span 2" }}><label style={label}>Field of study</label><input style={inp} placeholder="Accounting" value={edu.field} onChange={e => updateEdu(i,"field",e.target.value)} /></div>
-                        <div><label style={label}>Start year</label><select style={sel} value={edu.startYear} onChange={e => updateEdu(i,"startYear",e.target.value)}><option value="">Year</option>{Array.from({length:40},(_,idx)=>String(new Date().getFullYear()-idx)).map(y=><option key={y} value={y}>{y}</option>)}</select></div>
-                        <div><label style={label}>End year</label><select style={sel} value={edu.endYear} onChange={e => updateEdu(i,"endYear",e.target.value)}><option value="">Year</option>{Array.from({length:44},(_,idx)=>String(new Date().getFullYear()+3-idx)).map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+                        <div style={{ gridColumn:"1/-1" }}>
+                          <label style={labelStyle}>Institution</label>
+                          <input style={inp} placeholder="Cairo University" value={e.institution} onChange={ev => updateEdu(i,"institution",ev.target.value)} />
+                        </div>
+                        <div style={{ gridColumn:"1/-1" }}>
+                          <label style={labelStyle}>Degree</label>
+                          <input style={inp} placeholder="B.Sc. Accounting" value={e.degree} onChange={ev => updateEdu(i,"degree",ev.target.value)} />
+                        </div>
+                        <div style={{ gridColumn:"1/-1" }}>
+                          <label style={labelStyle}>Field of study</label>
+                          <input style={inp} placeholder="Finance" value={e.field} onChange={ev => updateEdu(i,"field",ev.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Start year</label>
+                          <input style={inp} placeholder="2012" value={e.startYear} onChange={ev => updateEdu(i,"startYear",ev.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>End year</label>
+                          <input style={inp} placeholder="2016" value={e.endYear} onChange={ev => updateEdu(i,"endYear",ev.target.value)} />
+                        </div>
                       </div>
                     </div>
                   ))}
-                  <button onClick={addEdu} style={{ display:"flex", alignItems:"center", gap:"6px", padding:"10px 16px", background:"white", border:"1.5px dashed #d1d5db", borderRadius:"10px", cursor:"pointer", color:"#6b7280", fontSize:"13px", fontWeight:500, marginBottom:"24px" }}>
-                    <Plus size={13} /> Add qualification
-                  </button>
-                  <h3 style={{ fontSize:"14px", fontWeight:700, color:"#374151", marginBottom:"12px" }}>Languages</h3>
-                  {form.languages.map((lang, i) => (
-                    <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:"8px", marginBottom:"8px", alignItems:"end" }}>
-                      <div><label style={label}>Language</label><select style={sel} value={lang.lang} onChange={e => { const u=[...form.languages]; u[i]={...u[i],lang:e.target.value}; setForm(f=>({...f,languages:u})) }}>{LANGUAGES.map(l=><option key={l} value={l}>{l}</option>)}</select></div>
-                      <div><label style={label}>Proficiency</label><select style={sel} value={lang.level} onChange={e => { const u=[...form.languages]; u[i]={...u[i],level:e.target.value}; setForm(f=>({...f,languages:u})) }}>{["Native","Fluent","Advanced","Intermediate","Basic"].map(l=><option key={l} value={l}>{l}</option>)}</select></div>
-                      {form.languages.length > 1 && <button onClick={() => setForm(f=>({...f,languages:f.languages.filter((_,idx)=>idx!==i)}))} style={{ height:"42px", padding:"0 10px", background:"none", border:"1px solid #fee2e2", borderRadius:"8px", cursor:"pointer", color:"#ef4444" }}><Trash2 size={12} /></button>}
+                  <button onClick={addEdu} style={{ width:"100%", padding:"10px", border:"1.5px dashed #d1d5db", borderRadius:"10px", background:"white", color:"#6b7280", fontSize:"13px", cursor:"pointer", fontWeight:600 }}>+ Add education</button>
+                  <div style={{ marginTop:"16px" }}>
+                    <label style={labelStyle}>Key achievements & certifications (optional)</label>
+                    <p style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"6px" }}>Separate with · e.g. "CMA certified · Top performer Q3 2022"</p>
+                    <div style={{ display:"flex", gap:"8px" }}>
+                      <textarea style={{ ...inp, height:"60px", resize:"none" as const, fontSize:"12px" }} placeholder="CMA certified · Top performer Q3 2022" value={form.achievements} onChange={e => setForm(f => ({ ...f, achievements: e.target.value }))} />
+                      <button onClick={generateAchievements} style={{ flexShrink:0, padding:"8px 12px", background:"#028090", color:"white", border:"none", borderRadius:"9px", cursor:"pointer", display:"flex", alignItems:"center", gap:"5px", fontSize:"11px", fontWeight:700 }}>
+                        <Sparkles size={11} /> AI
+                      </button>
                     </div>
-                  ))}
-                  <button onClick={() => setForm(f=>({...f,languages:[...f.languages,{lang:"French",level:"Intermediate"}]}))} style={{ display:"flex", alignItems:"center", gap:"6px", padding:"10px 16px", background:"white", border:"1.5px dashed #d1d5db", borderRadius:"10px", cursor:"pointer", color:"#6b7280", fontSize:"13px", fontWeight:500, marginBottom:"24px" }}>
-                    <Plus size={13} /> Add language
-                  </button>
-                  <h3 style={{ fontSize:"14px", fontWeight:700, color:"#374151", marginBottom:"4px" }}>Hobbies & interests <span style={{ fontSize:"11px", color:"#9ca3af", fontWeight:400 }}>(optional)</span></h3>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"10px" }}>Adds personality — valued in Egyptian & Gulf recruitment.</p>
-                  <input style={inp} placeholder="e.g. Football, reading Arabic literature, hiking, photography" value={form.hobbies} onChange={e => setForm(f=>({...f,hobbies:e.target.value}))} />
-                  <h3 style={{ fontSize:"14px", fontWeight:700, color:"#374151", margin:"20px 0 4px" }}>Key achievements <span style={{ fontSize:"11px", color:"#9ca3af", fontWeight:400 }}>(optional)</span></h3>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"10px" }}>Certifications, awards, notable projects — separated by ·</p>
-                  <textarea value={form.achievements} onChange={e => setForm(f=>({...f,achievements:e.target.value}))} rows={3} style={{ ...inp, resize:"vertical" as const, lineHeight:1.6 }} placeholder="e.g. CMA certified · Top performer Q3 2022 · Launched Arabic content vertical" />
-                  <button onClick={generateAchievements} disabled={!form.personal.title} style={{ display:"flex", alignItems:"center", gap:"5px", padding:"7px 14px", background: form.personal.title ? "#f0fdf4" : "#f3f4f6", color: form.personal.title ? "#028090" : "#9ca3af", border: form.personal.title ? "1px solid #bbf7d0" : "none", borderRadius:"8px", fontWeight:600, fontSize:"12px", cursor: form.personal.title ? "pointer" : "default", marginTop:"8px" }}>
-                    <Sparkles size={11} /> AI suggest achievements
-                  </button>
+                  </div>
                 </div>
               )}
 
@@ -1457,35 +1299,26 @@ export default function CVBuilderPage() {
               {currentStepId === "summary" && (
                 <div>
                   <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Professional summary</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>AI writes this from your experience. It calibrates length to how full your CV is — shorter if dense, richer if light.</p>
-                  {generating ? (
-                    <div style={{ display:"flex", alignItems:"center", gap:"10px", padding:"16px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"10px", marginBottom:"14px" }}>
-                      <Loader2 size={16} color="#028090" className="animate-spin" />
-                      <div>
-                        <p style={{ fontWeight:600, color:"#028090", fontSize:"13px", margin:0 }}>Writing your summary…</p>
-                        <p style={{ color:"#6b7280", fontSize:"12px", margin:0 }}>AI is reading your experience and crafting a market-relevant summary</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ position:"relative", marginBottom:"14px" }}>
-                      <textarea value={form.summary} onChange={e => setForm(f=>({...f,summary:e.target.value}))} rows={6} placeholder="Your summary will appear here once AI generates it…" style={{ ...inp, resize:"vertical" as const, lineHeight:1.7 }} />
-                      {form.summary && (
-                        <div style={{ position:"absolute", bottom:"10px", right:"10px" }}>
-                          <button onClick={generateSummary} style={{ display:"flex", alignItems:"center", gap:"4px", padding:"4px 9px", background:"white", border:"1px solid #e5e7eb", borderRadius:"7px", fontSize:"11px", fontWeight:600, color:"#6b7280", cursor:"pointer" }}>
-                            <Sparkles size={10} /> Regenerate
-                          </button>
-                        </div>
-                      )}
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>3–4 sentences about who you are and what you bring. Or let AI generate it.</p>
+                  <textarea
+                    style={{ ...inp, height:"140px", resize:"none" as const, lineHeight:1.6 }}
+                    placeholder="Experienced finance professional with 8+ years…"
+                    value={form.summary}
+                    onChange={e => setForm(f => ({ ...f, summary: e.target.value }))}
+                  />
+                  {generating && (
+                    <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"10px", color:"#028090", fontSize:"13px" }}>
+                      <Loader2 size={14} className="animate-spin" /> AI is writing your summary…
                     </div>
                   )}
                   {!generating && form.summary && (
-                    <div style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 12px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"8px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"5px", marginTop:"8px" }}>
                       <CheckCircle size={12} color="#059669" />
                       <p style={{ fontSize:"11px", color:"#059669", margin:0, fontWeight:500 }}>Generated — edit anything you like</p>
                     </div>
                   )}
                   {!generating && !form.summary && (
-                    <button onClick={generateSummary} disabled={!form.personal.title} style={{ display:"flex", alignItems:"center", gap:"7px", padding:"10px 18px", background: form.personal.title?"#028090":"#e5e7eb", color: form.personal.title?"white":"#9ca3af", border:"none", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor: form.personal.title?"pointer":"default" }}>
+                    <button onClick={generateSummary} disabled={!form.personal.title} style={{ display:"flex", alignItems:"center", gap:"7px", padding:"10px 18px", background: form.personal.title?"#028090":"#e5e7eb", color: form.personal.title?"white":"#9ca3af", border:"none", borderRadius:"10px", fontWeight:600, fontSize:"13px", cursor: form.personal.title?"pointer":"default", marginTop:"10px" }}>
                       <Sparkles size={13} /> Generate with AI
                     </button>
                   )}
@@ -1496,15 +1329,15 @@ export default function CVBuilderPage() {
               {currentStepId === "template" && (
                 <div>
                   <h2 style={{ fontSize:"18px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Choose your template</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>5 structurally different designs for the MENA market. Switch anytime — the preview updates instantly.</p>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"8px", marginBottom:"24px" }}>
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"20px" }}>3 premium designs for the MENA market. Switch anytime — the preview updates instantly.</p>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"10px", marginBottom:"24px" }}>
                     {TEMPLATES.map(t => (
-                      <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:0, border: selectedTemplate===t.id ? "2.5px solid #028090" : "1.5px solid #e5e7eb", borderRadius:"10px", overflow:"hidden", cursor:"pointer", background:"white", boxShadow: selectedTemplate===t.id ? "0 0 0 3px rgba(2,128,144,0.12)" : "0 1px 3px rgba(0,0,0,0.05)", transition:"all .15s" }}>
-                        <div style={{ padding:"6px 6px 4px" }}>
-                          <p style={{ fontSize:"10px", fontWeight:700, color: selectedTemplate===t.id ? "#028090" : "#0a1f24", margin:0 }}>{t.name}</p>
-                          <p style={{ fontSize:"8px", color:"#9ca3af", margin:0, marginTop:"1px", lineHeight:1.3 }}>{t.sub}</p>
+                      <button key={t.id} onClick={() => setSelectedTemplate(t.id)} style={{ padding:0, border: selectedTemplate===t.id ? "2.5px solid #028090" : "1.5px solid #e5e7eb", borderRadius:"12px", overflow:"hidden", cursor:"pointer", background:"white", boxShadow: selectedTemplate===t.id ? "0 0 0 3px rgba(2,128,144,0.15)" : "0 1px 3px rgba(0,0,0,0.05)", transition:"all .15s", textAlign:"left" as const }}>
+                        <div style={{ padding:"10px 10px 8px" }}>
+                          <p style={{ fontSize:"11px", fontWeight:800, color: selectedTemplate===t.id ? "#028090" : "#0a1f24", margin:0, marginBottom:"3px" }}>{t.name}</p>
+                          <p style={{ fontSize:"9px", color:"#9ca3af", margin:0, lineHeight:1.4 }}>{t.sub}</p>
                         </div>
-                        {selectedTemplate===t.id && <div style={{ background:"#028090", padding:"2px 0", textAlign:"center" as const, fontSize:"8px", color:"white", fontWeight:700, letterSpacing:".04em" }}>✓ SELECTED</div>}
+                        {selectedTemplate===t.id && <div style={{ background:"#028090", padding:"3px 0", textAlign:"center" as const, fontSize:"9px", color:"white", fontWeight:700, letterSpacing:".05em" }}>✓ SELECTED</div>}
                       </button>
                     ))}
                   </div>
