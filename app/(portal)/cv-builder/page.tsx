@@ -97,7 +97,7 @@ function getContentDensity(form: FormData) {
     headerPadVEm:   lerpF(2.60, 1.50, t),
     headerPadHEm:   lerpF(2.20, 1.80, t),
     bodyPadEm:      lerpF(1.80, 1.20, t),
-    sidebarWidthEm: lerpF(15.0, 12.0, t),
+    sidebarWidthEm: lerpF(12.5, 10.5, t),
     showHobbies:      hasHobbies || score < 58,
     showAchievements: hasAchievements || score < 42,
     summaryTargetWords: Math.round(lerp(85, 42, t)),
@@ -540,7 +540,7 @@ function CVPreview({ form, templateId }: { form: FormData; templateId: string })
           <TplComponent form={form} d={density} />
         </div>
       </div>
-      {density.isSparse && (
+      {density.isSparse && density.score > 0 && (
         <div style={{ marginTop:"8px", padding:"6px 10px", background:"rgba(2,128,144,0.15)", borderRadius:"6px", fontSize:"10px", color:"rgba(2,128,144,0.9)", display:"flex", alignItems:"center", gap:"6px" }}>
           <Sparkles size={10} /> AI will expand your content to fill the page beautifully
         </div>
