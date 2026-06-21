@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
     // ── PHASE 1: AI scoring using structured cards (fast) ─────────────────────
-    const BATCH_SIZE = 30
+    const BATCH_SIZE = 20
     const phase1Scores: any[] = []
 
     for (let i = 0; i < available.length; i += BATCH_SIZE) {
@@ -298,7 +298,7 @@ Return ONLY JSON:
     console.log(`[insight] finalMatches: ${finalMatches.length} after deep read`)
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
-    const remaining = phase1Sorted.slice(20).filter(m => m.score >= 20).map((m: any) => {
+    const remaining = phase1Sorted.slice(10).filter(m => m.score >= 20).map((m: any) => {
       const c = available.find((c: any) => c.id === m.id)
       return c ? { ...c, score: m.score, tier: "possible", reason: m.reason, gaps: null } : null
     }).filter(Boolean)
