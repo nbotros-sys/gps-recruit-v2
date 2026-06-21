@@ -111,15 +111,17 @@ export default function DatabaseImportPage() {
       if (savedId && cvText.trim()) {
         const capturedId = savedId
         const capturedText = cvText
+        // Run both independently — embedding never blocked by structured extraction
         fetch("/api/extract-structured", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ candidateId: capturedId, cv_text: capturedText })
-        }).then(() => fetch("/api/generate-embedding", {
+        }).catch(() => {})
+        fetch("/api/generate-embedding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ candidateId: capturedId, text: capturedText.slice(0, 8000) })
-        })).catch(() => {})
+        }).catch(() => {})
       }
 
       // Extract photo from docx
