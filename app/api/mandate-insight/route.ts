@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
     const searchText = `${mandate_title}\n${jdParsed.candidate_description}`
 
     // ── Vector search ─────────────────────────────────────────────────────────
-    const vectorThreshold = deeper_search ? 0.05 : 0.10
-    const vectorLimit = deeper_search ? 200 : 150
+    const vectorThreshold = deeper_search ? 0.0 : 0.0
+    const vectorLimit = deeper_search ? 80 : 50
     let vectorIds: string[] = []
 
     try {
