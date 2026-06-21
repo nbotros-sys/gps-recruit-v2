@@ -156,62 +156,11 @@ export async function POST(req: NextRequest) {
 
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
-    // ── PHASE 1: AI scoring using structured cards (fast) ─────────────────────
-    const BATCH_SIZE = 30
-    const phase1Scores: any[] = []
-
-    for (let i = 0; i < available.length; i += BATCH_SIZE) {
-      const batch = available.slice(i, i + BATCH_SIZE)
-      const summaries = batch.map((c: any) => {
-        const s = c.cv_structured
-        return {
-          id: c.id,
-          title: c.current_title,
-          company: c.current_company,
-          // Use structured summary if available, fall back to CV snippet
-          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").replace(/[^\x00-\x7F]/g, " ").slice(0, 2000),
-          skills: s ? toArray(s.all_skills).slice(0, 15) : toArray(c.tags),
-          seniority: s?.seniority_level,
-          years: s?.total_years_experience,
-          certifications: s ? toArray(s.certifications) : [],
-          industries: s ? toArray(s.industries) : [],
-          trajectory: s?.career_trajectory,
-        }
-      })
-
-      const prompt = `You are a senior recruitment consultant. Score candidates for this role.
-
-ROLE: ${mandate_title}
-WHAT WE NEED: ${jdParsed.candidate_description}
-
-CANDIDATES:
-${JSON.stringify(summaries)}
-
-Score each 0-100 combining:
-- SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
-- SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
-
-Score everyone. Include anyone >=10. Be VERY generous — a VP Engineering is highly relevant for a CTO role. A Head of Engineering is relevant for a CTO search. A CTO at an e-commerce company is relevant for a fintech CTO role. Adjacent sectors count heavily. Only score below 10 for candidates with completely unrelated functions (e.g. a sales manager for a CTO role). Never exclude based on title or sector alone — focus on what the candidate actually DOES.
-
-Return ONLY JSON array:
-[{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
-
-      try {
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-          body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
-        })
-        const data = await res.json()
-        const text = data.content?.[0]?.text || "[]"
-        const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
-        phase1Scores.push(...parsed)
-      } catch {}
-    }
-
-    // Sort by score, take top 20 for deep read
-    const phase1Sorted = phase1Scores.filter(m => m.score >= 10).sort((a, b) => b.score - a.score)
-    const top20ids = phase1Sorted.slice(0, 30).map((m: any) => m.id)
+    // ── PHASE 1: Skip for small pools — send all candidates to deep read ────────
+    // Phase 1 pre-filtering only makes sense for 500+ candidate pools
+    // For pools under 100, go straight to deep read on everyone
+    const phase1Sorted = available.map((c: any) => ({ id: c.id, score: 50, tier: "possible", reason: "" }))
+    const top20ids = available.map((c: any) => c.id)
 
     // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
     const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
