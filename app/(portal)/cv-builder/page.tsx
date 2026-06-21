@@ -772,18 +772,20 @@ export default function CVBuilderPage() {
         <div style={{ width:"1px", height:"18px", background:"#e5e7eb" }} />
         <span style={{ fontSize:"13px", fontWeight:700, color:"#0a1f24", letterSpacing:"-0.01em" }}>CV Builder</span>
 
-        {/* Template quick-switch — always visible in topbar */}
-        <div style={{ display:"flex", gap:"4px", marginLeft:"12px" }}>
-          {TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setSelectedTemplate(t.id)}
-              style={{ padding:"5px 12px", borderRadius:"6px", border:"1.5px solid", fontSize:"11px", fontWeight:700, cursor:"pointer", transition:"all .12s",
-                borderColor: selectedTemplate===t.id ? "#028090" : "#e5e7eb",
-                background: selectedTemplate===t.id ? "#028090" : "white",
-                color: selectedTemplate===t.id ? "white" : "#6b7280" }}>
-              {t.name}
-            </button>
-          ))}
-        </div>
+        {/* Template quick-switch — only on template step */}
+        {activeTab === "builder" && currentStepId === "template" && (
+          <div style={{ display:"flex", gap:"4px", marginLeft:"12px" }}>
+            {TEMPLATES.map(t => (
+              <button key={t.id} onClick={() => setSelectedTemplate(t.id)}
+                style={{ padding:"5px 12px", borderRadius:"6px", border:"1.5px solid", fontSize:"11px", fontWeight:700, cursor:"pointer", transition:"all .12s",
+                  borderColor: selectedTemplate===t.id ? "#028090" : "#e5e7eb",
+                  background: selectedTemplate===t.id ? "#028090" : "white",
+                  color: selectedTemplate===t.id ? "white" : "#6b7280" }}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div style={{ marginLeft:"auto", display:"flex", gap:"8px" }}>
           {(["builder","reviewer"] as const).map(t => (
@@ -890,10 +892,10 @@ export default function CVBuilderPage() {
 
       {/* ── BUILDER TAB ── */}
       {activeTab === "builder" && (
-        <div style={{ display:"grid", gridTemplateColumns:"400px 1fr", height:BODY_H, overflow:"hidden" }}>
+        <div style={{ display:"grid", gridTemplateColumns:currentStepId==="template" ? "440px 1fr" : "1fr", height:BODY_H, overflow:"hidden" }}>
 
           {/* LEFT — form panel */}
-          <div style={{ background:"white", borderRight:"1px solid #e8ecef", display:"flex", flexDirection:"column" as const, overflow:"hidden" }}>
+          <div style={{ background:"white", borderRight:currentStepId==="template"?"1px solid #e8ecef":"none", display:"flex", flexDirection:"column" as const, overflow:"hidden", maxWidth:currentStepId==="template"?"440px":"680px", margin:currentStepId==="template"?"0":"0 auto", width:"100%" }}>
 
             {/* Step progress bar */}
             <div style={{ padding:"12px 20px 10px", borderBottom:"1px solid #f3f4f6" }}>
@@ -920,7 +922,7 @@ export default function CVBuilderPage() {
             </div>
 
             {/* Form scroll area */}
-            <div style={{ flex:1, overflowY:"auto" as const, padding:"18px 20px" }}>
+            <div style={{ flex:1, overflowY:"auto" as const, padding:currentStepId==="template"?"18px 20px":"28px 32px" }}>
 
               {/* ── STEP 1: PERSONAL ── */}
               {currentStepId === "personal" && (
@@ -1249,10 +1251,12 @@ export default function CVBuilderPage() {
             </div>
           </div>
 
-          {/* RIGHT — live preview */}
-          <div style={{ padding:"14px", overflow:"hidden", display:"flex", flexDirection:"column" as const }}>
-            <CVPreview form={form} templateId={selectedTemplate} />
-          </div>
+          {/* RIGHT — live preview (template step only) */}
+          {currentStepId === "template" && (
+            <div style={{ padding:"14px", overflow:"hidden", display:"flex", flexDirection:"column" as const }}>
+              <CVPreview form={form} templateId={selectedTemplate} />
+            </div>
+          )}
         </div>
       )}
 
