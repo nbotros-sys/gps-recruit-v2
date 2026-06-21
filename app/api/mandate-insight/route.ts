@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
           title: c.current_title,
           company: c.current_company,
           // Use structured summary if available, fall back to CV snippet
-          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").slice(200, 1200),
+          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").replace(/[\u{1F300}-\u{1FFFF}]/gu, "").slice(0, 2000),
           skills: s ? toArray(s.all_skills).slice(0, 15) : toArray(c.tags),
           seniority: s?.seniority_level,
           years: s?.total_years_experience,
@@ -191,7 +191,7 @@ Score each 0-100 combining:
 - SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
 - SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
 
-Include anyone >=10. Be VERY generous — a CFO at a bank is highly relevant for a CFO manufacturing role. A Finance Director is relevant for a CFO search. Adjacent sectors count heavily. Only exclude candidates with completely unrelated functions (e.g. sales candidates for a finance role). Do not exclude based on title or sector alone.
+Score everyone. Include anyone >=10. Be VERY generous — a VP Engineering is highly relevant for a CTO role. A Head of Engineering is relevant for a CTO search. A CTO at an e-commerce company is relevant for a fintech CTO role. Adjacent sectors count heavily. Only score below 10 for candidates with completely unrelated functions (e.g. a sales manager for a CTO role). Never exclude based on title or sector alone — focus on what the candidate actually DOES.
 
 Return ONLY JSON array:
 [{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
