@@ -89,19 +89,19 @@ function getContentDensity(form: FormData) {
   return {
     score, t,
     isSparse: score < 45,
-    bodyEm:         lerpF(1.05, 0.85, t),
-    bulletEm:       lerpF(1.00, 0.82, t),
-    secLabelEm:     lerpF(0.78, 0.68, t),
-    lineHeight:     lerpF(1.90, 1.55, t),
+    // Sparse (t=0) → large, airy, fills page. Dense (t=1) → compact, everything fits.
+    bodyEm:         lerpF(1.18, 0.85, t),   // body text — noticeably bigger when sparse
+    bulletEm:       lerpF(1.12, 0.82, t),
+    secLabelEm:     lerpF(0.88, 0.68, t),
+    lineHeight:     lerpF(2.10, 1.52, t),   // very open leading when sparse
     letterSp:       lerpF(0.04, 0.10, t),
-    nameEm:         lerpF(1.90, 1.50, t),
-    titleEm:        lerpF(1.05, 0.88, t),
-    photoEm:        lerpF(7.00, 5.00, t),
-    sectionGapEm:   lerpF(1.80, 0.80, t),
-    headerPadVEm:   lerpF(2.40, 1.40, t),
-    headerPadHEm:   lerpF(2.00, 1.60, t),
-    bodyPadEm:      lerpF(1.60, 1.10, t),
-    // Sidebar is fixed proportion — never collapses content
+    nameEm:         lerpF(2.20, 1.50, t),   // large name when sparse
+    titleEm:        lerpF(1.18, 0.88, t),
+    photoEm:        lerpF(8.50, 5.00, t),   // bigger photo when sparse
+    sectionGapEm:   lerpF(2.80, 0.80, t),   // generous gaps when sparse
+    headerPadVEm:   lerpF(3.20, 1.40, t),   // tall header when sparse
+    headerPadHEm:   lerpF(2.40, 1.60, t),
+    bodyPadEm:      lerpF(2.20, 1.10, t),   // generous body padding when sparse
     sidebarPct:     32,   // percentage of total width
     showHobbies:      hasHobbies || score < 58,
     showAchievements: hasAchievements || score < 42,
@@ -234,7 +234,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
       </div>
 
       {/* Main content */}
-      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0 }}>
+      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0, justifyContent:"space-between" }}>
         {mL("Professional Profile")}
         <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#3A3A3A", lineHeight:d.lineHeight, margin:"0 0 0.2em", ...NO_BREAK }}>{sum}</p>
         {mL("Professional Experience")}
@@ -273,6 +273,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
             <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#6B6B6B", ...NO_BREAK }}>{e.institution}{e.endYear?` · ${e.endYear}`:""}</div>
           </div>
         ))}
+        <div style={{ flex:1 }} />
       </div>
     </div>
   )
@@ -332,7 +333,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
       {/* Body grid */}
       <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
         {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em ${d.bodyPadEm*0.65}em ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0 }}>
+        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em ${d.bodyPadEm*0.65}em ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
           {sec("Profile")}
           <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.28em", ...NO_BREAK }}>{sum}</p>
           {sec("Experience")}
@@ -364,6 +365,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
               ))}
             </div>
           )}
+          <div style={{ flex:1 }} />
         </div>
 
         {/* Sidebar */}
@@ -468,7 +470,7 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
       {/* Body */}
       <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
         {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.9}em`, overflow:"hidden", minWidth:0 }}>
+        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.9}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
           {sec("Profile")}
           <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.25em", ...NO_BREAK }}>{sum}</p>
           {sec("Experience")}
@@ -500,6 +502,7 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
               ))}
             </div>
           )}
+          <div style={{ flex:1 }} />
         </div>
 
         {/* Right sidebar */}
@@ -1036,21 +1039,45 @@ export default function CVBuilderPage() {
                       <label style={{ ...lbl, display:"flex", alignItems:"center", gap:"6px", cursor:"pointer", marginBottom:"12px" }}>
                         <input type="checkbox" checked={e.current} onChange={ev=>updateExp(i,"current",ev.target.checked)}/> I currently work here
                       </label>
-                      <label style={lbl}>What did you achieve & do in this role?</label>
+                      <label style={lbl}>Your rough notes for this role</label>
+                      <p style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"8px", lineHeight:1.5 }}>
+                        Jot down what you did — team size, budgets, results, anything. Add at least 3 notes, then AI will rewrite them into polished bullet points.
+                      </p>
                       {e.bullets.map((b,j)=>(
                         <div key={j} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"flex-start" }}>
                           <span style={{ color:"#028090", fontSize:"14px", marginTop:"10px", flexShrink:0, lineHeight:1 }}>▸</span>
-                          <input style={{ ...inp, fontSize:"13px" }} placeholder={`Achievement or responsibility ${j+1}`} value={b} onChange={ev=>updateBullet(i,j,ev.target.value)}/>
+                          <input style={{ ...inp, fontSize:"13px" }} placeholder={
+                            j===0 ? "e.g. Managed a team of 8 people" :
+                            j===1 ? "e.g. Cut costs by 20% through process changes" :
+                            j===2 ? "e.g. Responsible for EGP 30M budget" :
+                            "e.g. Another achievement or responsibility"
+                          } value={b} onChange={ev=>updateBullet(i,j,ev.target.value)}/>
                         </div>
                       ))}
-                      <div style={{ display:"flex", gap:"8px", marginTop:"8px" }}>
-                        <button onClick={()=>{const u=[...form.experience];u[i].bullets=[...u[i].bullets,""];setForm(f=>({...f,experience:u}))}}
-                          style={{ fontSize:"12px", color:"#028090", background:"none", border:"none", cursor:"pointer", fontWeight:600, padding:0 }}>+ Add bullet</button>
-                        <button onClick={()=>generateBullets(i)} disabled={!e.title||!e.company||generatingBullet===i}
-                          style={{ fontSize:"12px", color:"white", background:(!e.title||!e.company)?"#d1d5db":"#028090", border:"none", borderRadius:"7px", padding:"5px 12px", cursor:(!e.title||!e.company)?"default":"pointer", fontWeight:600, display:"flex", alignItems:"center", gap:"5px" }}>
-                          {generatingBullet===i?<><Loader2 size={11} className="animate-spin"/>Writing…</>:<><Sparkles size={11}/>Write with AI</>}
-                        </button>
-                      </div>
+                      {(() => {
+                        const filledBullets = e.bullets.filter(b=>b.trim()).length
+                        const canAI = e.title && e.company && filledBullets >= 3
+                        return (
+                          <div style={{ marginTop:"8px" }}>
+                            <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+                              <button onClick={()=>{const u=[...form.experience];u[i].bullets=[...u[i].bullets,""];setForm(f=>({...f,experience:u}))}}
+                                style={{ fontSize:"12px", color:"#028090", background:"none", border:"none", cursor:"pointer", fontWeight:600, padding:0 }}>+ Add note</button>
+                              <button onClick={()=>generateBullets(i)} disabled={!canAI||generatingBullet===i}
+                                style={{ fontSize:"12px", color:"white", background:canAI?"#028090":"#d1d5db", border:"none", borderRadius:"7px", padding:"5px 12px", cursor:canAI?"pointer":"default", fontWeight:600, display:"flex", alignItems:"center", gap:"5px" }}>
+                                {generatingBullet===i?<><Loader2 size={11} className="animate-spin"/>Polishing…</>:<><Sparkles size={11}/>Polish with AI</>}
+                              </button>
+                            </div>
+                            {!canAI && e.title && e.company && (
+                              <p style={{ fontSize:"11px", color:"#9ca3af", marginTop:"6px" }}>
+                                Add {Math.max(0, 3-filledBullets)} more note{3-filledBullets!==1?"s":""} to unlock AI polish
+                                {" · "}<span style={{ display:"inline-flex", gap:"3px" }}>
+                                  {[0,1,2].map(n=><span key={n} style={{ width:"6px", height:"6px", borderRadius:"50%", background:n<filledBullets?"#028090":"#e5e7eb", display:"inline-block" }}/>)}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   ))}
                   <button onClick={addExp} style={{ width:"100%", padding:"12px", border:"1.5px dashed #d1d5db", borderRadius:"12px", background:"white", color:"#6b7280", fontSize:"13px", cursor:"pointer", fontWeight:600 }}>+ Add another role</button>
@@ -1169,7 +1196,9 @@ export default function CVBuilderPage() {
               {currentStepId==="summary"&&(
                 <div>
                   <h2 style={{ fontSize:"22px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Professional summary</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"20px" }}>3–4 sentences about who you are and what you bring. AI calibrates the length to fill your CV perfectly.</p>
+                  <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"20px" }}>
+                    3–4 sentences about who you are. The AI reads your job title, experience, and skills to write this — the more you've filled in, the richer it'll be.
+                  </p>
                   <textarea style={{ ...inp, height:"150px", resize:"none" as const, lineHeight:1.65, marginBottom:"14px", fontSize:"14px" }}
                     placeholder="Experienced finance professional with 8+ years…"
                     value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))}/>
