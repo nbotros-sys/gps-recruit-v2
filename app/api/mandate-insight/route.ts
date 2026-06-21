@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
       available = [...vectorRanked, ...notInVector]
     }
 
+    console.log(`[insight] available=${available.length} vectorIds=${vectorIds.length} existingIds=${existingIds.length}`)
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
 
     // ── PHASE 1: AI scoring using structured cards (fast) ─────────────────────
@@ -210,10 +211,14 @@ Return ONLY JSON array:
     }
 
     // Sort by score, take top 20 for deep read
+    console.log(`[insight] phase1 raw scores: ${phase1Scores.length} candidates scored`)
+    console.log(`[insight] phase1 sample scores: ${phase1Scores.slice(0,5).map((m:any) => `${m.score}`).join(', ')}`)
     const phase1Sorted = phase1Scores.filter(m => m.score >= 15).sort((a, b) => b.score - a.score)
+    console.log(`[insight] phase1 after filter (>=15): ${phase1Sorted.length} candidates`)
     const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read top candidates — runs in parallel ─────────────────
+    console.log(`[insight] top20ids: ${top20ids.length} candidates going to deep read`)
     const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
 
     const deepReadResults = await Promise.all(top20Candidates.map(async (c: any) => {
@@ -290,6 +295,7 @@ Return ONLY JSON:
     }))
 
     const finalMatches = deepReadResults.filter(Boolean)
+    console.log(`[insight] finalMatches: ${finalMatches.length} after deep read`)
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
     const remaining = phase1Sorted.slice(20).filter(m => m.score >= 20).map((m: any) => {
