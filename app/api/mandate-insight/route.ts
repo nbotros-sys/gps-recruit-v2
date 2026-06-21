@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
           title: c.current_title,
           company: c.current_company,
           // Use structured summary if available, fall back to CV snippet
-          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").replace(/[\u{1F300}-\u{1FFFF}]/gu, "").slice(0, 2000),
+          summary: s?.summary_paragraph || (c.cv_text || c.notes || "").replace(/[^\x00-\x7F]/g, " ").slice(0, 2000),
           skills: s ? toArray(s.all_skills).slice(0, 15) : toArray(c.tags),
           seniority: s?.seniority_level,
           years: s?.total_years_experience,
