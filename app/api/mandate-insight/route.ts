@@ -136,24 +136,22 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) { console.error("Vector error:", err) }
 
-    // ── Fetch candidates with structured profiles ──────────────────────────────
-    let available: any[] = []
+    // ── Fetch ALL candidates not already in pipeline ──────────────────────────
+    // With small pools (<500) always scan everyone — vector search used for ranking only
+    const { data: allCandidates } = await supabase.from("candidates")
+      .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+      .order("created_at", { ascending: false })
+    
+    // Rank by vector similarity if we have results, otherwise use full pool
+    let available: any[] = (allCandidates || []).filter((c: any) => !existingIds.includes(c.id))
+    
     if (vectorIds.length) {
-      const { data: vCands } = await supabase.from("candidates")
-        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-        .in("id", vectorIds)
-      // Also get non-embedded candidates (recent imports)
-      const { data: nonEmbedded } = await supabase.from("candidates")
-        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-        .not("id", "in", `(${[...existingIds, ...vectorIds].join(",") || "null"})`)
-        .limit(50)
-      available = [...(vCands || []), ...(nonEmbedded || []).filter((c: any) => !vectorIds.includes(c.id))]
-        .filter((c: any) => !existingIds.includes(c.id))
-    } else {
-      const { data } = await supabase.from("candidates")
-        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-        .order("created_at", { ascending: false })
-      available = (data || []).filter((c: any) => !existingIds.includes(c.id))
+      // Sort by vector similarity first, then append any candidates not in vector results
+      const vectorRanked = vectorIds
+        .map((id: string) => available.find((c: any) => c.id === id))
+        .filter(Boolean)
+      const notInVector = available.filter((c: any) => !vectorIds.includes(c.id))
+      available = [...vectorRanked, ...notInVector]
     }
 
     if (!available.length) return NextResponse.json({ total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." })
