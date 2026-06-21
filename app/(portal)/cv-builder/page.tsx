@@ -234,7 +234,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
       </div>
 
       {/* Main content */}
-      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0, justifyContent:"space-between" }}>
+      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0 }}>
         {mL("Professional Profile")}
         <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#3A3A3A", lineHeight:d.lineHeight, margin:"0 0 0.2em", ...NO_BREAK }}>{sum}</p>
         {mL("Professional Experience")}
@@ -313,7 +313,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
   const SW = 30
 
   return (
-    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif", display:"flex", flexDirection:"column" as const }}>
+    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif" }}>
       {/* Header */}
       <div style={{ padding:`${d.headerPadVEm*0.82}em ${d.headerPadHEm*1.05}em`, borderBottom:`3px solid ${TEAL}`, display:"flex", alignItems:"flex-start", gap:"1.1em" }}>
         {f.personal.photo && (
@@ -333,7 +333,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
       {/* Body grid */}
       <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
         {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em ${d.bodyPadEm*0.65}em ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
+        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em ${d.bodyPadEm*0.65}em ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0 }}>
           {sec("Profile")}
           <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.28em", ...NO_BREAK }}>{sum}</p>
           {sec("Experience")}
@@ -365,7 +365,6 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
               ))}
             </div>
           )}
-          <div style={{ flex:1 }} />
         </div>
 
         {/* Sidebar */}
@@ -438,7 +437,7 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
   )
 
   return (
-    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif", display:"flex", flexDirection:"column" as const }}>
+    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif" }}>
       {/* Header band */}
       <div style={{ background:`linear-gradient(135deg,${NAVY} 0%,#164B6E 100%)`, padding:`${d.headerPadVEm*0.85}em ${d.headerPadHEm*1.05}em`, flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:"1.1em" }}>
@@ -470,7 +469,7 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
       {/* Body */}
       <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
         {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.9}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
+        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.9}em`, overflow:"hidden", minWidth:0 }}>
           {sec("Profile")}
           <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.25em", ...NO_BREAK }}>{sum}</p>
           {sec("Experience")}
@@ -541,21 +540,40 @@ const TEMPLATES = [
 ]
 
 // ── CV PREVIEW ────────────────────────────────────────────────────────────────
+// basePx drives ALL sizing inside the CV (everything is in em).
+// It has two inputs:
+//   1. Box width  → keeps the CV proportional at any preview size
+//   2. Density t  → scales type UP when content is sparse so it fills the page
+//
+// At t=0 (empty CV):  font is 45% larger than at t=1 (full CV)
+// At t=1 (full CV):   font is at baseline — nothing overflows
+// This means a candidate with 1 job gets text that fills the page just like
+// a candidate with 4 jobs — the type simply breathes more.
 function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
-  const [basePx, setBasePx] = useState(9.5)
+  const [boxWidth, setBoxWidth] = useState(790)
   const boxRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const el = boxRef.current; if(!el) return
-    const update = () => { const w=el.getBoundingClientRect().width; setBasePx(Math.max(5.5,Math.min(11,w*0.012))) }
+    const update = () => setBoxWidth(el.getBoundingClientRect().width)
     update()
     const ro = new ResizeObserver(update); ro.observe(el)
     return ()=>ro.disconnect()
   },[])
+
   const density = getContentDensity(form)
   const tpl = TEMPLATES.find(t=>t.id===templateId)||TEMPLATES[0]
   const TplComponent = tpl.component
+
+  // Width factor: ~9.5px at 790px wide, scales proportionally
+  const widthFactor = Math.max(0.6, Math.min(1.2, boxWidth / 790))
+  // Density factor: 1.45 when empty → 1.0 when full
+  // Clamped so we never go below 1.0 (don't shrink below baseline for full CVs)
+  const densityFactor = lerp(1.45, 1.0, Math.min(density.t, 1))
+  const basePx = Math.round(9.5 * widthFactor * densityFactor * 10) / 10
+
   return (
-    <div style={{ background:"#1a2228", padding:"14px", borderRadius:"10px", height:"100%", display:"flex", flexDirection:"column" as const }}>
+    <div style={{ background:"#1a2228", padding:"14px", borderRadius:"10px", height:"100%" }}>
       <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"10px" }}>
         <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#22c55e" }} />
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" as const }}>Live preview</span>
@@ -566,11 +584,6 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
           <TplComponent form={form} d={density} />
         </div>
       </div>
-      {density.isSparse && density.score>0 && (
-        <div style={{ marginTop:"8px", padding:"6px 10px", background:"rgba(2,128,144,0.15)", borderRadius:"6px", fontSize:"10px", color:"rgba(2,128,144,0.9)", display:"flex", alignItems:"center", gap:"6px" }}>
-          <Sparkles size={10} /> AI will expand your content to fill the page beautifully
-        </div>
-      )}
     </div>
   )
 }
@@ -678,7 +691,11 @@ export default function CVBuilderPage() {
   function triggerPDFDownload(){
     if(typeof window==="undefined") return
     const style=document.createElement("style")
-    style.innerHTML=`@media print{body *{visibility:hidden}#cv-preview-print,#cv-preview-print *{visibility:visible}#cv-preview-print{position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;font-size:9.5px}}`
+    // Use a density-aware font size at print time too
+    const printDensity = getContentDensity(form)
+    const printDensityFactor = 1.0 + (1.0 - Math.min(printDensity.t, 1)) * 0.45
+    const printBasePx = Math.round(9.5 * printDensityFactor * 10) / 10
+    style.innerHTML=`@media print{body *{visibility:hidden}#cv-preview-print,#cv-preview-print *{visibility:visible}#cv-preview-print{position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;font-size:${printBasePx}px}}`
     document.head.appendChild(style); window.print(); setTimeout(()=>document.head.removeChild(style),1000)
   }
 
@@ -1275,7 +1292,7 @@ export default function CVBuilderPage() {
 
           {/* RIGHT — preview (template step only) */}
           {isTemplateStep&&(
-            <div style={{ padding:"14px", overflow:"hidden", display:"flex", flexDirection:"column" as const }}>
+            <div style={{ padding:"14px", overflow:"hidden" }}>
               <CVPreview form={form} templateId={selectedTemplate}/>
             </div>
           )}
