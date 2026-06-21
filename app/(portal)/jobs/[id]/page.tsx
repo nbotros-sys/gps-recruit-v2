@@ -354,13 +354,16 @@ export default function JobDetailPage() {
                   {/* Phone */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone</label>
-                    <input type="tel"
-                      value={form.phone}
-                      onChange={e => setForm({...form, phone: e.target.value})}
-                      placeholder="+20 100 123 4567"
-                      readOnly={!!candidate?.phone}
-                      className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent ${candidate?.phone ? "bg-gray-50 text-gray-500" : ""}`}
+                    <div className={`flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 ${candidate?.phone ? "bg-gray-50" : ""}`}>
+                      <span className="px-3 py-2.5 text-sm font-medium text-gray-500 bg-gray-100 border-r border-gray-200 select-none">+20</span>
+                      <input type="tel"
+                        value={form.phone ? form.phone.replace(/^\+20\s?/, '') : ''}
+                        onChange={e => setForm({...form, phone: '+20 ' + e.target.value})}
+                        placeholder="100 000 0000"
+                        readOnly={!!candidate?.phone}
+                        className={`flex-1 px-3 py-2.5 text-sm focus:outline-none ${candidate?.phone ? "bg-gray-50 text-gray-500" : "bg-white"}`}
                       style={{ "--tw-ring-color": "#028090" } as any} />
+                      </div>
                   </div>
 
                   {/* CV — show on-file state or upload */}
