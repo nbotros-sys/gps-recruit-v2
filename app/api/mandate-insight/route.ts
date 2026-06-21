@@ -191,7 +191,7 @@ Score each 0-100 combining:
 - SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
 - SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
 
-Include anyone >=20. Be generous — partial matches and adjacent backgrounds are worth surfacing. An accountant is relevant for payroll. An HR professional who handles compensation is relevant. Do not exclude based on title.
+Include anyone >=15. Be generous — read what the candidate actually DOES in their CV, not just their title. Examples: a VP Engineering or Head of Engineering scores 70+ for a CTO role. A CFO at any company scores 70+ for a CFO role. Only score below 15 if the candidate's entire career is in a completely unrelated function.
 
 Return ONLY JSON array:
 [{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
@@ -210,25 +210,22 @@ Return ONLY JSON array:
     }
 
     // Sort by score, take top 20 for deep read
-    const phase1Sorted = phase1Scores.filter(m => m.score >= 20).sort((a, b) => b.score - a.score)
+    const phase1Sorted = phase1Scores.filter(m => m.score >= 15).sort((a, b) => b.score - a.score)
     const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
 
-    // ── PHASE 2: Deep read full CV for top 20 + gap analysis ──────────────────
+    // ── PHASE 2: Deep read top candidates — runs in parallel ─────────────────
     const top20Candidates = available.filter((c: any) => top20ids.includes(c.id))
-    const finalMatches: any[] = []
 
-    for (const c of top20Candidates) {
+    const deepReadResults = await Promise.all(top20Candidates.map(async (c: any) => {
       const phase1Score = phase1Sorted.find((m: any) => m.id === c.id)
       const fullCVText = (c.cv_text || "").slice(0, 8000)
       const structured = c.cv_structured
 
-      // Gap analysis — use structured data if available, otherwise skip
       let gaps = { present: [] as string[], partial: [] as string[], missing_hard: [] as string[], missing_soft: [] as string[] }
       if (structured) {
         gaps = analyseGaps(structured, jdParsed.hard_requirements || {}, jdParsed.soft_preferences || {})
       }
 
-      // Deep score with full CV
       let deepScore = phase1Score?.score || 50
       let deepReason = phase1Score?.reason || ""
       let tier = phase1Score?.tier || "possible"
@@ -272,8 +269,8 @@ Return ONLY JSON:
         } catch {}
       }
 
-      if (deepScore >= 20) {
-        finalMatches.push({
+      if (deepScore >= 15) {
+        return {
           ...c,
           score: deepScore,
           tier,
@@ -281,16 +278,18 @@ Return ONLY JSON:
           gaps,
           ai_strengths: c.ai_strengths || [],
           ai_concerns: c.ai_concerns || [],
-          // Enrichment signals
           trajectory: structured?.career_trajectory || null,
           avg_tenure: structured?.avg_tenure_years || null,
           total_years: structured?.total_years_experience || null,
           seniority_level: structured?.seniority_level || null,
           certifications: structured ? toArray(structured.certifications) : [],
           all_skills: structured ? toArray(structured.all_skills).slice(0, 12) : toArray(c.tags),
-        })
+        }
       }
-    }
+      return null
+    }))
+
+    const finalMatches = deepReadResults.filter(Boolean)
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
     const remaining = phase1Sorted.slice(20).filter(m => m.score >= 20).map((m: any) => {
