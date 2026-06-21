@@ -136,22 +136,40 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) { console.error("Vector error:", err) }
 
-    // ── Fetch ALL candidates not already in pipeline ──────────────────────────
-    // With small pools (<500) always scan everyone — vector search used for ranking only
-    const { data: allCandidates } = await supabase.from("candidates")
-      .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-      .order("created_at", { ascending: false })
-    
-    // Rank by vector similarity if we have results, otherwise use full pool
-    let available: any[] = (allCandidates || []).filter((c: any) => !existingIds.includes(c.id))
-    
+    // ── Fetch candidates — vector-first, scalable to 3-4K candidates ──────────
+    // Vector search filters the pool first (fast, cheap, scalable)
+    // If vector finds candidates, only fetch those + recent non-embedded candidates
+    // If no vector results, fall back to recent 100 candidates
+    let available: any[] = []
+
     if (vectorIds.length) {
-      // Sort by vector similarity first, then append any candidates not in vector results
+      // Fetch vector matches (already ranked by similarity)
+      const { data: vectorCands } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+        .in("id", vectorIds)
+        .not("id", "in", `(${existingIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
+
+      // Also fetch recent candidates without embeddings (just uploaded, not yet embedded)
+      const allKnownIds = [...vectorIds, ...existingIds]
+      const { data: recentNoEmbed } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+        .not("id", "in", `(${allKnownIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
+        .order("created_at", { ascending: false })
+        .limit(20)
+
+      // Vector results first (ranked by similarity), then recent unembedded
       const vectorRanked = vectorIds
-        .map((id: string) => available.find((c: any) => c.id === id))
+        .map((id: string) => (vectorCands || []).find((c: any) => c.id === id))
         .filter(Boolean)
-      const notInVector = available.filter((c: any) => !vectorIds.includes(c.id))
-      available = [...vectorRanked, ...notInVector]
+      available = [...vectorRanked, ...(recentNoEmbed || [])]
+    } else {
+      // No embeddings yet — fall back to most recent 100 candidates
+      const { data: fallback } = await supabase.from("candidates")
+        .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
+        .not("id", "in", `(${existingIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
+        .order("created_at", { ascending: false })
+        .limit(100)
+      available = fallback || []
     }
 
     console.log(`[insight] available=${available.length} vectorIds=${vectorIds.length} existingIds=${existingIds.length}`)
