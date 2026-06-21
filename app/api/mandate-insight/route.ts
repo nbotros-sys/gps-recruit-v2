@@ -215,7 +215,7 @@ Return ONLY JSON array:
     console.log(`[insight] phase1 sample scores: ${phase1Scores.slice(0,5).map((m:any) => `${m.score}`).join(', ')}`)
     const phase1Sorted = phase1Scores.filter(m => m.score >= 15).sort((a, b) => b.score - a.score)
     console.log(`[insight] phase1 after filter (>=15): ${phase1Sorted.length} candidates`)
-    const top20ids = phase1Sorted.slice(0, 20).map((m: any) => m.id)
+    const top20ids = phase1Sorted.slice(0, 10).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read top candidates — runs in parallel ─────────────────
     console.log(`[insight] top20ids: ${top20ids.length} candidates going to deep read`)
@@ -223,7 +223,7 @@ Return ONLY JSON array:
 
     const deepReadResults = await Promise.all(top20Candidates.map(async (c: any) => {
       const phase1Score = phase1Sorted.find((m: any) => m.id === c.id)
-      const fullCVText = (c.cv_text || "").slice(0, 8000)
+      const fullCVText = (c.cv_text || "").slice(0, 4000)
       const structured = c.cv_structured
 
       let gaps = { present: [] as string[], partial: [] as string[], missing_hard: [] as string[], missing_soft: [] as string[] }
@@ -240,7 +240,7 @@ Return ONLY JSON array:
           const deepPrompt = `You are a senior recruitment consultant doing a thorough final assessment.
 
 ROLE: ${mandate_title}
-REQUIREMENTS: ${job_description.slice(0, 2000)}
+REQUIREMENTS: ${job_description.slice(0, 1500)}
 
 CANDIDATE FULL CV:
 ${fullCVText}
@@ -260,7 +260,7 @@ Return ONLY JSON:
           const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, messages: [{ role: "user", content: deepPrompt }] }),
+            body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: deepPrompt }] }),
           })
           const data = await res.json()
           const parsed = JSON.parse((data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim())
