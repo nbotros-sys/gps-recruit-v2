@@ -164,11 +164,15 @@ export default function MandateDetail() {
         location: m.location || "",
         keywords: "",
       })
-      // Load cached LinkedIn search results if available
+      // Load cached LinkedIn search results if available (only if non-empty)
       if ((m as any).linkedin_search_cache) {
         const cache = (m as any).linkedin_search_cache
-        setLinkedinResults(cache.results || [])
-        setLinkedinCachedAt(cache.cached_at || null)
+        const cachedResults = cache.results || []
+        if (cachedResults.length > 0) {
+          setLinkedinResults(cachedResults)
+          setLinkedinCachedAt(cache.cached_at || null)
+        }
+        // Empty cache is ignored — consultant can run a fresh search
       }
       setEditForm({
         title: m.title || "",
@@ -198,6 +202,8 @@ export default function MandateDetail() {
 
   async function runLinkedinSearch(force = false) {
     if (!mandate) return
+    // Always clear current results so stale cache doesn't show
+    setLinkedinResults([])
     setLinkedinSearching(true)
     try {
       const res = await fetch("/api/linkedin-search", {
