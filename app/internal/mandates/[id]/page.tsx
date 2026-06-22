@@ -18,6 +18,26 @@ const STAGE_LABELS: Record<string, string> = {
   shortlisted: "Shortlisted", offered: "Offered", placed: "Placed",
   rejected: "Rejected"
 }
+const SOURCE_LABELS: Record<string, string> = {
+  direct: "CV Import",
+  linkedin: "LinkedIn",
+  portal: "Job Portal",
+  referral: "Referral",
+  wuzzuf: "Wuzzuf",
+  bayt: "Bayt",
+  other: "Other",
+}
+
+const SOURCE_COLORS: Record<string, string> = {
+  direct: "bg-teal/10 text-teal",
+  linkedin: "bg-blue-100 text-blue-700",
+  portal: "bg-purple-100 text-purple-700",
+  referral: "bg-pink-100 text-pink-700",
+  wuzzuf: "bg-amber-100 text-amber-700",
+  bayt: "bg-green-100 text-green-700",
+  other: "bg-gray-100 text-gray-600",
+}
+
 const STAGE_COLORS: Record<string, string> = {
   new: "bg-gray-100 text-gray-600",
   screening: "bg-blue-100 text-blue-700",
@@ -1155,6 +1175,11 @@ export default function MandateDetail() {
                             {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{c.location ? ` · ${c.location}` : ""}
                             {c.total_years ? ` · ${c.total_years}yrs exp` : ""}
                           </div>
+                          {c.candidate?.source && (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mt-1 ${SOURCE_COLORS[c.candidate.source] || "bg-gray-100 text-gray-600"}`}>
+                              {SOURCE_LABELS[c.candidate.source] || c.candidate.source}
+                            </span>
+                          )}
                           <div className="text-xs text-teal mt-1 italic">{c.reason}</div>
                           {/* Gap indicators */}
                           {c.gaps && (
