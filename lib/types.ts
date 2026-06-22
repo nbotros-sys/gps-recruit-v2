@@ -15,6 +15,8 @@ export interface Mandate {
   created_at: string
   updated_at: string
   _count?: { applications: number }
+  talent_pool_cache?: any
+  talent_pool_cached_at?: string | null
 }
 
 export interface Candidate {
