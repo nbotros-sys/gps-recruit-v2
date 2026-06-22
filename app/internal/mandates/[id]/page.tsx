@@ -151,6 +151,13 @@ export default function MandateDetail() {
 
   useEffect(() => { loadData() }, [id])
 
+  // Auto-load talent pool from cache when switching to insight tab
+  useEffect(() => {
+    if (tab === "insight" && mandate && !insightData && !insightLoading) {
+      loadInsight(false, false)
+    }
+  }, [tab, mandate])
+
   async function loadInsight(deeper = false, forceRescan = false) {
     if (!mandate) return
 
