@@ -51,7 +51,7 @@ export default function CandidateProfile() {
     setUploadingPhoto(false)
   }
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<"overview" | "cv" | "notes">("overview")
+  const [activeTab, setActiveTab] = useState<"overview" | "cv" | "notes" | "roles">("overview")
   const [form, setForm] = useState<any>({})
   const [notes, setNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
@@ -277,6 +277,7 @@ export default function CandidateProfile() {
           { id: "overview", label: "Overview & Mandates" },
           { id: "cv", label: "CV" },
           { id: "notes", label: "Notes" },
+          { id: "roles", label: "Roles & History" },
         ].map(({ id: tid, label }) => (
           <button key={tid} onClick={() => setActiveTab(tid as any)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
@@ -432,6 +433,25 @@ export default function CandidateProfile() {
               className="btn-primary flex items-center gap-2 text-sm">
               <Save size={14} /> {savingNotes ? "Saving..." : "Save notes"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Roles & History tab — placeholder, full logic coming soon */}
+      {activeTab === "roles" && (
+        <div className="card space-y-4">
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-gray-900">Roles & History</h3>
+            <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700 font-medium">Coming soon</span>
+          </div>
+          <p className="text-sm text-gray-500">
+            This tab will show a full history of mandates this candidate has been considered for,
+            including active pipeline stages, rejections, and placements.
+          </p>
+          <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center text-gray-400 text-sm">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="font-medium text-gray-500 mb-1">Mandate history will appear here</div>
+            <div className="text-xs">Active mandates, rejections, and placements across all roles</div>
           </div>
         </div>
       )}
