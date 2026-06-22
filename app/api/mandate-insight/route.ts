@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     // ── Vector search ─────────────────────────────────────────────────────────
     const vectorThreshold = deeper_search ? 0.0 : 0.0
-    const vectorLimit = deeper_search ? 80 : 50
+    const vectorLimit = deeper_search ? 100 : 60
     let vectorIds: string[] = []
 
     try {
@@ -242,7 +242,7 @@ Return ONLY JSON array:
     console.log(`[insight] phase1 sample scores: ${phase1Scores.slice(0,5).map((m:any) => `${m.score}`).join(', ')}`)
     const phase1Sorted = phase1Scores.filter(m => m.score >= 10).sort((a, b) => b.score - a.score)
     console.log(`[insight] phase1 after filter (>=15): ${phase1Sorted.length} candidates`)
-    const top20ids = phase1Sorted.slice(0, 10).map((m: any) => m.id)
+    const top20ids = phase1Sorted.slice(0, 15).map((m: any) => m.id)
 
     // ── PHASE 2: Deep read top candidates — runs in parallel ─────────────────
     console.log(`[insight] top20ids: ${top20ids.length} candidates going to deep read`)
