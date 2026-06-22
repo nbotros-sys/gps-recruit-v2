@@ -12,10 +12,11 @@ import {
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
-const STAGES = ["new", "screening", "interview", "shortlisted", "offered", "placed"]
+const STAGES = ["new", "screening", "interview", "shortlisted", "offered", "placed", "rejected"]
 const STAGE_LABELS: Record<string, string> = {
   new: "New", screening: "Screening", interview: "Interview",
-  shortlisted: "Shortlisted", offered: "Offered", placed: "Placed"
+  shortlisted: "Shortlisted", offered: "Offered", placed: "Placed",
+  rejected: "Rejected"
 }
 const STAGE_COLORS: Record<string, string> = {
   new: "bg-gray-100 text-gray-600",
@@ -24,6 +25,7 @@ const STAGE_COLORS: Record<string, string> = {
   shortlisted: "bg-teal/10 text-teal",
   offered: "bg-amber-100 text-amber-700",
   placed: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-600",
 }
 
 type BulkResult = {
