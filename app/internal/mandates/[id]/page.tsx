@@ -70,7 +70,7 @@ export default function MandateDetail() {
   const { id } = useParams()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight">("pipeline")
+  const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
@@ -92,6 +92,12 @@ export default function MandateDetail() {
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
   const [insightCachedAt, setInsightCachedAt] = useState<string | null>(null)
+  const [linkedinSearch, setLinkedinSearch] = useState<{ title: string; location: string; keywords: string }>({ title: "", location: "", keywords: "" })
+  const [linkedinResults, setLinkedinResults] = useState<any[]>([])
+  const [linkedinSearching, setLinkedinSearching] = useState(false)
+  const [linkedinCachedAt, setLinkedinCachedAt] = useState<string | null>(null)
+  const [linkedinEnriching, setLinkedinEnriching] = useState<Record<number, boolean>>({})
+  const [linkedinAdded, setLinkedinAdded] = useState<Record<number, boolean>>({})
   const [scoringCandidate, setScoringCandidate] = useState(false)
   const [candidateRoles, setCandidateRoles] = useState<any[]>([])
 
@@ -152,6 +158,18 @@ export default function MandateDetail() {
     if (m) {
       setMandate(m)
       setJdText(m.job_description || "")
+      // Pre-fill LinkedIn search from mandate
+      setLinkedinSearch({
+        title: m.title || "",
+        location: m.location || "",
+        keywords: "",
+      })
+      // Load cached LinkedIn search results if available
+      if ((m as any).linkedin_search_cache) {
+        const cache = (m as any).linkedin_search_cache
+        setLinkedinResults(cache.results || [])
+        setLinkedinCachedAt(cache.cached_at || null)
+      }
       setEditForm({
         title: m.title || "",
         client_name: m.client_name || "",
@@ -177,6 +195,74 @@ export default function MandateDetail() {
       loadInsight(false, false)
     }
   }, [tab, mandate])
+
+  async function runLinkedinSearch(force = false) {
+    if (!mandate) return
+    setLinkedinSearching(true)
+    try {
+      const res = await fetch("/api/linkedin-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: linkedinSearch.title,
+          location: linkedinSearch.location,
+          keywords: linkedinSearch.keywords,
+          mandate_id: id,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        console.error("LinkedIn search error:", data.error)
+        setLinkedinSearching(false)
+        return
+      }
+      setLinkedinResults(data.results || [])
+      // Cache results in Supabase against this mandate
+      const now = new Date().toISOString()
+      setLinkedinCachedAt(now)
+      await supabase.from("mandates").update({
+        linkedin_search_cache: { results: data.results, cached_at: now, search_params: data.search_params },
+      }).eq("id", id)
+    } catch (err) {
+      console.error("LinkedIn search failed:", err)
+    }
+    setLinkedinSearching(false)
+  }
+
+  async function enrichAndAdd(result: any, idx: number) {
+    setLinkedinEnriching(prev => ({ ...prev, [idx]: true }))
+    try {
+      // Step 1: Enrich the full profile
+      const enrichRes = await fetch("/api/enrich-from-linkedin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkedin_url: result.linkedin_url }),
+      })
+      const enrichData = await enrichRes.json()
+      if (!enrichData.candidateId) throw new Error("Enrichment failed")
+
+      // Step 2: Add to this mandate pipeline at Screening stage
+      const { error } = await supabase.from("applications").insert([{
+        mandate_id: id,
+        candidate_id: enrichData.candidateId,
+        stage: "screening",
+        source: "linkedin_search",
+      }])
+      if (!error) {
+        setLinkedinAdded(prev => ({ ...prev, [idx]: true }))
+        // Refresh applications
+        const { data: apps } = await supabase
+          .from("applications")
+          .select("*, candidate:candidates(*)")
+          .eq("mandate_id", id)
+          .order("ai_score", { ascending: false })
+        setApplications(apps || [])
+      }
+    } catch (err) {
+      console.error("Enrich and add failed:", err)
+    }
+    setLinkedinEnriching(prev => ({ ...prev, [idx]: false }))
+  }
 
   async function loadInsight(deeper = false, forceRescan = false) {
     if (!mandate) return
@@ -408,6 +494,7 @@ export default function MandateDetail() {
           { id: "bulk", icon: Upload, label: "Bulk CV Upload" },
           { id: "ai", icon: Brain, label: "Score Single CV" },
           { id: "insight", icon: Users, label: "Talent Pool" },
+          { id: "source", icon: Linkedin, label: "Source on LinkedIn" },
         ].map(({ id: tid, icon: Icon, label }) => (
           <button key={tid} onClick={() => setTab(tid as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
@@ -1277,6 +1364,135 @@ export default function MandateDetail() {
       )}
 
       {/* ── SINGLE SCORER ── */}
+      {/* ── LINKEDIN SOURCE TAB ── */}
+      {tab === "source" && (
+        <div className="space-y-5 max-w-3xl">
+          {/* Search fields */}
+          <div className="card p-5 space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <Linkedin size={15} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">Search LinkedIn</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Pre-filled from mandate — tweak and search. Each search costs ~3 credits.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Job Title</label>
+                <input
+                  value={linkedinSearch.title}
+                  onChange={e => setLinkedinSearch(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                  placeholder="e.g. CFO"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Location</label>
+                <input
+                  value={linkedinSearch.location}
+                  onChange={e => setLinkedinSearch(p => ({ ...p, location: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                  placeholder="e.g. Egypt"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Keywords</label>
+                <input
+                  value={linkedinSearch.keywords}
+                  onChange={e => setLinkedinSearch(p => ({ ...p, keywords: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                  placeholder="e.g. FMCG, P&L"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={() => runLinkedinSearch()}
+                disabled={!linkedinSearch.title.trim() || linkedinSearching}
+                className="btn-primary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {linkedinSearching ? <Loader2 size={14} className="animate-spin" /> : <Linkedin size={14} />}
+                {linkedinSearching ? "Searching..." : "Search LinkedIn"}
+              </button>
+              {linkedinCachedAt && (
+                <span className="text-xs text-gray-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                  Cached {new Date(linkedinCachedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  <button onClick={() => runLinkedinSearch(true)} className="text-teal hover:underline ml-1">Refresh</button>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Results */}
+          {linkedinResults.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 text-sm">{linkedinResults.length} profiles found</h3>
+                <span className="text-xs text-gray-400">Click "Add to pipeline" to enrich and save — costs 1 credit each</span>
+              </div>
+              {linkedinResults.map((result, idx) => (
+                <div key={idx} className="card p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {result.avatar_url ? (
+                      <img src={result.avatar_url} alt={result.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-blue-700 font-bold text-sm">{result.name?.charAt(0)?.toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-gray-900 text-sm">{result.name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {result.current_title}{result.current_company ? ` @ ${result.current_company}` : ""}
+                          {result.location ? ` · ${result.location}` : ""}
+                        </div>
+                        {result.headline && result.headline !== result.current_title && (
+                          <div className="text-xs text-gray-400 mt-1 italic truncate">{result.headline}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {result.linkedin_url && (
+                          <a href={result.linkedin_url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors">
+                            <ExternalLink size={11} /> View
+                          </a>
+                        )}
+                        {linkedinAdded[idx] ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
+                            <CheckCircle size={12} /> Added
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => enrichAndAdd(result, idx)}
+                            disabled={linkedinEnriching[idx]}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all disabled:opacity-50"
+                          >
+                            {linkedinEnriching[idx] ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={12} />}
+                            {linkedinEnriching[idx] ? "Adding..." : "Add to pipeline"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!linkedinResults.length && !linkedinSearching && (
+            <div className="card border-dashed text-center py-16">
+              <Linkedin size={36} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-gray-400 text-sm">Search LinkedIn to find candidates for this mandate</p>
+              <p className="text-gray-300 text-xs mt-1">Results are cached — you won't be charged twice for the same search</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === "ai" && (
         <div className="grid grid-cols-2 gap-6">
           <div className="card space-y-4">
