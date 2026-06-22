@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase"
 export default function Dashboard() {
   const [stats, setStats] = useState({ mandates: 0, candidates: 0, placements: 0, clients: 0 })
   const [pipeline, setPipeline] = useState<Record<string, number>>({})
+  const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({})
   const [recentMandates, setRecentMandates] = useState<any[]>([])
   const [recentCandidates, setRecentCandidates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -17,7 +18,7 @@ export default function Dashboard() {
       // Fetch counts using id-only selects — avoids Supabase HEAD 503 errors
       const [
         { data: mdRaw }, { data: cdRaw }, { data: pcRaw }, { data: clRaw },
-        { data: pd }, { data: mandates }, { data: candidates }
+        { data: pd }, { data: mandates }, { data: candidates }, { data: sourceRaw }
       ] = await Promise.all([
         supabase.from("mandates").select("id").eq("status", "active"),
         supabase.from("candidates").select("id"),
@@ -26,6 +27,7 @@ export default function Dashboard() {
         supabase.from("applications").select("stage"),
         supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5),
         supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6),
+        supabase.from("candidates").select("source"),
       ])
       const mc = (mdRaw || []).length
       const cc = (cdRaw || []).length
@@ -35,6 +37,12 @@ export default function Dashboard() {
       const counts: Record<string, number> = {}
       for (const a of pd || []) counts[a.stage] = (counts[a.stage] || 0) + 1
       setPipeline(counts)
+      const sCounts: Record<string, number> = {}
+      for (const c of sourceRaw || []) {
+        const s = c.source || "other"
+        sCounts[s] = (sCounts[s] || 0) + 1
+      }
+      setSourceCounts(sCounts)
       setRecentMandates(mandates || [])
       setRecentCandidates(candidates || [])
       setLoading(false)
@@ -101,6 +109,37 @@ export default function Dashboard() {
                 <div className="mt-2 h-1.5 rounded-full bg-gray-100">
                   <div className="h-full rounded-full bg-teal" style={{ width: `${pct}%` }} />
                 </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Source breakdown */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-gray-900">Candidates by Source</h2>
+          <span className="text-xs text-gray-400">{stats.candidates} total</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          {[
+            { key: "direct",   label: "CV Import",   color: "bg-teal/10 text-teal",          bar: "bg-teal" },
+            { key: "linkedin", label: "LinkedIn",     color: "bg-blue-100 text-blue-700",     bar: "bg-blue-400" },
+            { key: "portal",   label: "Job Portal",  color: "bg-purple-100 text-purple-700", bar: "bg-purple-400" },
+            { key: "referral", label: "Referral",    color: "bg-pink-100 text-pink-700",     bar: "bg-pink-400" },
+            { key: "wuzzuf",   label: "Wuzzuf",      color: "bg-amber-100 text-amber-700",   bar: "bg-amber-400" },
+            { key: "bayt",     label: "Bayt",        color: "bg-green-100 text-green-700",   bar: "bg-green-400" },
+          ].map(({ key, label, color, bar }) => {
+            const count = sourceCounts[key] || 0
+            const pct = stats.candidates > 0 ? Math.round((count / stats.candidates) * 100) : 0
+            return (
+              <div key={key} className="text-center">
+                <div className="text-2xl font-bold text-gray-900">{loading ? "—" : count}</div>
+                <span className={`badge ${color} mt-1 text-xs`}>{label}</span>
+                <div className="mt-2 h-1.5 rounded-full bg-gray-100">
+                  <div className={`h-full rounded-full ${bar} transition-all duration-500`} style={{ width: `${pct}%` }} />
+                </div>
+                <div className="text-xs text-gray-400 mt-1">{loading ? "" : `${pct}%`}</div>
               </div>
             )
           })}
