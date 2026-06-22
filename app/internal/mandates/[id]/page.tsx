@@ -98,6 +98,7 @@ export default function MandateDetail() {
   const [linkedinCachedAt, setLinkedinCachedAt] = useState<string | null>(null)
   const [linkedinEnriching, setLinkedinEnriching] = useState<Record<number, boolean>>({})
   const [linkedinAdded, setLinkedinAdded] = useState<Record<number, boolean>>({})
+  const [linkedinError, setLinkedinError] = useState<Record<number, string>>({})
   const [scoringCandidate, setScoringCandidate] = useState(false)
   const [candidateRoles, setCandidateRoles] = useState<any[]>([])
 
@@ -237,6 +238,7 @@ export default function MandateDetail() {
 
   async function enrichAndAdd(result: any, idx: number) {
     setLinkedinEnriching(prev => ({ ...prev, [idx]: true }))
+    setLinkedinError(prev => ({ ...prev, [idx]: "" }))
     try {
       // Step 1: Enrich the full profile
       const enrichRes = await fetch("/api/enrich-from-linkedin", {
@@ -245,16 +247,25 @@ export default function MandateDetail() {
         body: JSON.stringify({ linkedin_url: result.linkedin_url }),
       })
       const enrichData = await enrichRes.json()
-      if (!enrichData.candidateId) throw new Error("Enrichment failed")
+      console.log("Enrich response:", enrichData)
+      if (!enrichData.candidateId) {
+        throw new Error(enrichData.error || "Enrichment returned no candidate ID")
+      }
 
       // Step 2: Add to this mandate pipeline at Screening stage
-      const { error } = await supabase.from("applications").insert([{
+      const { error: appError } = await supabase.from("applications").insert([{
         mandate_id: id,
         candidate_id: enrichData.candidateId,
         stage: "screening",
-        source: "linkedin_search",
       }])
-      if (!error) {
+      if (appError) {
+        // If duplicate application, still mark as added
+        if (appError.code === "23505") {
+          setLinkedinAdded(prev => ({ ...prev, [idx]: true }))
+        } else {
+          throw new Error(appError.message)
+        }
+      } else {
         setLinkedinAdded(prev => ({ ...prev, [idx]: true }))
         // Refresh applications
         const { data: apps } = await supabase
@@ -264,8 +275,9 @@ export default function MandateDetail() {
           .order("ai_score", { ascending: false })
         setApplications(apps || [])
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Enrich and add failed:", err)
+      setLinkedinError(prev => ({ ...prev, [idx]: err.message || "Failed" }))
     }
     setLinkedinEnriching(prev => ({ ...prev, [idx]: false }))
   }
@@ -1471,6 +1483,8 @@ export default function MandateDetail() {
                           <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
                             <CheckCircle size={12} /> Added
                           </span>
+                        ) : linkedinError[idx] ? (
+                          <span className="text-xs text-red-500 max-w-[140px] text-right">{linkedinError[idx]}</span>
                         ) : (
                           <button
                             onClick={() => enrichAndAdd(result, idx)}
