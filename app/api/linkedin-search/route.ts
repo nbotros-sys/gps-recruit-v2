@@ -20,16 +20,13 @@ function locationToCountry(location: string): string | null {
   return null
 }
 
-// Extract a readable name from a LinkedIn URL
-// e.g. linkedin.com/in/ahmed-kamal-123 -> "Ahmed Kamal"
 function nameFromUrl(url: string): string {
   try {
     const slug = url.split("/in/")[1]?.split("?")[0]?.replace(/\/+$/, "") || ""
-    // Strip trailing numbers/IDs like -abc123
     const clean = slug.replace(/-[a-z0-9]{4,}$/, "")
     return clean
       .split("-")
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ")
       .trim() || "LinkedIn Profile"
   } catch {
@@ -50,22 +47,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "PROXYCURL_API_KEY not configured" }, { status: 500 })
     }
 
+    // Keep it as simple as possible — just title, country, page_size
+    // No past_role_title (causes AND logic = too strict)
+    // No enrich_profiles (filters out unenriched profiles)
+    // No keywords (extra filters reduce results)
     const params = new URLSearchParams({
       current_role_title: title.trim(),
       page_size: "10",
-      // No enrich_profiles — just get URLs, enrich on demand when adding to pipeline
     })
-
-    // Also search past role to widen results
-    params.append("past_role_title", title.trim())
 
     if (location?.trim()) {
       const countryCode = locationToCountry(location.trim())
       if (countryCode) params.append("country", countryCode)
-    }
-
-    if (keywords?.trim()) {
-      params.append("headline", keywords.trim())
     }
 
     const searchRes = await fetch(
@@ -79,13 +72,12 @@ export async function POST(req: NextRequest) {
       if (searchRes.status === 401 || searchRes.status === 403) {
         return NextResponse.json({ error: "API key invalid or quota exceeded" }, { status: 403 })
       }
-      return NextResponse.json({ error: `Search returned ${searchRes.status}` }, { status: 502 })
+      return NextResponse.json({ error: `Search returned ${searchRes.status}: ${errText.slice(0,100)}` }, { status: 502 })
     }
 
     const data = await searchRes.json()
+    console.log("Enrich Layer raw response:", JSON.stringify(data).slice(0, 500))
 
-    // Without enrich_profiles, results are just { linkedin_profile_url } objects
-    // Extract name hint from the URL slug — enrichment happens on "Add to pipeline"
     const results = (data.results || [])
       .map((p: any) => {
         const url = p.linkedin_profile_url || p.profile_url || null
@@ -98,7 +90,7 @@ export async function POST(req: NextRequest) {
           current_company: null,
           location: null,
           avatar_url: null,
-          preview_only: true, // flag so UI shows "enrich to see full profile"
+          preview_only: true,
         }
       })
       .filter(Boolean)
@@ -107,6 +99,7 @@ export async function POST(req: NextRequest) {
       results,
       total: data.total || results.length,
       search_params: { title, location, keywords },
+      raw_total: data.total,
     })
   } catch (err: any) {
     console.error("linkedin-search error:", err)
