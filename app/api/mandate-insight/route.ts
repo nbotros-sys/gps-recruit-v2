@@ -144,18 +144,20 @@ export async function POST(req: NextRequest) {
 
     if (vectorIds.length) {
       // Fetch vector matches (already ranked by similarity)
-      const { data: vectorCands } = await supabase.from("candidates")
+      let vectorQuery = supabase.from("candidates")
         .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
         .in("id", vectorIds)
-        .not("id", "in", `(${existingIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
+      if (existingIds.length) vectorQuery = vectorQuery.not("id", "in", `(${existingIds.join(",")})`)
+      const { data: vectorCands } = await vectorQuery
 
       // Also fetch recent candidates without embeddings (just uploaded, not yet embedded)
       const allKnownIds = [...vectorIds, ...existingIds]
-      const { data: recentNoEmbed } = await supabase.from("candidates")
+      let recentQuery = supabase.from("candidates")
         .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-        .not("id", "in", `(${allKnownIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
         .order("created_at", { ascending: false })
         .limit(20)
+      if (allKnownIds.length) recentQuery = recentQuery.not("id", "in", `(${allKnownIds.join(",")})`)
+      const { data: recentNoEmbed } = await recentQuery
 
       // Vector results first (ranked by similarity), then recent unembedded
       const vectorRanked = vectorIds
@@ -164,11 +166,12 @@ export async function POST(req: NextRequest) {
       available = [...vectorRanked, ...(recentNoEmbed || [])]
     } else {
       // No embeddings yet — fall back to most recent 100 candidates
-      const { data: fallback } = await supabase.from("candidates")
+      let fallbackQuery = supabase.from("candidates")
         .select("id, name, current_title, current_company, location, tags, avatar_url, cv_structured, cv_text, notes")
-        .not("id", "in", `(${existingIds.join(",") || "00000000-0000-0000-0000-000000000000"})`)
         .order("created_at", { ascending: false })
         .limit(100)
+      if (existingIds.length) fallbackQuery = fallbackQuery.not("id", "in", `(${existingIds.join(",")})`)
+      const { data: fallback } = await fallbackQuery
       available = fallback || []
     }
 
