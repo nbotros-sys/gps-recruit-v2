@@ -325,7 +325,7 @@ Return ONLY JSON:
     console.log(`[insight] finalMatches: ${finalMatches.length} after deep read`)
 
     // Include phase1 matches not in top 20 (possible matches without deep read)
-    const remaining = phase1Sorted.slice(10).filter(m => m.score >= 20).map((m: any) => {
+    const remaining = phase1Sorted.slice(15).filter(m => m.score >= 10).map((m: any) => {
       const c = available.find((c: any) => c.id === m.id)
       return c ? { ...c, score: m.score, tier: "possible", reason: m.reason, gaps: null } : null
     }).filter(Boolean)
