@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-// ── Normalise phone — strip non-digits + leading country codes ───────────────
 function normalisePhone(phone: string | null | undefined): string {
   if (!phone) return ""
   let digits = phone.replace(/\D/g, "")
@@ -11,7 +10,6 @@ function normalisePhone(phone: string | null | undefined): string {
   return digits
 }
 
-// ── Build a plain-text CV from Proxycurl JSON ────────────────────────────────
 function buildCvText(data: any): string {
   const lines: string[] = []
 
@@ -20,19 +18,17 @@ function buildCvText(data: any): string {
   if (data.headline) lines.push(data.headline)
   if (data.summary) lines.push("\n" + data.summary)
 
-  // Experiences
   if (data.experiences?.length) {
     lines.push("\nEXPERIENCE")
     for (const exp of data.experiences) {
       const title = [exp.title, exp.company].filter(Boolean).join(" at ")
-      const dates = [exp.starts_at ? `${exp.starts_at.month}/${exp.starts_at.year}` : null,
-                     exp.ends_at   ? `${exp.ends_at.month}/${exp.ends_at.year}` : "Present"].filter(Boolean).join(" – ")
-      lines.push(`${title}${dates ? " | " + dates : ""}`)
+      const start = exp.starts_at ? `${exp.starts_at.month || ""}/${exp.starts_at.year || ""}` : null
+      const end = exp.ends_at ? `${exp.ends_at.month || ""}/${exp.ends_at.year || ""}` : "Present"
+      lines.push(`${title}${start ? " | " + start + " – " + end : ""}`)
       if (exp.description) lines.push(exp.description)
     }
   }
 
-  // Education
   if (data.education?.length) {
     lines.push("\nEDUCATION")
     for (const edu of data.education) {
@@ -42,19 +38,16 @@ function buildCvText(data: any): string {
     }
   }
 
-  // Skills
   if (data.skills?.length) {
     lines.push("\nSKILLS")
     lines.push(data.skills.map((s: any) => (typeof s === "string" ? s : s.name)).filter(Boolean).join(", "))
   }
 
-  // Languages
   if (data.languages?.length) {
     lines.push("\nLANGUAGES")
     lines.push(data.languages.join(", "))
   }
 
-  // Certifications
   if (data.certifications?.length) {
     lines.push("\nCERTIFICATIONS")
     for (const cert of data.certifications) {
@@ -65,11 +58,9 @@ function buildCvText(data: any): string {
   return lines.join("\n").trim()
 }
 
-// ── Map Proxycurl person object → candidates row ─────────────────────────────
 function mapToCandidate(data: any, linkedinUrl: string) {
   const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown"
 
-  // Most recent experience
   const sorted = (data.experiences || [])
     .slice()
     .sort((a: any, b: any) => {
@@ -79,23 +70,20 @@ function mapToCandidate(data: any, linkedinUrl: string) {
     })
   const current = sorted[0] || {}
 
-  // Location — prefer city-level data
   const locationParts = [data.city, data.state, data.country_full_name].filter(Boolean)
   const location = locationParts.length ? locationParts.join(", ") : null
 
-  // Skills as tags
   const skillTags: string[] = (data.skills || [])
     .map((s: any) => (typeof s === "string" ? s : s.name))
     .filter(Boolean)
     .slice(0, 20)
 
-  // cv_text — full narrative for AI search / embedding
   const cv_text = buildCvText(data)
 
   return {
     name,
-    email: null, // Proxycurl rarely returns email on free-tier; left null
-    phone: null, // Same — set null, consultant can add manually
+    email: null,
+    phone: null,
     current_title: data.headline || current.title || null,
     current_company: current.company || null,
     location,
@@ -116,52 +104,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "linkedin_url is required" }, { status: 400 })
     }
 
-    // Normalise URL — strip query params and trailing slashes
     const cleanUrl = linkedin_url.trim().replace(/[?#].*$/, "").replace(/\/+$/, "")
 
-    // ── 1. Call Proxycurl ────────────────────────────────────────────────────
-    const proxycurlKey = process.env.PROXYCURL_API_KEY
-    if (!proxycurlKey) {
+    // ── Call Enrich Layer (formerly Proxycurl) ───────────────────────────────
+    const apiKey = process.env.PROXYCURL_API_KEY
+    if (!apiKey) {
       return NextResponse.json({ error: "PROXYCURL_API_KEY not configured" }, { status: 500 })
     }
 
-    const proxycurlRes = await fetch(
-      `https://nubela.co/proxycurl/api/v2/linkedin?url=${encodeURIComponent(cleanUrl)}&extra=include&github_profile_id=include&facebook_profile_id=include&twitter_profile_id=include&personal_contact_number=include&personal_email=include&inferred_salary=skip&skills=include&use_cache=if-present&fallback_to_cache=on-error`,
+    // Basic lookup = 1 credit. We skip the expensive extras (live_fetch costs 9 credits alone).
+    const params = new URLSearchParams({
+      profile_url: cleanUrl,
+      skills: "include",
+      use_cache: "if-present",
+      fallback_to_cache: "on-error",
+    })
+
+    const enrichRes = await fetch(
+      `https://enrichlayer.com/api/v2/profile?${params.toString()}`,
       {
         headers: {
-          Authorization: `Bearer ${proxycurlKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
       }
     )
 
-    if (!proxycurlRes.ok) {
-      const errText = await proxycurlRes.text()
-      console.error("Proxycurl error:", proxycurlRes.status, errText)
-      if (proxycurlRes.status === 404) {
+    if (!enrichRes.ok) {
+      const errText = await enrichRes.text()
+      console.error("Enrich Layer error:", enrichRes.status, errText)
+      if (enrichRes.status === 404) {
         return NextResponse.json({ error: "LinkedIn profile not found or private" }, { status: 404 })
       }
-      if (proxycurlRes.status === 403) {
-        return NextResponse.json({ error: "Proxycurl API key invalid or quota exceeded" }, { status: 403 })
+      if (enrichRes.status === 401 || enrichRes.status === 403) {
+        return NextResponse.json({ error: "API key invalid or quota exceeded" }, { status: 403 })
       }
-      return NextResponse.json({ error: `Proxycurl returned ${proxycurlRes.status}` }, { status: 502 })
+      return NextResponse.json({ error: `Enrichment service returned ${enrichRes.status}` }, { status: 502 })
     }
 
-    const profileData = await proxycurlRes.json()
+    const profileData = await enrichRes.json()
 
     if (!profileData.first_name && !profileData.last_name) {
-      return NextResponse.json({ error: "Could not fetch profile — profile may be private" }, { status: 422 })
+      return NextResponse.json({ error: "Could not fetch profile — it may be private or not found" }, { status: 422 })
     }
 
-    // ── 2. Map to candidates schema ──────────────────────────────────────────
+    // ── Map to candidates schema ─────────────────────────────────────────────
     const candidateRow = mapToCandidate(profileData, cleanUrl)
 
-    // ── 3. Duplicate detection ───────────────────────────────────────────────
+    // ── Duplicate detection ──────────────────────────────────────────────────
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Check by LinkedIn URL (most reliable for this source)
     const normLinkedin = cleanUrl
       .toLowerCase()
       .replace(/^https?:\/\//, "")
@@ -178,7 +172,6 @@ export async function POST(req: NextRequest) {
 
     if (allCandidates?.length) {
       for (const c of allCandidates) {
-        // Match by LinkedIn URL
         if (c.linkedin_url) {
           const normExisting = c.linkedin_url
             .toLowerCase()
@@ -191,15 +184,13 @@ export async function POST(req: NextRequest) {
             break
           }
         }
-        // Match by email (if Proxycurl returned one)
         if (candidateRow.email && c.email &&
             !c.email.includes("@pending.com") &&
-            c.email.toLowerCase().trim() === candidateRow.email.toLowerCase().trim()) {
+            c.email.toLowerCase().trim() === candidateRow.email?.toLowerCase().trim()) {
           duplicateId = c.id
           duplicateReason = "Same email address already in database"
           break
         }
-        // Match by phone
         if (candidateRow.phone && c.phone) {
           const norm1 = normalisePhone(candidateRow.phone)
           const norm2 = normalisePhone(c.phone)
@@ -212,7 +203,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 4. Upsert to candidates ──────────────────────────────────────────────
+    // ── Upsert to candidates ─────────────────────────────────────────────────
     let savedId: string | null = duplicateId
 
     const upsertData = {
@@ -221,22 +212,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (duplicateId) {
-      // Update existing record (refresh LinkedIn data)
       await supabase.from("candidates").update(upsertData).eq("id", duplicateId)
     } else {
-      // Insert new candidate
       const { data: inserted } = await supabase
         .from("candidates")
         .insert([{
           ...upsertData,
-          email: `linkedin.${Date.now()}@pending.com`, // placeholder so NOT NULL constraint is satisfied
+          email: `linkedin.${Date.now()}@pending.com`,
         }])
         .select("id")
         .single()
       if (inserted) savedId = inserted.id
     }
 
-    // ── 5. Fire-and-forget: structured extraction + embedding ────────────────
+    // ── Fire-and-forget: structured extraction + embedding ───────────────────
     if (savedId && candidateRow.cv_text.trim()) {
       const capturedId = savedId
       const capturedText = candidateRow.cv_text
