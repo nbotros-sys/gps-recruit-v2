@@ -494,7 +494,7 @@ export default function MandateDetail() {
           { id: "bulk", icon: Upload, label: "Bulk CV Upload" },
           { id: "ai", icon: Brain, label: "Score Single CV" },
           { id: "insight", icon: Users, label: "Talent Pool" },
-          { id: "source", icon: Linkedin, label: "Source on LinkedIn" },
+          { id: "source", icon: Link2, label: "Source on LinkedIn" },
         ].map(({ id: tid, icon: Icon, label }) => (
           <button key={tid} onClick={() => setTab(tid as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
@@ -1371,7 +1371,7 @@ export default function MandateDetail() {
           <div className="card p-5 space-y-4">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-                <Linkedin size={15} className="text-white" />
+                <Link2 size={15} className="text-white" />
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">Search LinkedIn</h3>
@@ -1413,7 +1413,7 @@ export default function MandateDetail() {
                 disabled={!linkedinSearch.title.trim() || linkedinSearching}
                 className="btn-primary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {linkedinSearching ? <Loader2 size={14} className="animate-spin" /> : <Linkedin size={14} />}
+                {linkedinSearching ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
                 {linkedinSearching ? "Searching..." : "Search LinkedIn"}
               </button>
               {linkedinCachedAt && (
@@ -1485,7 +1485,7 @@ export default function MandateDetail() {
 
           {!linkedinResults.length && !linkedinSearching && (
             <div className="card border-dashed text-center py-16">
-              <Linkedin size={36} className="mx-auto mb-3 text-gray-200" />
+              <Link2 size={36} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 text-sm">Search LinkedIn to find candidates for this mandate</p>
               <p className="text-gray-300 text-xs mt-1">Results are cached — you won't be charged twice for the same search</p>
             </div>
