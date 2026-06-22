@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Map common location strings to ISO Alpha-2 country codes
 function locationToCountry(location: string): string | null {
   const l = location.toLowerCase().trim()
   const map: Record<string, string> = {
@@ -11,14 +10,12 @@ function locationToCountry(location: string): string | null {
     jordan: "JO", amman: "JO", lebanon: "LB", beirut: "LB",
     morocco: "MA", casablanca: "MA", tunisia: "TN", algeria: "DZ",
     uk: "GB", "united kingdom": "GB", london: "GB",
-    usa: "US", "united states": "US", "new york": "US",
-    germany: "DE", france: "FR", paris: "FR",
+    usa: "US", "united states": "US",
+    germany: "DE", france: "FR",
   }
-  // Direct lookup
   for (const [key, code] of Object.entries(map)) {
     if (l.includes(key)) return code
   }
-  // If it's already a 2-letter code, use it
   if (/^[a-z]{2}$/i.test(l)) return l.toUpperCase()
   return null
 }
@@ -36,26 +33,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "PROXYCURL_API_KEY not configured" }, { status: 500 })
     }
 
-    // Build search params
+    // Broaden the title — strip seniority words to widen the net
+    // e.g. "Commercial Director, FMCG" -> search both current AND past role
+    const cleanTitle = title.trim()
+
     const params = new URLSearchParams({
-      current_role_title: title.trim(),
+      current_role_title: cleanTitle,
       page_size: "10",
+      // enrich_profiles=enrich returns full name/title/company in results
+      // costs 1 extra credit per returned profile but gives us actual data
+      enrich_profiles: "enrich",
     })
 
-    // Convert location to country code — Enrich Layer requires ISO Alpha-2
+    // Add past_role_title too so we catch people who recently held this role
+    params.append("past_role_title", cleanTitle)
+
+    // Country filter — only add if we can map it
     if (location?.trim()) {
       const countryCode = locationToCountry(location.trim())
       if (countryCode) {
         params.append("country", countryCode)
       }
-      // If we can't map it, skip — better to get results than a 400
     }
 
-    // Add region for city-level filtering (Enrich Layer supports this)
-    if (location?.trim()) {
-      params.append("region", location.trim())
-    }
-
+    // Keywords go into headline search
     if (keywords?.trim()) {
       params.append("headline", keywords.trim())
     }
@@ -63,9 +64,7 @@ export async function POST(req: NextRequest) {
     const searchRes = await fetch(
       `https://enrichlayer.com/api/v2/search/person?${params.toString()}`,
       {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: { Authorization: `Bearer ${apiKey}` },
       }
     )
 
@@ -75,22 +74,37 @@ export async function POST(req: NextRequest) {
       if (searchRes.status === 401 || searchRes.status === 403) {
         return NextResponse.json({ error: "API key invalid or quota exceeded" }, { status: 403 })
       }
-      return NextResponse.json({ error: `Search service returned ${searchRes.status}: ${errText.slice(0, 200)}` }, { status: 502 })
+      return NextResponse.json({ error: `Search returned ${searchRes.status}` }, { status: 502 })
     }
 
     const data = await searchRes.json()
 
-    // Map results to clean preview format
-    const results = (data.results || []).map((p: any) => ({
-      linkedin_url: p.linkedin_profile_url || null,
-      name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Unknown",
-      headline: p.headline || null,
-      current_title: p.job_title || p.headline || null,
-      current_company: p.job_company_name || null,
-      location: [p.city, p.state, p.country].filter(Boolean).join(", ") || null,
-      avatar_url: p.profile_pic_url || null,
-      summary: p.summary || null,
-    })).filter((p: any) => p.linkedin_url)
+    // With enrich_profiles=enrich, each result is a full profile object
+    const results = (data.results || []).map((p: any) => {
+      // Handle both enriched (full profile) and non-enriched (URL only) responses
+      const isEnriched = p.first_name || p.last_name || p.full_name
+
+      const name = p.full_name ||
+        [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+        null
+
+      // Current experience from enriched profile
+      const currentExp = (p.experiences || []).find((e: any) => !e.ends_at) || p.experiences?.[0]
+
+      return {
+        linkedin_url: p.linkedin_profile_url || p.profile_url || null,
+        name: name || "Unknown",
+        headline: p.headline || p.sub_title || null,
+        current_title: currentExp?.title || p.headline || null,
+        current_company: currentExp?.company || p.job_company_name || null,
+        location: p.city
+          ? [p.city, p.country_full_name].filter(Boolean).join(", ")
+          : p.location || null,
+        avatar_url: p.profile_pic_url || null,
+        summary: p.summary || null,
+        is_enriched: !!isEnriched,
+      }
+    }).filter((p: any) => p.linkedin_url)
 
     return NextResponse.json({
       results,
