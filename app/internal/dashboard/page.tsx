@@ -15,37 +15,35 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
-      // Fetch counts using id-only selects — avoids Supabase HEAD 503 errors
-      const [
-        { data: mdRaw }, { data: cdRaw }, { data: pcRaw }, { data: clRaw },
-        { data: pd }, { data: mandates }, { data: candidates }, { data: sourceRaw }
-      ] = await Promise.all([
-        supabase.from("mandates").select("id").eq("status", "active"),
-        supabase.from("candidates").select("id"),
-        supabase.from("applications").select("id").eq("stage", "placed"),
-        supabase.from("clients").select("id"),
-        supabase.from("applications").select("stage"),
-        supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5),
-        supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6),
-        supabase.from("candidates").select("source"),
-      ])
-      const mc = (mdRaw || []).length
-      const cc = (cdRaw || []).length
-      const pc = (pcRaw || []).length
-      const lc = (clRaw || []).length
-      setStats({ mandates: mc, candidates: cc, placements: pc, clients: lc })
-      const counts: Record<string, number> = {}
-      for (const a of pd || []) counts[a.stage] = (counts[a.stage] || 0) + 1
-      setPipeline(counts)
-      const sCounts: Record<string, number> = {}
-      for (const c of sourceRaw || []) {
-        const s = c.source || "other"
-        sCounts[s] = (sCounts[s] || 0) + 1
+      try {
+        // Run queries independently so one failure doesn't block the rest
+        const [mdRaw, cdRaw, pcRaw, clRaw, pd, mandates, candidates, sourceRaw] = await Promise.all([
+          supabase.from("mandates").select("id").eq("status", "active").then(r => r.data || []),
+          supabase.from("candidates").select("id").then(r => r.data || []),
+          supabase.from("applications").select("id").eq("stage", "placed").then(r => r.data || []),
+          supabase.from("clients").select("id").then(r => r.data || []),
+          supabase.from("applications").select("stage").then(r => r.data || []),
+          supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5).then(r => r.data || []),
+          supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6).then(r => r.data || []),
+          supabase.from("candidates").select("source").then(r => r.data || []),
+        ])
+        setStats({ mandates: mdRaw.length, candidates: cdRaw.length, placements: pcRaw.length, clients: clRaw.length })
+        const counts: Record<string, number> = {}
+        for (const a of pd) counts[a.stage] = (counts[a.stage] || 0) + 1
+        setPipeline(counts)
+        const sCounts: Record<string, number> = {}
+        for (const c of sourceRaw) {
+          const s = c.source || "other"
+          sCounts[s] = (sCounts[s] || 0) + 1
+        }
+        setSourceCounts(sCounts)
+        setRecentMandates(mandates)
+        setRecentCandidates(candidates)
+      } catch (e) {
+        console.error("Dashboard load error:", e)
+      } finally {
+        setLoading(false)
       }
-      setSourceCounts(sCounts)
-      setRecentMandates(mandates || [])
-      setRecentCandidates(candidates || [])
-      setLoading(false)
     }
     load()
   }, [])
