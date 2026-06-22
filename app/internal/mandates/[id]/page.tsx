@@ -71,6 +71,7 @@ export default function MandateDetail() {
   const [insightData, setInsightData] = useState<any>(null)
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
+  const [insightCachedAt, setInsightCachedAt] = useState<string | null>(null)
   const [scoringCandidate, setScoringCandidate] = useState(false)
   const [candidateRoles, setCandidateRoles] = useState<any[]>([])
 
@@ -150,10 +151,26 @@ export default function MandateDetail() {
 
   useEffect(() => { loadData() }, [id])
 
-  async function loadInsight(deeper = false) {
+  async function loadInsight(deeper = false, forceRescan = false) {
     if (!mandate) return
+
+    // Load from cache if available and fresh (under 24hrs), unless forcing rescan
+    if (!forceRescan && !deeper) {
+      const cached = (mandate as any).talent_pool_cache
+      const cachedAt = (mandate as any).talent_pool_cached_at
+      if (cached && cachedAt) {
+        const ageHours = (Date.now() - new Date(cachedAt).getTime()) / 1000 / 60 / 60
+        if (ageHours < 24) {
+          setInsightData(cached)
+          setInsightCachedAt(cachedAt)
+          return
+        }
+      }
+    }
+
     if (deeper) setDeeperSearching(true)
     else setInsightLoading(true)
+
     try {
       const res = await fetch("/api/mandate-insight", {
         method: "POST",
@@ -167,7 +184,23 @@ export default function MandateDetail() {
       })
       const data = await res.json()
       setInsightData(data)
+
+      // Save results to cache
+      if (!data.error) {
+        const now = new Date().toISOString()
+        setInsightCachedAt(now)
+        await supabase.from("mandates").update({
+          talent_pool_cache: data,
+          talent_pool_cached_at: now,
+        }).eq("id", id)
+        setMandate((prev: any) => prev ? {
+          ...prev,
+          talent_pool_cache: data,
+          talent_pool_cached_at: now,
+        } : prev)
+      }
     } catch { setInsightData({ error: "Failed to load insight" }) }
+
     if (deeper) setDeeperSearching(false)
     else setInsightLoading(false)
   }
@@ -1039,9 +1072,17 @@ export default function MandateDetail() {
                     <h3 className="font-semibold text-gray-900">Talent Pool Report</h3>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => loadInsight(false)} className="text-xs text-gray-400 hover:text-teal transition-colors">
-                      ↺ Refresh
-                    </button>
+                    {insightCachedAt && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+                        {(() => {
+                          const mins = Math.round((Date.now() - new Date(insightCachedAt).getTime()) / 60000)
+                          if (mins < 1) return "Just now"
+                          if (mins < 60) return `${mins}m ago`
+                          return `${Math.round(mins / 60)}h ago`
+                        })()}
+                      </span>
+                    )}
                     {insightData?.deeper_search_available && (
                       <button onClick={() => loadInsight(true)} disabled={deeperSearching}
                         className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
@@ -1049,6 +1090,17 @@ export default function MandateDetail() {
                         {deeperSearching ? "Searching wider…" : "Deeper search"}
                       </button>
                     )}
+                    <button
+                      onClick={() => loadInsight(false, true)}
+                      disabled={insightLoading}
+                      title="Run a fresh AI scan — updates the saved results"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal/10 text-teal border border-teal/20 hover:bg-teal/20 hover:border-teal/40 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {insightLoading
+                        ? <><Loader2 size={11} className="animate-spin" />Scanning…</>
+                        : <><RefreshCw size={11} />Rescan</>
+                      }
+                    </button>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">{insightData.summary}</p>
