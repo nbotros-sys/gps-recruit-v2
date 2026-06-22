@@ -20,6 +20,23 @@ function locationToCountry(location: string): string | null {
   return null
 }
 
+// Extract a readable name from a LinkedIn URL
+// e.g. linkedin.com/in/ahmed-kamal-123 -> "Ahmed Kamal"
+function nameFromUrl(url: string): string {
+  try {
+    const slug = url.split("/in/")[1]?.split("?")[0]?.replace(/\/+$/, "") || ""
+    // Strip trailing numbers/IDs like -abc123
+    const clean = slug.replace(/-[a-z0-9]{4,}$/, "")
+    return clean
+      .split("-")
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+      .trim() || "LinkedIn Profile"
+  } catch {
+    return "LinkedIn Profile"
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { title, location, keywords } = await req.json()
@@ -33,39 +50,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "PROXYCURL_API_KEY not configured" }, { status: 500 })
     }
 
-    // Broaden the title — strip seniority words to widen the net
-    // e.g. "Commercial Director, FMCG" -> search both current AND past role
-    const cleanTitle = title.trim()
-
     const params = new URLSearchParams({
-      current_role_title: cleanTitle,
+      current_role_title: title.trim(),
       page_size: "10",
-      // enrich_profiles=enrich returns full name/title/company in results
-      // costs 1 extra credit per returned profile but gives us actual data
-      enrich_profiles: "enrich",
+      // No enrich_profiles — just get URLs, enrich on demand when adding to pipeline
     })
 
-    // Add past_role_title too so we catch people who recently held this role
-    params.append("past_role_title", cleanTitle)
+    // Also search past role to widen results
+    params.append("past_role_title", title.trim())
 
-    // Country filter — only add if we can map it
     if (location?.trim()) {
       const countryCode = locationToCountry(location.trim())
-      if (countryCode) {
-        params.append("country", countryCode)
-      }
+      if (countryCode) params.append("country", countryCode)
     }
 
-    // Keywords go into headline search
     if (keywords?.trim()) {
       params.append("headline", keywords.trim())
     }
 
     const searchRes = await fetch(
       `https://enrichlayer.com/api/v2/search/person?${params.toString()}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }
+      { headers: { Authorization: `Bearer ${apiKey}` } }
     )
 
     if (!searchRes.ok) {
@@ -79,32 +84,24 @@ export async function POST(req: NextRequest) {
 
     const data = await searchRes.json()
 
-    // With enrich_profiles=enrich, each result is a full profile object
-    const results = (data.results || []).map((p: any) => {
-      // Handle both enriched (full profile) and non-enriched (URL only) responses
-      const isEnriched = p.first_name || p.last_name || p.full_name
-
-      const name = p.full_name ||
-        [p.first_name, p.last_name].filter(Boolean).join(" ") ||
-        null
-
-      // Current experience from enriched profile
-      const currentExp = (p.experiences || []).find((e: any) => !e.ends_at) || p.experiences?.[0]
-
-      return {
-        linkedin_url: p.linkedin_profile_url || p.profile_url || null,
-        name: name || "Unknown",
-        headline: p.headline || p.sub_title || null,
-        current_title: currentExp?.title || p.headline || null,
-        current_company: currentExp?.company || p.job_company_name || null,
-        location: p.city
-          ? [p.city, p.country_full_name].filter(Boolean).join(", ")
-          : p.location || null,
-        avatar_url: p.profile_pic_url || null,
-        summary: p.summary || null,
-        is_enriched: !!isEnriched,
-      }
-    }).filter((p: any) => p.linkedin_url)
+    // Without enrich_profiles, results are just { linkedin_profile_url } objects
+    // Extract name hint from the URL slug — enrichment happens on "Add to pipeline"
+    const results = (data.results || [])
+      .map((p: any) => {
+        const url = p.linkedin_profile_url || p.profile_url || null
+        if (!url) return null
+        return {
+          linkedin_url: url,
+          name: nameFromUrl(url),
+          headline: null,
+          current_title: null,
+          current_company: null,
+          location: null,
+          avatar_url: null,
+          preview_only: true, // flag so UI shows "enrich to see full profile"
+        }
+      })
+      .filter(Boolean)
 
     return NextResponse.json({
       results,
