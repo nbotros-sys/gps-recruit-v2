@@ -29,11 +29,22 @@ import { createClient } from "@/lib/supabase"
 
 const SOURCE_COLORS: Record<string, string> = {
   direct: "bg-teal/10 text-teal",
-  referral: "bg-purple-100 text-purple-700",
   linkedin: "bg-blue-100 text-blue-700",
+  portal: "bg-purple-100 text-purple-700",
+  referral: "bg-pink-100 text-pink-700",
   wuzzuf: "bg-amber-100 text-amber-700",
   bayt: "bg-green-100 text-green-700",
   other: "bg-gray-100 text-gray-600",
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  direct: "CV Import",
+  linkedin: "LinkedIn",
+  portal: "Job Portal",
+  referral: "Referral",
+  wuzzuf: "Wuzzuf",
+  bayt: "Bayt",
+  other: "Other",
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -111,7 +122,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`badge ${SOURCE_COLORS[candidate.source] || "bg-gray-100 text-gray-600"} text-xs`}>{candidate.source}</span>
+            <span className={`badge ${SOURCE_COLORS[candidate.source] || "bg-gray-100 text-gray-600"} text-xs`}>{SOURCE_LABELS[candidate.source] || candidate.source}</span>
             {(candidate as any).cv_source === "gps_builder" && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">
                 ★ GPS CV
