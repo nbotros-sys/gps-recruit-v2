@@ -184,9 +184,10 @@ export async function POST(req: NextRequest) {
             break
           }
         }
-        if (candidateRow.email && c.email &&
+        const rowEmail = candidateRow.email as string | null
+        if (rowEmail && c.email &&
             !c.email.includes("@pending.com") &&
-            c.email.toLowerCase().trim() === candidateRow.email?.toLowerCase().trim()) {
+            c.email.toLowerCase().trim() === rowEmail.toLowerCase().trim()) {
           duplicateId = c.id
           duplicateReason = "Same email address already in database"
           break
