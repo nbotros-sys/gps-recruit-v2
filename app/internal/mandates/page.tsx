@@ -33,7 +33,7 @@ export default function MandatesPage() {
     setLoading(true)
     const { data } = await supabase
       .from("mandates")
-      .select("*, applications(stage)")
+      .select("id, title, client_name, client_id, location, salary_range, status, created_at, updated_at, applications(stage)")
       .order("created_at", { ascending: false })
     setMandates(data || [])
     setLoading(false)
