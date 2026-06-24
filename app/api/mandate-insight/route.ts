@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { setSentryUser, withSpan, captureError } from "@/lib/sentry"
 
 function toArray(val: any): string[] {
   if (Array.isArray(val)) return val
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
     const existingIds = (existing || []).map((a: any) => a.candidate_id)
 
     // ── Parse JD into candidate description + structured requirements ──────────
-    const jdParsed = await parseJD(mandate_title, job_description)
+    const jdParsed = await withSpan("parseJD", () => parseJD(mandate_title, job_description), { mandate_title })
     const searchText = `${mandate_title}\n${jdParsed.candidate_description}`
 
     // ── Vector search ─────────────────────────────────────────────────────────
@@ -360,6 +361,7 @@ Return ONLY JSON:
 
   } catch (err) {
     console.error("Mandate insight error:", err)
+    captureError(err, "mandate-insight")
     return NextResponse.json({ error: "Failed" }, { status: 500 })
   }
 }
