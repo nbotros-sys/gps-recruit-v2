@@ -195,10 +195,13 @@ export default function MandateDetail() {
   useEffect(() => { loadData() }, [id])
 
   // Auto-load talent pool from cache when switching to insight tab
+  // Depends on [tab, mandate] — waits for mandate to be fully loaded before firing
   useEffect(() => {
-    if (tab === "insight" && mandate && !insightData && !insightLoading) {
-      loadInsight(false, false)
-    }
+    if (tab !== "insight") return
+    if (!mandate) return  // wait for mandate to load
+    if (insightData) return  // already have data
+    if (insightLoading) return  // already loading
+    loadInsight(false, false)
   }, [tab, mandate])
 
   async function runLinkedinSearch(force = false) {
