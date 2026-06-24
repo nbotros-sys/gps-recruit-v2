@@ -1,0 +1,6 @@
+# .sentryclirc
+# Used by `sentry-cli` for local source map uploads / release management.
+# The actual auth token must be in the SENTRY_AUTH_TOKEN env var (never commit it).
+[defaults]
+org=${SENTRY_ORG}
+project=${SENTRY_PROJECT}
