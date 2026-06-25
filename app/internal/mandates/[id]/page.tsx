@@ -8,8 +8,7 @@ import {
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2,
-  UserCheck, ThumbsUp, ThumbsDown, Minus, Send, Key, Trash2, Calendar } from "lucide-react"
+  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -71,21 +70,7 @@ export default function MandateDetail() {
   const { id } = useParams()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source" | "clients" | "feedback" | "interviews">("pipeline")
-  const [clientUsers, setClientUsers] = useState<any[]>([])
-  const [clientFeedback, setClientFeedback] = useState<any[]>([])
-  const [interviewRequests, setInterviewRequests] = useState<any[]>([])
-  const [newClientEmail, setNewClientEmail] = useState("")
-  const [newClientName, setNewClientName] = useState("")
-  const [newClientCompany, setNewClientCompany] = useState("")
-  const [newClientPassword, setNewClientPassword] = useState("")
-  const [creatingClient, setCreatingClient] = useState(false)
-  const [clientCreated, setClientCreated] = useState(false)
-  const [clientError, setClientError] = useState("")
-  const [commentaryText, setCommentaryText] = useState("")
-  const [sendingCommentary, setSendingCommentary] = useState(false)
-  const [commentarySent, setCommentarySent] = useState(false)
-  const [loadingClientData, setLoadingClientData] = useState(false)
+  const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
@@ -169,69 +154,6 @@ export default function MandateDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
-  async function loadClientData() {
-    if (!id) return
-    setLoadingClientData(true)
-    const [cuRes, fbRes, irRes] = await Promise.all([
-      supabase.from("client_users").select("*").eq("mandate_id", id).order("created_at", { ascending: false }),
-      supabase.from("client_feedback").select("*, application:applications(candidate:candidates(name, current_title))").eq("mandate_id", id).order("created_at", { ascending: false }),
-      supabase.from("client_interview_requests").select("*, application:applications(candidate:candidates(name, current_title)), client_user:client_users(full_name, company_name)").eq("mandate_id", id).order("created_at", { ascending: false }),
-    ])
-    setClientUsers(cuRes.data || [])
-    setClientFeedback(fbRes.data || [])
-    setInterviewRequests(irRes.data || [])
-    setLoadingClientData(false)
-  }
-
-  async function createClientUser() {
-    if (!newClientEmail || !newClientName || !newClientPassword) return
-    setCreatingClient(true)
-    setClientError("")
-    try {
-      const res = await fetch("/api/create-client-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newClientEmail, full_name: newClientName, company_name: newClientCompany, mandate_id: id, temp_password: newClientPassword }),
-      })
-      const data = await res.json()
-      if (data.error) { setClientError(data.error); setCreatingClient(false); return }
-      setClientCreated(true)
-      setNewClientEmail(""); setNewClientName(""); setNewClientCompany(""); setNewClientPassword("")
-      setTimeout(() => setClientCreated(false), 4000)
-      loadClientData()
-    } catch { setClientError("Failed to create client account.") }
-    setCreatingClient(false)
-  }
-
-  async function deactivateClient(clientUserId: string) {
-    await supabase.from("client_users").update({ is_active: false }).eq("id", clientUserId)
-    loadClientData()
-  }
-
-  async function updateInterviewStatus(requestId: string, status: string) {
-    await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", requestId)
-    setInterviewRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r))
-  }
-
-  async function sendCommentary() {
-    if (!commentaryText.trim() || !id) return
-    setSendingCommentary(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    try {
-      const res = await fetch("/api/send-commentary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandate_id: id, commentary_text: commentaryText.trim(), created_by: user?.id }),
-      })
-      const data = await res.json()
-      if (data.error) { alert("Failed to send commentary: " + data.error); setSendingCommentary(false); return }
-      setCommentaryText("")
-      setCommentarySent(true)
-      setTimeout(() => setCommentarySent(false), 5000)
-    } catch { alert("Failed to send commentary.") }
-    setSendingCommentary(false)
-  }
-
   async function loadData() {
     const { data: m } = await supabase.from("mandates").select("*").eq("id", id).single()
     if (m) {
@@ -273,20 +195,14 @@ export default function MandateDetail() {
   useEffect(() => { loadData() }, [id])
 
   // Auto-load talent pool from cache when switching to insight tab
+  // Depends on [tab, mandate] — waits for mandate to be fully loaded before firing
   useEffect(() => {
     if (tab !== "insight") return
-    if (!mandate) return
-    if (insightData) return
-    if (insightLoading) return
+    if (!mandate) return  // wait for mandate to load
+    if (insightData) return  // already have data
+    if (insightLoading) return  // already loading
     loadInsight(false, false)
   }, [tab, mandate])
-
-  // Auto-load client data when switching to client tabs
-  useEffect(() => {
-    if (!["clients", "feedback", "interviews"].includes(tab)) return
-    if (!id) return
-    loadClientData()
-  }, [tab, id])
 
   async function runLinkedinSearch(force = false) {
     if (!mandate) return
@@ -600,9 +516,6 @@ export default function MandateDetail() {
           { id: "ai", icon: Brain, label: "Score Single CV" },
           { id: "insight", icon: Users, label: "Talent Pool" },
           { id: "source", icon: Link2, label: "Source on LinkedIn" },
-          { id: "clients", icon: UserCheck, label: "Client Access" },
-          { id: "feedback", icon: MessageSquare, label: "Feedback" },
-          { id: "interviews", icon: Calendar, label: "Interview Requests" },
         ].map(({ id: tid, icon: Icon, label }) => (
           <button key={tid} onClick={() => setTab(tid as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
@@ -1599,267 +1512,6 @@ export default function MandateDetail() {
               <p className="text-gray-400 text-sm">Search LinkedIn to find candidates for this mandate</p>
               <p className="text-gray-300 text-xs mt-1">Results are cached — you won't be charged twice for the same search</p>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* ── CLIENT ACCESS TAB ── */}
-      {tab === "clients" && (
-        <div className="grid grid-cols-2 gap-6 items-start">
-          {/* Create client account */}
-          <div className="card space-y-4">
-            <div>
-              <h3 className="font-bold text-gray-900 flex items-center gap-2"><Key size={15} className="text-teal" /> Create client account</h3>
-              <p className="text-xs text-gray-400 mt-1">Give the client access to their portal. They'll log in at /client/login with these credentials.</p>
-            </div>
-            <div className="space-y-3">
-              {[
-                { label: "Full name", key: "name", val: newClientName, set: setNewClientName, placeholder: "e.g. Ahmed Hassan" },
-                { label: "Email", key: "email", val: newClientEmail, set: setNewClientEmail, placeholder: "ahmed@company.com" },
-                { label: "Company (optional)", key: "company", val: newClientCompany, set: setNewClientCompany, placeholder: "e.g. ABC Corp" },
-                { label: "Temporary password", key: "password", val: newClientPassword, set: setNewClientPassword, placeholder: "Set a strong password" },
-              ].map(({ label, key, val, set, placeholder }) => (
-                <div key={key}>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
-                  <input
-                    type={key === "password" ? "password" : "text"}
-                    value={val}
-                    onChange={e => set(e.target.value)}
-                    placeholder={placeholder}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-                  />
-                </div>
-              ))}
-            </div>
-            {clientError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{clientError}</div>
-            )}
-            {clientCreated ? (
-              <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
-                <CheckCircle size={14} /> Account created — client can now log in
-              </div>
-            ) : (
-              <button onClick={createClientUser} disabled={creatingClient || !newClientEmail || !newClientName || !newClientPassword}
-                className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40">
-                {creatingClient ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><UserCheck size={13} /> Create account</>}
-              </button>
-            )}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 leading-relaxed">
-              <strong>Share with client:</strong><br/>
-              Login URL: <span className="font-mono">{typeof window !== "undefined" ? window.location.origin : ""}/client/login</span><br/>
-              Email: {newClientEmail || "their email"}<br/>
-              Password: share securely (e.g. WhatsApp or phone)
-            </div>
-          </div>
-
-          {/* Existing client accounts */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-bold text-gray-900">Active client accounts</h3>
-              <p className="text-xs text-gray-400 mt-1">Clients with access to this mandate's portal</p>
-            </div>
-            {loadingClientData ? (
-              <div className="card text-center py-8"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-            ) : clientUsers.length === 0 ? (
-              <div className="card border-dashed text-center py-10">
-                <Users size={28} className="mx-auto mb-2 text-gray-200" />
-                <p className="text-gray-400 text-sm">No client accounts yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {clientUsers.map(cu => (
-                  <div key={cu.id} className="card p-4 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{cu.full_name}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{cu.email}</div>
-                      {cu.company_name && <div className="text-xs text-gray-400">{cu.company_name}</div>}
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className={`badge text-xs ${cu.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-500"}`}>
-                          {cu.is_active ? "Active" : "Inactive"}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          Added {new Date(cu.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short" })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <a href={`/client/${id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-teal hover:underline flex items-center gap-1">
-                        <ExternalLink size={11} /> Portal
-                      </a>
-                      {cu.is_active && (
-                        <button onClick={() => deactivateClient(cu.id)}
-                          className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
-                          <Trash2 size={11} /> Revoke
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Commentary composer */}
-            <div className="card space-y-3 mt-2">
-              <div>
-                <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2"><Send size={13} className="text-teal" /> Send market commentary</h3>
-                <p className="text-xs text-gray-400 mt-1">Write commentary below — it will be sent as a branded PDF to all active clients and posted to the portal.</p>
-              </div>
-              <textarea
-                value={commentaryText}
-                onChange={e => setCommentaryText(e.target.value)}
-                rows={6}
-                placeholder={"Write market commentary here...\n\nShare search progress, market insights, candidate market observations, or any updates relevant to the mandate."}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed"
-              />
-              {commentarySent ? (
-                <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
-                  <CheckCircle size={14} /> Commentary sent and posted to client portal
-                </div>
-              ) : (
-                <button onClick={sendCommentary} disabled={sendingCommentary || !commentaryText.trim() || clientUsers.filter(c => c.is_active).length === 0}
-                  className="btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
-                  {sendingCommentary ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to {clientUsers.filter(c => c.is_active).length} client{clientUsers.filter(c => c.is_active).length !== 1 ? "s" : ""}</>}
-                </button>
-              )}
-              {clientUsers.filter(c => c.is_active).length === 0 && (
-                <p className="text-xs text-amber-600">No active clients — create an account first</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── FEEDBACK INBOX TAB ── */}
-      {tab === "feedback" && (
-        <div className="max-w-3xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">Client feedback</h3>
-              <p className="text-xs text-gray-400 mt-0.5">All feedback submitted by clients on shortlisted candidates</p>
-            </div>
-            <button onClick={loadClientData} className="text-xs text-teal hover:underline flex items-center gap-1">
-              <RefreshCw size={11} /> Refresh
-            </button>
-          </div>
-
-          {loadingClientData ? (
-            <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-          ) : clientFeedback.length === 0 ? (
-            <div className="card border-dashed text-center py-12">
-              <MessageSquare size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 text-sm font-medium">No feedback yet</p>
-              <p className="text-gray-300 text-xs mt-1">Clients can submit feedback from their portal</p>
-            </div>
-          ) : (
-            clientFeedback.map(fb => {
-              const SENTIMENT_MAP: Record<string, { icon: any; color: string; bg: string }> = {
-                positive: { icon: ThumbsUp,   color: "text-teal",       bg: "bg-teal/5 border-teal/20" },
-                neutral:  { icon: Minus,       color: "text-gray-500",   bg: "bg-gray-50 border-gray-200" },
-                negative: { icon: ThumbsDown,  color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
-              }
-              const sentimentConfig = SENTIMENT_MAP[fb.sentiment || "neutral"] || SENTIMENT_MAP["neutral"]
-              const SentIcon = sentimentConfig.icon
-              const candidateName = fb.application?.candidate?.name || "Unknown candidate"
-              const candidateTitle = fb.application?.candidate?.current_title || ""
-              return (
-                <div key={fb.id} className={`card p-4 border ${sentimentConfig.bg}`}>
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 flex-shrink-0 ${sentimentConfig.color}`}>
-                      <SentIcon size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-semibold text-gray-900 text-sm">{candidateName}</span>
-                        {candidateTitle && <span className="text-xs text-gray-400">{candidateTitle}</span>}
-                      </div>
-                      <p className="text-sm text-gray-700 leading-relaxed">{fb.feedback_text}</p>
-                      <div className="text-xs text-gray-400 mt-2">
-                        {new Date(fb.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      )}
-
-      {/* ── INTERVIEW REQUESTS TAB ── */}
-      {tab === "interviews" && (
-        <div className="max-w-3xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900">Interview requests</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Requests from clients — assign and track to avoid duplication</p>
-            </div>
-            <button onClick={loadClientData} className="text-xs text-teal hover:underline flex items-center gap-1">
-              <RefreshCw size={11} /> Refresh
-            </button>
-          </div>
-
-          {loadingClientData ? (
-            <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-          ) : interviewRequests.length === 0 ? (
-            <div className="card border-dashed text-center py-12">
-              <Calendar size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 text-sm font-medium">No interview requests yet</p>
-              <p className="text-gray-300 text-xs mt-1">Clients can request interviews from the candidate portal</p>
-            </div>
-          ) : (
-            interviewRequests.map(ir => {
-              const STATUS_MAP: Record<string, { label: string; bg: string }> = {
-                new:         { label: "New",         bg: "bg-blue-100 text-blue-700" },
-                in_progress: { label: "In progress", bg: "bg-amber-100 text-amber-700" },
-                done:        { label: "Done",         bg: "bg-green-100 text-green-700" },
-              }
-              const statusConfig = STATUS_MAP[ir.status] || { label: ir.status, bg: "bg-gray-100 text-gray-600" }
-              const candidateName = ir.application?.candidate?.name || "Unknown"
-              const candidateTitle = ir.application?.candidate?.current_title || ""
-              const clientName = ir.client_user?.full_name || ""
-              const clientCompany = ir.client_user?.company_name || ""
-              return (
-                <div key={ir.id} className="card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-semibold text-gray-900 text-sm">{candidateName}</span>
-                        {candidateTitle && <span className="text-xs text-gray-400">{candidateTitle}</span>}
-                      </div>
-                      {(clientName || clientCompany) && (
-                        <div className="text-xs text-gray-500 mb-2">
-                          Requested by {clientName}{clientCompany ? ` · ${clientCompany}` : ""}
-                        </div>
-                      )}
-                      {ir.notes && (
-                        <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-lg px-3 py-2 mb-2">{ir.notes}</p>
-                      )}
-                      <div className="text-xs text-gray-400">
-                        {new Date(ir.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <span className={`badge text-xs ${statusConfig.bg}`}>{statusConfig.label}</span>
-                      <div className="flex gap-1.5">
-                        {ir.status !== "in_progress" && (
-                          <button onClick={() => updateInterviewStatus(ir.id, "in_progress")}
-                            className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">
-                            → In progress
-                          </button>
-                        )}
-                        {ir.status !== "done" && (
-                          <button onClick={() => updateInterviewStatus(ir.id, "done")}
-                            className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-700 hover:bg-green-50 transition-colors">
-                            ✓ Done
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })
           )}
         </div>
       )}
