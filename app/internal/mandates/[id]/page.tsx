@@ -1809,11 +1809,12 @@ export default function MandateDetail() {
             </div>
           ) : (
             interviewRequests.map(ir => {
-              const statusConfig = {
-                new:         { label: "New",        bg: "bg-blue-100 text-blue-700" },
+              const STATUS_MAP: Record<string, { label: string; bg: string }> = {
+                new:         { label: "New",         bg: "bg-blue-100 text-blue-700" },
                 in_progress: { label: "In progress", bg: "bg-amber-100 text-amber-700" },
-                done:        { label: "Done",        bg: "bg-green-100 text-green-700" },
-              }[ir.status] || { label: ir.status, bg: "bg-gray-100 text-gray-600" }
+                done:        { label: "Done",         bg: "bg-green-100 text-green-700" },
+              }
+              const statusConfig = STATUS_MAP[ir.status] || { label: ir.status, bg: "bg-gray-100 text-gray-600" }
               const candidateName = ir.application?.candidate?.name || "Unknown"
               const candidateTitle = ir.application?.candidate?.current_title || ""
               const clientName = ir.client_user?.full_name || ""
