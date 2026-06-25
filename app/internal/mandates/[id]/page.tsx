@@ -1753,11 +1753,12 @@ export default function MandateDetail() {
             </div>
           ) : (
             clientFeedback.map(fb => {
-              const sentimentConfig = {
-                positive: { icon: ThumbsUp, color: "text-teal", bg: "bg-teal/5 border-teal/20" },
-                neutral:  { icon: Minus,    color: "text-gray-500", bg: "bg-gray-50 border-gray-200" },
-                negative: { icon: ThumbsDown, color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
-              }[fb.sentiment || "neutral"] || { icon: Minus, color: "text-gray-500", bg: "bg-gray-50 border-gray-200" }
+              const SENTIMENT_MAP: Record<string, { icon: any; color: string; bg: string }> = {
+                positive: { icon: ThumbsUp,   color: "text-teal",       bg: "bg-teal/5 border-teal/20" },
+                neutral:  { icon: Minus,       color: "text-gray-500",   bg: "bg-gray-50 border-gray-200" },
+                negative: { icon: ThumbsDown,  color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
+              }
+              const sentimentConfig = SENTIMENT_MAP[fb.sentiment || "neutral"] || SENTIMENT_MAP["neutral"]
               const SentIcon = sentimentConfig.icon
               const candidateName = fb.application?.candidate?.name || "Unknown candidate"
               const candidateTitle = fb.application?.candidate?.current_title || ""
