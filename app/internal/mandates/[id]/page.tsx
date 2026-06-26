@@ -71,6 +71,7 @@ export default function MandateDetail() {
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
+  const [clientUser, setClientUser] = useState<any>(null)
   const [mandateClients, setMandateClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
@@ -528,6 +529,27 @@ export default function MandateDetail() {
           </span>
         </div>
       </div>
+
+      {/* Client section — shows automatically when a client is linked */}
+      {clientUser && (
+        <div className="flex items-center gap-3 bg-teal/5 border border-teal/20 rounded-2xl px-4 py-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+            {clientUser.full_name?.charAt(0)?.toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-gray-900">{clientUser.full_name}</span>
+              {clientUser.company_name && <span className="text-xs text-gray-500">{clientUser.company_name}</span>}
+              <span className="badge bg-teal/10 text-teal text-xs">Client access active</span>
+            </div>
+            <div className="text-xs text-gray-400 mt-0.5">{clientUser.email}</div>
+          </div>
+          <a href={`/client/${clientUser.mandate_id}`} target="_blank" rel="noopener noreferrer"
+            className="btn-ghost text-xs flex items-center gap-1 flex-shrink-0">
+            <ExternalLink size={11} /> View portal
+          </a>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
