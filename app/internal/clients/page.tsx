@@ -159,7 +159,7 @@ export default function ClientsPage() {
   }
 
   const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-    new:         { label: "New",         cls: "bg-blue-100 text-blue-700" },
+    "new":       { label: "New",         cls: "bg-blue-100 text-blue-700" },
     in_progress: { label: "In progress", cls: "bg-amber-100 text-amber-700" },
     done:        { label: "Done",        cls: "bg-green-100 text-green-700" },
   }
