@@ -30,7 +30,8 @@ export default function ClientsPage() {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [company, setCompany] = useState("")
-  const [mandateName, setMandateName] = useState("")
+  const [selectedMandateId, setSelectedMandateId] = useState("")
+  const [allMandates, setAllMandates] = useState<any[]>([])
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
   const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string } | null>(null)
@@ -51,7 +52,18 @@ export default function ClientsPage() {
   const [sentOk, setSentOk] = useState(false)
   const [pastCommentary, setPastCommentary] = useState<any[]>([])
 
-  useEffect(() => { loadClients() }, [])
+  useEffect(() => {
+    loadClients()
+    loadAllMandates()
+  }, [])
+
+  async function loadAllMandates() {
+    const { data } = await supabase
+      .from("mandates")
+      .select("id, title, client_name")
+      .order("created_at", { ascending: false })
+    setAllMandates(data || [])
+  }
 
   useEffect(() => {
     if (tab === "feedback") loadFeedback()
@@ -97,13 +109,14 @@ export default function ClientsPage() {
   }
 
   async function handleCreateClient() {
-    if (!fullName || !email || !mandateName) {
+    if (!fullName || !email || !selectedMandateId) {
       setCreateError("Name, email and mandate are required.")
       return
     }
     setCreating(true)
     setCreateError("")
     const password = generatePassword()
+    const mandate = allMandates.find(m => m.id === selectedMandateId)
     try {
       const res = await fetch("/api/create-client-user", {
         method: "POST",
@@ -112,7 +125,8 @@ export default function ClientsPage() {
           full_name: fullName,
           email,
           company_name: company,
-          mandate_name: mandateName,
+          mandate_id: selectedMandateId,
+          mandate_name: mandate ? `${mandate.title}${mandate.client_name ? ` — ${mandate.client_name}` : ""}` : "",
           temp_password: password,
         }),
       })
@@ -123,7 +137,7 @@ export default function ClientsPage() {
         return
       }
       setCreatedInfo({ email, password })
-      setFullName(""); setEmail(""); setCompany(""); setMandateName("")
+      setFullName(""); setEmail(""); setCompany(""); setSelectedMandateId("")
       setShowForm(false)
       loadClients()
     } catch {
@@ -255,8 +269,13 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate *</label>
-                  <input value={mandateName} onChange={e => setMandateName(e.target.value)} placeholder="e.g. CFO Search — TechCorp"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  <select value={selectedMandateId} onChange={e => setSelectedMandateId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
+                    <option value="">Select a mandate…</option>
+                    {allMandates.map(m => (
+                      <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Company</label>
