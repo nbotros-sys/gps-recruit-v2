@@ -17,7 +17,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://gps-recruit-v2.verc
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, full_name, company_name, mandate_name, temp_password } = await req.json()
+    const { email, full_name, company_name, mandate_id, mandate_name, temp_password } = await req.json()
     if (!email || !full_name || !temp_password) {
       return NextResponse.json({ error: "email, full_name and temp_password are required" }, { status: 400 })
     }
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
           auth_user_id: authUserId,
           full_name,
           company_name: company_name || null,
+          mandate_id: mandate_id || null,
           mandate_name: mandate_name || null,
           is_active: true,
           updated_at: new Date().toISOString(),
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
           email: email.toLowerCase().trim(),
           full_name,
           company_name: company_name || null,
+          mandate_id: mandate_id || null,
           mandate_name: mandate_name || null,
           is_active: true,
         }])
