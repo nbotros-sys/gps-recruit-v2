@@ -117,7 +117,18 @@ export default function ClientsPage() {
         body: JSON.stringify({ full_name: contactName, email: contactEmail, company_name: companyName, mandate_id: createdIds[0], mandate_name: mandateRows[0].title, temp_password: password }),
       })
       const data = await res.json()
-      if (data.error) { setCreateError(data.error); setCreating(false); return }
+      if (data.error) {
+        // Delete the mandates we just created since client failed
+        for (const mid of createdIds) {
+          await supabase.from("mandates").delete().eq("id", mid)
+        }
+        const friendlyError = data.error.includes("already been registered") || data.error.includes("already registered")
+          ? "This email address already has an account. Please use a different email."
+          : data.error
+        setCreateError(friendlyError)
+        setCreating(false)
+        return
+      }
       for (const mid of createdIds) {
         await supabase.from("mandates").update({ client_user_id: data.client_user?.id }).eq("id", mid)
       }
