@@ -213,6 +213,16 @@ export default function MandateDetail() {
       .eq("mandate_id", id)
       .order("ai_score", { ascending: false })
     setApplications(apps || [])
+
+      // Load linked client if any
+      const { data: linkedClient } = await supabase
+        .from("client_users")
+        .select("id, full_name, email, company_name, mandate_id, is_active")
+        .eq("mandate_id", m.id)
+        .eq("is_active", true)
+        .maybeSingle()
+      setClientUser(linkedClient || null)
+
     setLoading(false)
   }
 
