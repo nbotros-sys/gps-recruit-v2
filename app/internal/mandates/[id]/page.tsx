@@ -102,6 +102,19 @@ export default function MandateDetail() {
   const [scoringCandidate, setScoringCandidate] = useState(false)
   const [candidateRoles, setCandidateRoles] = useState<any[]>([])
 
+  const [roleFeedback, setRoleFeedback] = useState<Record<string, any[]>>({})
+  const [roleFeedbackExpanded, setRoleFeedbackExpanded] = useState<Record<string, boolean>>({})
+
+  async function loadRoleFeedback(applicationId: string) {
+    if (roleFeedback[applicationId]) return
+    const { data } = await supabase
+      .from("client_feedback")
+      .select("*, client_user:client_users(full_name)")
+      .eq("application_id", applicationId)
+      .order("created_at", { ascending: false })
+    setRoleFeedback(prev => ({ ...prev, [applicationId]: data || [] }))
+  }
+
   async function loadCandidateRoles(candidateId: string) {
     const { data } = await supabase
       .from("applications")
