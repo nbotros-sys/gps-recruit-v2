@@ -71,6 +71,7 @@ export default function MandateDetail() {
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
+  const [mandateClients, setMandateClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [scoring, setScoring] = useState(false)
   const [cvText, setCvText] = useState("")
@@ -166,6 +167,15 @@ export default function MandateDetail() {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+
+  async function loadMandateClients(mandateId: string) {
+    const { data } = await supabase
+      .from("client_users")
+      .select("id, full_name, email, company_name, is_active, created_at")
+      .eq("mandate_id", mandateId)
+      .eq("is_active", true)
+    setMandateClients(data || [])
+  }
 
   async function loadData() {
     const { data: m } = await supabase.from("mandates").select("*").eq("id", id).single()
