@@ -192,7 +192,7 @@ export default function ClientsPage() {
           { id: "feedback",    label: "Feedback",            count: feedback.length },
           { id: "interviews",  label: "Interview requests",  count: pendingInterviews.length },
           { id: "commentary",  label: "Commentary",          count: null },
-        ] as const).map(({ id, label, count }) => (
+        ]).map(({ id, label, count }: { id: "accounts" | "feedback" | "interviews" | "commentary"; label: string; count: number | null }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
               tab === id ? "bg-white text-teal shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"
