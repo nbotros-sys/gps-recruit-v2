@@ -1,10 +1,11 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase"
 import {
   Plus, Building2, ExternalLink, Trash2, MessageSquare,
-  Send, FileText, CheckCircle, Loader2,
-  ThumbsUp, ThumbsDown, Minus, RefreshCw, X, AlertTriangle, ChevronDown, ChevronUp
+  Send, FileText, CheckCircle, Loader2, Search,
+  ThumbsUp, ThumbsDown, Minus, X, AlertTriangle,
+  Calendar, MapPin, DollarSign, ChevronRight
 } from "lucide-react"
 
 const TEAM_MEMBERS = ["Mona", "Juana"]
@@ -20,165 +21,130 @@ type TabId = "accounts" | "feedback" | "interviews" | "commentary"
 
 export default function ClientsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<TabId>("accounts")
-
   const [clients, setClients] = useState<any[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
+  const [selected, setSelected] = useState<any>(null)
+  const [search, setSearch] = useState("")
   const [showForm, setShowForm] = useState(false)
 
-  // Client fields
+  // Create form
   const [contactName, setContactName] = useState("")
   const [contactEmail, setContactEmail] = useState("")
   const [companyName, setCompanyName] = useState("")
-
-  // Mandate fields (one per client creation)
-  const [mandates, setMandateRows] = useState([{ title: "", location: "", salary_range: "", job_description: "" }])
-
+  const [mandateRows, setMandateRows] = useState([{ title: "", location: "", salary_range: "", job_description: "" }])
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
   const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string } | null>(null)
+
+  // Detail panel data
+  const [detailFeedback, setDetailFeedback] = useState<any[]>([])
+  const [detailInterviews, setDetailInterviews] = useState<any[]>([])
+  const [detailMandates, setDetailMandates] = useState<any[]>([])
+  const [loadingDetail, setLoadingDetail] = useState(false)
+  const [feedbackPopup, setFeedbackPopup] = useState<any>(null)
   const [revokeTarget, setRevokeTarget] = useState<any>(null)
   const [revoking, setRevoking] = useState(false)
 
-  const [feedback, setFeedback] = useState<any[]>([])
-  const [loadingFeedback, setLoadingFeedback] = useState(false)
-  const [feedbackPopup, setFeedbackPopup] = useState<any>(null)
-
-  const [interviews, setInterviews] = useState<any[]>([])
-  const [loadingInterviews, setLoadingInterviews] = useState(false)
-
-  const [commentaryMandates, setCommentaryMandates] = useState<any[]>([])
-  const [selectedMandate, setSelectedMandate] = useState("")
+  // Commentary
+  const [commentaryTarget, setCommentaryTarget] = useState<any>(null)
   const [commentaryText, setCommentaryText] = useState("")
   const [sending, setSending] = useState(false)
   const [sentOk, setSentOk] = useState(false)
-  const [pastCommentary, setPastCommentary] = useState<any[]>([])
+
+  // Add mandate to existing client
+  const [showAddMandate, setShowAddMandate] = useState(false)
+  const [newMandate, setNewMandate] = useState({ title: "", location: "", salary_range: "", job_description: "" })
+  const [addingMandate, setAddingMandate] = useState(false)
 
   useEffect(() => { loadClients() }, [])
 
   useEffect(() => {
-    if (tab === "feedback") loadFeedback()
-    if (tab === "interviews") loadInterviews()
-    if (tab === "commentary") loadCommentaryData()
-  }, [tab])
+    if (selected) loadDetail(selected.id)
+  }, [selected])
 
   async function loadClients() {
     setLoadingClients(true)
     const { data } = await supabase
       .from("client_users")
-      .select("*, mandates:mandates(id, title, status)")
+      .select("*")
       .order("created_at", { ascending: false })
     setClients(data || [])
+    if (data && data.length > 0 && !selected) setSelected(data[0])
     setLoadingClients(false)
   }
 
-  async function loadFeedback() {
-    setLoadingFeedback(true)
-    const { data } = await supabase
-      .from("client_feedback")
-      .select("*, application:applications(id, candidate:candidates(id, name, current_title)), client_user:client_users(full_name, company_name)")
-      .order("created_at", { ascending: false })
-    setFeedback(data || [])
-    setLoadingFeedback(false)
-  }
-
-  async function loadInterviews() {
-    setLoadingInterviews(true)
-    const { data } = await supabase
-      .from("client_interview_requests")
-      .select("*, application:applications(candidate:candidates(name, current_title)), client_user:client_users(full_name, company_name), mandate:mandates(title)")
-      .order("created_at", { ascending: false })
-    setInterviews(data || [])
-    setLoadingInterviews(false)
-  }
-
-  async function loadCommentaryData() {
-    const [{ data: m }, { data: c }] = await Promise.all([
-      supabase.from("mandates").select("id, title, client_name").in("status", ["active", "open"]).order("created_at", { ascending: false }),
-      supabase.from("mandate_commentary").select("*, mandate:mandates(title)").order("created_at", { ascending: false }),
+  async function loadDetail(clientId: string) {
+    setLoadingDetail(true)
+    const [{ data: mandates }, { data: fb }, { data: ir }] = await Promise.all([
+      supabase.from("mandates").select("id, title, location, salary_range, status").eq("client_user_id", clientId).order("created_at", { ascending: false }),
+      supabase.from("client_feedback")
+        .select("*, application:applications(id, candidate:candidates(id, name, current_title)), mandate:mandates(title)")
+        .eq("client_user_id", clientId)
+        .order("created_at", { ascending: false }),
+      supabase.from("client_interview_requests")
+        .select("*, application:applications(candidate:candidates(name, current_title)), mandate:mandates(title)")
+        .eq("client_user_id", clientId)
+        .order("created_at", { ascending: false }),
     ])
-    setCommentaryMandates(m || [])
-    setPastCommentary(c || [])
-    if (m && m.length > 0 && !selectedMandate) setSelectedMandate(m[0].id)
+    setDetailMandates(mandates || [])
+    setDetailFeedback(fb || [])
+    setDetailInterviews(ir || [])
+    setLoadingDetail(false)
   }
 
-  function updateMandate(idx: number, field: string, value: string) {
+  function updateMandateRow(idx: number, field: string, value: string) {
     setMandateRows(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m))
   }
 
-  function addMandate() {
-    setMandateRows(prev => [...prev, { title: "", location: "", salary_range: "", job_description: "" }])
-  }
-
-  function removeMandate(idx: number) {
-    if (mandates.length === 1) return
-    setMandateRows(prev => prev.filter((_, i) => i !== idx))
-  }
-
   async function handleCreate() {
-    if (!contactName || !contactEmail || !companyName) {
-      setCreateError("Contact name, email and company are required.")
-      return
-    }
-    if (mandates.some(m => !m.title)) {
-      setCreateError("Each mandate needs a job title.")
-      return
-    }
-    setCreating(true)
-    setCreateError("")
+    if (!contactName || !contactEmail || !companyName) { setCreateError("Name, email and company are required."); return }
+    if (mandateRows.some(m => !m.title)) { setCreateError("Each mandate needs a job title."); return }
+    setCreating(true); setCreateError("")
     const password = generatePassword()
-
     try {
-      // 1. Create mandates first
-      const createdMandateIds: string[] = []
-      for (const m of mandates) {
-        const { data: mandate, error: mErr } = await supabase
-          .from("mandates")
-          .insert([{
-            title: m.title,
-            client_name: companyName,
-            location: m.location || null,
-            salary_range: m.salary_range || null,
-            job_description: m.job_description || null,
-            status: "active",
-          }])
-          .select("id")
-          .single()
+      const createdIds: string[] = []
+      for (const m of mandateRows) {
+        const { data: mandate, error: mErr } = await supabase.from("mandates").insert([{
+          title: m.title, client_name: companyName,
+          location: m.location || null, salary_range: m.salary_range || null,
+          job_description: m.job_description || null, status: "active",
+        }]).select("id").single()
         if (mErr) { setCreateError("Failed to create mandate: " + mErr.message); setCreating(false); return }
-        createdMandateIds.push(mandate.id)
+        createdIds.push(mandate.id)
       }
-
-      // 2. Create client account (linked to first mandate)
       const res = await fetch("/api/create-client-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          full_name: contactName,
-          email: contactEmail,
-          company_name: companyName,
-          mandate_id: createdMandateIds[0],
-          mandate_name: mandates[0].title,
-          temp_password: password,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: contactName, email: contactEmail, company_name: companyName, mandate_id: createdIds[0], mandate_name: mandateRows[0].title, temp_password: password }),
       })
       const data = await res.json()
       if (data.error) { setCreateError(data.error); setCreating(false); return }
-
-      // 3. If multiple mandates, update client record with all mandate IDs via additional rows or just link first
-      // For additional mandates, update mandate to reference client
-      for (const mid of createdMandateIds) {
+      for (const mid of createdIds) {
         await supabase.from("mandates").update({ client_user_id: data.client_user?.id }).eq("id", mid)
       }
-
       setCreatedInfo({ email: contactEmail, password })
       setContactName(""); setContactEmail(""); setCompanyName("")
       setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
       setShowForm(false)
-      loadClients()
-    } catch (e: any) {
-      setCreateError("Something went wrong: " + e.message)
-    }
+      await loadClients()
+    } catch (e: any) { setCreateError("Something went wrong: " + e.message) }
     setCreating(false)
+  }
+
+  async function handleAddMandate() {
+    if (!newMandate.title || !selected) return
+    setAddingMandate(true)
+    const { data: mandate, error } = await supabase.from("mandates").insert([{
+      title: newMandate.title, client_name: selected.company_name,
+      location: newMandate.location || null, salary_range: newMandate.salary_range || null,
+      job_description: newMandate.job_description || null, status: "active",
+      client_user_id: selected.id,
+    }]).select("id").single()
+    if (!error) {
+      setNewMandate({ title: "", location: "", salary_range: "", job_description: "" })
+      setShowAddMandate(false)
+      loadDetail(selected.id)
+    }
+    setAddingMandate(false)
   }
 
   async function handleRevoke(client: any) {
@@ -191,303 +157,355 @@ export default function ClientsPage() {
 
   async function handleInterviewStatus(id: string, status: string) {
     await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
-    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, status } : ir))
+    setDetailInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, status } : ir))
   }
 
   async function handleInterviewAssign(id: string, name: string) {
     await supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id)
-    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
+    setDetailInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
   }
 
   async function handleSendCommentary() {
-    if (!commentaryText.trim() || !selectedMandate) return
+    if (!commentaryText.trim() || !commentaryTarget) return
     setSending(true)
     const { data: { user } } = await supabase.auth.getUser()
     try {
       const res = await fetch("/api/send-commentary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandate_id: selectedMandate, commentary_text: commentaryText.trim(), created_by: user?.id }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandate_id: commentaryTarget.id, commentary_text: commentaryText.trim(), created_by: user?.id }),
       })
       const data = await res.json()
       if (data.error) { alert("Error: " + data.error); setSending(false); return }
-      setCommentaryText("")
-      setSentOk(true)
-      setTimeout(() => setSentOk(false), 5000)
-      loadCommentaryData()
+      setCommentaryText(""); setCommentaryTarget(null)
+      setSentOk(true); setTimeout(() => setSentOk(false), 4000)
     } catch { alert("Failed to send.") }
     setSending(false)
   }
 
+  const sentimentIcon = (s: string) => {
+    if (s === "positive") return <ThumbsUp size={13} className="text-teal" />
+    if (s === "negative") return <ThumbsDown size={13} className="text-amber-500" />
+    return <Minus size={13} className="text-gray-400" />
+  }
   const sentimentBadge = (s: string) => {
     if (s === "positive") return "bg-teal/10 text-teal"
     if (s === "negative") return "bg-amber-100 text-amber-700"
     return "bg-gray-100 text-gray-500"
   }
-
   const statusBadge = (s: string) => {
     if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
     if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
     return { label: "New", cls: "bg-blue-100 text-blue-700" }
   }
 
-  const activeClients = clients.filter(c => c.is_active)
-  const inactiveClients = clients.filter(c => !c.is_active)
-  const pendingInterviews = interviews.filter(ir => ir.status !== "done")
-  const doneInterviews = interviews.filter(ir => ir.status === "done")
+  const filtered = clients.filter(c =>
+    c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.company_name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-[calc(100vh-80px)] gap-0 -mx-6 -my-6 overflow-hidden">
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Accounts, feedback, interview requests and commentary</p>
+      {/* ── LEFT: Client list ── */}
+      <div className="w-72 border-r border-gray-100 flex flex-col bg-white flex-shrink-0">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-lg font-bold text-gray-900">Clients</h1>
+            <button onClick={() => { setShowForm(f => !f); setCreateError("") }}
+              className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5">
+              <Plus size={12} /> Add
+            </button>
+          </div>
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search clients…"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal/30" />
+          </div>
         </div>
-        {tab === "accounts" && (
-          <button onClick={() => { setShowForm(f => !f); setCreateError(""); setCreatedInfo(null) }}
-            className="btn-primary flex items-center gap-2">
-            <Plus size={15} /> Add client
-          </button>
-        )}
-      </div>
 
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        <TabButton id="accounts"   label="Accounts"           count={activeClients.length}    current={tab} onClick={setTab} />
-        <TabButton id="feedback"   label="Feedback"           count={feedback.length}          current={tab} onClick={setTab} />
-        <TabButton id="interviews" label="Interview requests" count={pendingInterviews.length} current={tab} onClick={setTab} />
-        <TabButton id="commentary" label="Commentary"         count={null}                     current={tab} onClick={setTab} />
-      </div>
-
-      {tab === "accounts" && (
-        <div className="space-y-4">
-
-          {createdInfo && (
-            <div className="card p-4 border border-teal/30 bg-teal/5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-teal font-semibold text-sm">
-                    <CheckCircle size={15} /> Client and mandate created — share these credentials
-                  </div>
-                  <div className="text-xs font-mono bg-white rounded-lg p-3 border border-teal/20 space-y-1">
-                    <div><span className="text-gray-400">Login:</span> {window.location.origin}/client/login</div>
-                    <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
-                    <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
-                  </div>
-                  <p className="text-xs text-gray-400">Share via WhatsApp or phone — not shown again</p>
-                </div>
-                <button onClick={() => setCreatedInfo(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-              </div>
-            </div>
-          )}
-
-          {showForm && (
-            <div className="card p-5 space-y-5">
-              <h3 className="font-semibold text-gray-900">New client</h3>
-              {createError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>
-              )}
-
-              {/* Client contact details */}
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Client contact</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name *</label>
-                    <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="e.g. Ahmed Hassan"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Email *</label>
-                    <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="ahmed@company.com"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Company *</label>
-                    <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="e.g. TechCorp Egypt"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Mandates */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mandates</p>
-                  <button onClick={addMandate} className="text-xs text-teal hover:underline flex items-center gap-1">
-                    <Plus size={11} /> Add another mandate
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {mandates.map((m, idx) => (
-                    <div key={idx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-500">Mandate {mandates.length > 1 ? idx + 1 : ""}</span>
-                        {mandates.length > 1 && (
-                          <button onClick={() => removeMandate(idx)} className="text-xs text-gray-400 hover:text-red-500">Remove</button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
-                          <input value={m.title} onChange={e => updateMandate(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                          <input value={m.location} onChange={e => updateMandate(idx, "location", e.target.value)} placeholder="e.g. Cairo, Egypt"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
-                          <input value={m.salary_range} onChange={e => updateMandate(idx, "salary_range", e.target.value)} placeholder="e.g. 40,000 – 60,000 EGP"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">✦ AI Ready</span></label>
-                          <textarea value={m.job_description} onChange={e => updateMandate(idx, "job_description", e.target.value)}
-                            rows={4} placeholder="Paste the full job description — AI will use this to score candidates"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none bg-white" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-1">
-                <button onClick={handleCreate} disabled={creating}
-                  className="btn-primary flex items-center gap-2 disabled:opacity-50">
-                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create client &amp; mandate</>}
-                </button>
-                <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
-              </div>
-              <p className="text-xs text-gray-400">Creates the client account, mandate(s), and sends a welcome email automatically.</p>
-            </div>
-          )}
-
+        <div className="flex-1 overflow-y-auto">
           {loadingClients ? (
-            <div className="card text-center py-12"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-          ) : clients.length === 0 ? (
-            <div className="card border-dashed text-center py-14">
-              <Building2 size={36} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 font-medium">No client accounts yet</p>
-              <p className="text-gray-300 text-sm mt-1">Click &quot;Add client&quot; to create the first one</p>
+            <div className="flex items-center justify-center py-12"><Loader2 size={18} className="animate-spin text-teal" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <Building2 size={28} className="mx-auto mb-2 text-gray-200" />
+              <p className="text-gray-400 text-sm">No clients yet</p>
             </div>
           ) : (
-            <div className="card divide-y divide-gray-50">
-              {activeClients.map(cu => (
-                <div key={cu.id} className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {cu.full_name?.charAt(0)?.toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 text-sm">{cu.full_name}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{cu.email}{cu.company_name ? ` · ${cu.company_name}` : ""}</div>
-                    </div>
-                    <span className="badge bg-teal/10 text-teal text-xs">Active</span>
-                    <div className="flex gap-2 flex-shrink-0">
-                      {cu.mandate_id && (
-                        <a href={`/client/${cu.mandate_id}`} target="_blank" rel="noopener noreferrer"
-                          className="btn-ghost text-xs flex items-center gap-1">
-                          <ExternalLink size={11} /> Portal
-                        </a>
-                      )}
-                      <button onClick={() => setRevokeTarget(cu)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1">
-                        <Trash2 size={11} /> Revoke
-                      </button>
+            filtered.map(c => (
+              <div key={c.id}
+                onClick={() => setSelected(c)}
+                className={`px-4 py-3 cursor-pointer border-b border-gray-50 transition-all ${selected?.id === c.id ? "bg-teal/5 border-l-2 border-l-teal" : "hover:bg-gray-50 border-l-2 border-l-transparent"}`}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                    {c.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-sm truncate">{c.company_name || c.full_name}</div>
+                    <div className="text-xs text-gray-400 truncate">{c.full_name}</div>
+                  </div>
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${c.is_active ? "bg-teal" : "bg-gray-300"}`} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── RIGHT: Client detail ── */}
+      <div className="flex-1 overflow-y-auto bg-gray-50/50">
+        {!selected ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Building2 size={40} className="mx-auto mb-3 text-gray-200" />
+              <p className="text-gray-400">Select a client to view details</p>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto p-6 space-y-6">
+
+            {/* Add client form */}
+            {showForm && (
+              <div className="card p-5 space-y-5 border-teal/20">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">New client</h3>
+                  <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+                </div>
+                {createError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>}
+                {createdInfo && (
+                  <div className="bg-teal/5 border border-teal/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-teal font-semibold text-sm mb-2"><CheckCircle size={14} /> Created — share these credentials</div>
+                    <div className="font-mono text-xs bg-white rounded-lg p-3 border border-teal/20 space-y-1">
+                      <div><span className="text-gray-400">Login:</span> {window.location.origin}/client/login</div>
+                      <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
+                      <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
                     </div>
                   </div>
-                  {cu.mandate_id && (
-                    <div className="mt-2 ml-12">
-                      <a href={`/internal/mandates/${cu.mandate_id}`}
-                        className="text-xs text-teal hover:underline flex items-center gap-1 w-fit">
-                        <ExternalLink size={10} /> {cu.mandate_name || "View mandate"}
-                      </a>
-                    </div>
+                )}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contact details</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Full name *", val: contactName, set: setContactName, ph: "Ahmed Hassan" },
+                      { label: "Email *", val: contactEmail, set: setContactEmail, ph: "ahmed@company.com" },
+                      { label: "Company *", val: companyName, set: setCompanyName, ph: "TechCorp Egypt" },
+                    ].map(({ label, val, set, ph }) => (
+                      <div key={label}>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">{label}</label>
+                        <input value={val} onChange={e => set(e.target.value)} placeholder={ph}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mandates</p>
+                    <button onClick={() => setMandateRows(p => [...p, { title: "", location: "", salary_range: "", job_description: "" }])}
+                      className="text-xs text-teal hover:underline flex items-center gap-1"><Plus size={10} /> Add mandate</button>
+                  </div>
+                  <div className="space-y-3">
+                    {mandateRows.map((m, idx) => (
+                      <div key={idx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-500">Mandate {mandateRows.length > 1 ? idx + 1 : ""}</span>
+                          {mandateRows.length > 1 && <button onClick={() => setMandateRows(p => p.filter((_, i) => i !== idx))} className="text-xs text-gray-400 hover:text-red-500">Remove</button>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="col-span-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
+                            <input value={m.title} onChange={e => updateMandateRow(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                            <input value={m.location} onChange={e => updateMandateRow(idx, "location", e.target.value)} placeholder="e.g. Cairo, Egypt"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
+                            <input value={m.salary_range} onChange={e => updateMandateRow(idx, "salary_range", e.target.value)} placeholder="e.g. 40,000–60,000 EGP"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">✦ AI Ready</span></label>
+                            <textarea value={m.job_description} onChange={e => updateMandateRow(idx, "job_description", e.target.value)}
+                              rows={3} placeholder="Paste the full job description — AI will use this to score candidates"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={handleCreate} disabled={creating} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+                    {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create client &amp; mandate</>}
+                  </button>
+                  <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Client header */}
+            <div className="card p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                    {selected.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900 text-base">{selected.full_name}</div>
+                    {selected.company_name && <div className="text-sm text-gray-600 mt-0.5">{selected.company_name}</div>}
+                    <div className="text-sm text-teal mt-0.5">{selected.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`badge text-xs ${selected.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>
+                    {selected.is_active ? "Active" : "Inactive"}
+                  </span>
+                  {selected.is_active && (
+                    <button onClick={() => setRevokeTarget(selected)}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors flex items-center gap-1">
+                      <Trash2 size={11} /> Revoke
+                    </button>
                   )}
                 </div>
-              ))}
-              {inactiveClients.length > 0 && (
-                <>
-                  <div className="px-4 py-2 bg-gray-50">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inactive</span>
+              </div>
+            </div>
+
+            {/* Mandates */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 text-sm">Mandates</h3>
+                {selected.is_active && (
+                  <button onClick={() => setShowAddMandate(f => !f)} className="text-xs text-teal hover:underline flex items-center gap-1">
+                    <Plus size={11} /> Add mandate
+                  </button>
+                )}
+              </div>
+
+              {showAddMandate && (
+                <div className="card p-4 mb-3 border-teal/20 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
+                      <input value={newMandate.title} onChange={e => setNewMandate(p => ({ ...p, title: e.target.value }))} placeholder="e.g. VP Sales"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                      <input value={newMandate.location} onChange={e => setNewMandate(p => ({ ...p, location: e.target.value }))} placeholder="Cairo, Egypt"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
+                      <input value={newMandate.salary_range} onChange={e => setNewMandate(p => ({ ...p, salary_range: e.target.value }))} placeholder="40,000–60,000 EGP"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">✦ AI Ready</span></label>
+                      <textarea value={newMandate.job_description} onChange={e => setNewMandate(p => ({ ...p, job_description: e.target.value }))}
+                        rows={3} placeholder="Paste the full job description"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
+                    </div>
                   </div>
-                  {inactiveClients.map(cu => (
-                    <div key={cu.id} className="flex items-center gap-3 p-4 opacity-50">
-                      <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm flex-shrink-0">
-                        {cu.full_name?.charAt(0)?.toUpperCase()}
+                  <div className="flex gap-2">
+                    <button onClick={handleAddMandate} disabled={addingMandate || !newMandate.title}
+                      className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50">
+                      {addingMandate ? <><Loader2 size={11} className="animate-spin" /> Adding…</> : "Add mandate"}
+                    </button>
+                    <button onClick={() => setShowAddMandate(false)} className="btn-ghost text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {loadingDetail ? (
+                <div className="card text-center py-8"><Loader2 size={18} className="animate-spin mx-auto text-teal" /></div>
+              ) : detailMandates.length === 0 ? (
+                <div className="card border-dashed text-center py-8">
+                  <p className="text-gray-400 text-sm">No mandates yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {detailMandates.map(m => (
+                    <div key={m.id} className="card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 text-sm">{m.title}</div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            {m.location && <span className="flex items-center gap-1"><MapPin size={10} />{m.location}</span>}
+                            {m.salary_range && <span className="flex items-center gap-1"><DollarSign size={10} />{m.salary_range}</span>}
+                          </div>
+                        </div>
+                        <span className={`badge text-xs flex-shrink-0 ${m.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                          {m.status}
+                        </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-700 text-sm">{cu.full_name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{cu.email}</div>
+                      <div className="flex gap-2 mt-3">
+                        <a href={`/internal/mandates/${m.id}`}
+                          className="btn-ghost text-xs flex items-center gap-1">
+                          <ExternalLink size={10} /> Open mandate
+                        </a>
+                        <button onClick={() => { setCommentaryTarget(m); setCommentaryText("") }}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-teal/5 border border-teal/20 text-teal hover:bg-teal/10 transition-colors flex items-center gap-1">
+                          <Send size={10} /> Send commentary
+                        </button>
+                        <a href={`/client/${m.id}`} target="_blank" rel="noopener noreferrer"
+                          className="btn-ghost text-xs flex items-center gap-1">
+                          <ExternalLink size={10} /> View portal
+                        </a>
                       </div>
-                      <span className="badge bg-gray-100 text-gray-400 text-xs">Inactive</span>
                     </div>
                   ))}
-                </>
+                </div>
               )}
             </div>
-          )}
-        </div>
-      )}
 
-      {tab === "feedback" && (
-        <div className="space-y-3 max-w-3xl">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">All client feedback — click any row to read in full</p>
-            <button onClick={loadFeedback} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
-          </div>
-          {loadingFeedback ? (
-            <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-          ) : feedback.length === 0 ? (
-            <div className="card border-dashed text-center py-12">
-              <MessageSquare size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 font-medium">No feedback yet</p>
-            </div>
-          ) : (
-            <div className="card divide-y divide-gray-50">
-              {feedback.map(fb => (
-                <div key={fb.id} className="flex items-start gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => setFeedbackPopup(fb)}>
-                  {fb.sentiment === "positive" ? <ThumbsUp size={15} className="mt-0.5 flex-shrink-0 text-teal" /> : fb.sentiment === "negative" ? <ThumbsDown size={15} className="mt-0.5 flex-shrink-0 text-amber-500" /> : <Minus size={15} className="mt-0.5 flex-shrink-0 text-gray-400" />}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
-                      <span className={`badge text-xs ${sentimentBadge(fb.sentiment || "neutral")}`}>{fb.sentiment || "neutral"}</span>
-                      <span className="text-xs text-gray-400">{fb.client_user?.full_name}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
-                  </div>
-                  <span className="text-xs text-gray-300 flex-shrink-0">
-                    {new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </span>
+            {/* Feedback */}
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-3">Client feedback</h3>
+              {detailFeedback.length === 0 ? (
+                <div className="card border-dashed text-center py-8">
+                  <MessageSquare size={24} className="mx-auto mb-2 text-gray-200" />
+                  <p className="text-gray-400 text-sm">No feedback yet</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "interviews" && (
-        <div className="space-y-4 max-w-3xl">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Assign to a team member to avoid duplication</p>
-            <button onClick={loadInterviews} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
-          </div>
-          {loadingInterviews ? (
-            <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
-          ) : interviews.length === 0 ? (
-            <div className="card border-dashed text-center py-12">
-              <p className="text-gray-400 font-medium">No interview requests yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pendingInterviews.length > 0 && (
+              ) : (
                 <div className="card divide-y divide-gray-50">
-                  {pendingInterviews.map(ir => {
+                  {detailFeedback.map(fb => (
+                    <div key={fb.id} className="flex items-start gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => setFeedbackPopup(fb)}>
+                      <div className="mt-0.5 flex-shrink-0">{sentimentIcon(fb.sentiment)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown candidate"}</span>
+                          <span className={`badge text-xs ${sentimentBadge(fb.sentiment || "neutral")}`}>{fb.sentiment || "neutral"}</span>
+                          {fb.mandate?.title && <span className="text-xs text-gray-400">{fb.mandate.title}</span>}
+                        </div>
+                        <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
+                      </div>
+                      <span className="text-xs text-gray-300 flex-shrink-0">
+                        {new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Interview requests */}
+            <div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-3">Interview requests</h3>
+              {detailInterviews.length === 0 ? (
+                <div className="card border-dashed text-center py-8">
+                  <Calendar size={24} className="mx-auto mb-2 text-gray-200" />
+                  <p className="text-gray-400 text-sm">No interview requests yet</p>
+                </div>
+              ) : (
+                <div className="card divide-y divide-gray-50">
+                  {detailInterviews.map(ir => {
                     const sc = statusBadge(ir.status)
                     return (
                       <div key={ir.id} className="p-4">
@@ -498,15 +516,7 @@ export default function ClientsPage() {
                               <span className={`badge text-xs ${sc.cls}`}>{sc.label}</span>
                               {ir.mandate?.title && <span className="text-xs text-gray-400">{ir.mandate.title}</span>}
                             </div>
-                            {ir.client_user && (
-                              <div className="text-xs text-gray-500 mb-2">
-                                Requested by {ir.client_user.full_name}{ir.client_user.company_name ? ` · ${ir.client_user.company_name}` : ""}
-                              </div>
-                            )}
                             {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-2">{ir.notes}</p>}
-                            <div className="text-xs text-gray-300">
-                              {new Date(ir.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                            </div>
                           </div>
                           <div className="flex flex-col gap-2 items-end flex-shrink-0">
                             <select value={ir.assigned_to_name || ""} onChange={e => handleInterviewAssign(ir.id, e.target.value)}
@@ -519,8 +529,10 @@ export default function ClientsPage() {
                                 <button onClick={() => handleInterviewStatus(ir.id, "in_progress")}
                                   className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
                               )}
-                              <button onClick={() => handleInterviewStatus(ir.id, "done")}
-                                className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
+                              {ir.status !== "done" && (
+                                <button onClick={() => handleInterviewStatus(ir.id, "done")}
+                                  className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -529,96 +541,43 @@ export default function ClientsPage() {
                   })}
                 </div>
               )}
-              {doneInterviews.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">Completed</p>
-                  <div className="card divide-y divide-gray-50 opacity-60">
-                    {doneInterviews.map(ir => (
-                      <div key={ir.id} className="flex items-center gap-3 p-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-gray-700 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
-                            <span className="badge text-xs bg-green-100 text-green-700">Done</span>
-                            {ir.assigned_to_name && <span className="text-xs text-gray-400">assigned to {ir.assigned_to_name}</span>}
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {ir.mandate?.title} · {new Date(ir.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          )}
-        </div>
-      )}
 
-      {tab === "commentary" && (
-        <div className="grid grid-cols-2 gap-6 items-start max-w-4xl">
-          <div className="card p-5 space-y-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                <Send size={13} className="text-teal" /> Send market commentary
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">Generates a branded PDF, emails the client, posts to their portal</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── COMMENTARY MODAL ── */}
+      {commentaryTarget && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div className="font-bold text-gray-900">Send market commentary</div>
+                <div className="text-xs text-gray-400 mt-1">{commentaryTarget.title} · {selected?.company_name}</div>
+              </div>
+              <button onClick={() => setCommentaryTarget(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate</label>
-              <select value={selectedMandate} onChange={e => setSelectedMandate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
-                {commentaryMandates.map(m => (
-                  <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Commentary</label>
-              <textarea value={commentaryText} onChange={e => setCommentaryText(e.target.value)} rows={8}
-                placeholder="Write your market commentary here&#x2026;"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed" />
-            </div>
+            <textarea value={commentaryText} onChange={e => setCommentaryText(e.target.value)} rows={8}
+              placeholder="Write your market commentary here&#x2026;"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed mb-4" />
             {sentOk && (
-              <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
+              <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold mb-3">
                 <CheckCircle size={14} /> Sent — PDF generated, email delivered, portal updated
               </div>
             )}
-            <button onClick={handleSendCommentary} disabled={sending || !commentaryText.trim() || !selectedMandate}
-              className="btn-primary flex items-center justify-center gap-2 w-full disabled:opacity-40">
-              {sending ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to client</>}
-            </button>
-          </div>
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 text-sm">Sent commentary</h3>
-            {pastCommentary.length === 0 ? (
-              <div className="card border-dashed text-center py-10">
-                <FileText size={28} className="mx-auto mb-2 text-gray-200" />
-                <p className="text-gray-400 text-sm">No commentary sent yet</p>
-              </div>
-            ) : (
-              <div className="card divide-y divide-gray-50">
-                {pastCommentary.map(c => (
-                  <div key={c.id} className="flex items-center gap-3 p-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 text-sm">{c.mandate?.title || "Unknown mandate"}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                        {c.email_sent && <span className="ml-2 text-teal">Delivered</span>}
-                      </div>
-                    </div>
-                    {c.pdf_url && (
-                      <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
-                        className="btn-ghost text-xs flex items-center gap-1"><FileText size={11} /> PDF</a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex gap-3">
+              <button onClick={handleSendCommentary} disabled={sending || !commentaryText.trim()}
+                className="btn-primary flex items-center gap-2 flex-1 justify-center disabled:opacity-40">
+                {sending ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to client</>}
+              </button>
+              <button onClick={() => setCommentaryTarget(null)} className="btn-ghost">Cancel</button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* ── REVOKE MODAL ── */}
       {revokeTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
@@ -645,6 +604,7 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {/* ── FEEDBACK POPUP ── */}
       {feedbackPopup && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFeedbackPopup(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -652,7 +612,8 @@ export default function ClientsPage() {
               <div>
                 <div className="font-bold text-gray-900">Feedback on {feedbackPopup.application?.candidate?.name}</div>
                 <div className="text-xs text-gray-400 mt-1">
-                  {feedbackPopup.client_user?.full_name} · {new Date(feedbackPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                  {feedbackPopup.mandate?.title && `${feedbackPopup.mandate.title} · `}
+                  {new Date(feedbackPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -663,32 +624,15 @@ export default function ClientsPage() {
             <p className="text-sm text-gray-700 leading-relaxed mb-5">{feedbackPopup.feedback_text}</p>
             <div className="flex gap-3">
               {feedbackPopup.application?.candidate?.id && (
-                <a href={`/internal/candidates/${feedbackPopup.application.candidate.id}`}
-                  className="btn-primary text-sm">Open candidate profile</a>
+                <a href={`/internal/candidates/${feedbackPopup.application.candidate.id}`} className="btn-primary text-sm">
+                  Open candidate profile
+                </a>
               )}
               <button onClick={() => setFeedbackPopup(null)} className="btn-ghost text-sm">Close</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
-  )
-}
-
-function TabButton({ id, label, count, current, onClick }: {
-  id: TabId; label: string; count: number | null; current: TabId; onClick: (id: TabId) => void
-}) {
-  const active = id === current
-  return (
-    <button onClick={() => onClick(id)}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${active ? "bg-white text-teal shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}>
-      {label}
-      {count !== null && count > 0 && (
-        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${active ? "bg-teal/10 text-teal" : "bg-gray-200 text-gray-500"}`}>
-          {count}
-        </span>
-      )}
-    </button>
   )
 }
