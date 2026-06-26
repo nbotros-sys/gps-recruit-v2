@@ -20,6 +20,136 @@ const STAGE_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-600",
 }
 
+
+function RoleCard({ app, candidateId }: { app: any; candidateId: string }) {
+  const supabase = createClient()
+  const [feedback, setFeedback] = useState<any[]>([])
+  const [loadingFb, setLoadingFb] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [fbPopup, setFbPopup] = useState<any>(null)
+
+  const STAGE_ORDER = ["new","screening","interview","shortlisted","offered","placed"]
+  const STAGE_LABELS: Record<string,string> = { new:"New",screening:"Screening",interview:"Interview",shortlisted:"Shortlisted",offered:"Offered",placed:"Placed" }
+
+  async function loadFeedback() {
+    if (feedback.length > 0) return
+    setLoadingFb(true)
+    const { data } = await supabase
+      .from("client_feedback")
+      .select("*, client_user:client_users(full_name, company_name)")
+      .eq("application_id", app.id)
+      .order("created_at", { ascending: false })
+    setFeedback(data || [])
+    setLoadingFb(false)
+  }
+
+  function handleExpand() {
+    setExpanded(e => !e)
+    if (!expanded) loadFeedback()
+  }
+
+  const SENTIMENT_MAP: Record<string, string> = {
+    positive: "bg-teal/10 text-teal",
+    neutral:  "bg-gray-100 text-gray-500",
+    negative: "bg-amber-100 text-amber-700",
+  }
+
+  const isActive = app.mandate?.status === "active" || app.mandate?.status === "open"
+  const currentIdx = STAGE_ORDER.indexOf(app.stage)
+
+  return (
+    <div className={`card p-4 border ${isActive ? "border-teal/20 bg-teal/5" : "border-gray-100"}`}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a href={`/internal/mandates/${app.mandate?.id}`}
+              className="font-semibold text-gray-900 text-sm hover:text-teal transition-colors">
+              {app.mandate?.title}
+            </a>
+            {isActive && <span className="text-xs bg-teal/10 text-teal px-1.5 py-0.5 rounded-full">Active</span>}
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {app.mandate?.client_name}{app.mandate?.location ? ` · ${app.mandate.location}` : ""}
+          </p>
+        </div>
+        {app.ai_score && (
+          <span className="text-xs font-bold flex-shrink-0" style={{ color: app.ai_score >= 70 ? "#028090" : app.ai_score >= 50 ? "#d97706" : "#9ca3af" }}>
+            {app.ai_score}/100
+          </span>
+        )}
+      </div>
+
+      {/* Pipeline trail */}
+      <div className="flex items-center gap-0.5 flex-wrap mb-3">
+        {STAGE_ORDER.map((stage, idx, arr) => {
+          const thisIdx = STAGE_ORDER.indexOf(stage)
+          const isPast = thisIdx < currentIdx
+          const isCurrent = stage === app.stage
+          return (
+            <div key={stage} className="flex items-center">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isCurrent ? "bg-teal text-white" : isPast ? "bg-gray-200 text-gray-500" : "text-gray-300"}`}>
+                {STAGE_LABELS[stage]}
+              </span>
+              {idx < arr.length - 1 && <span className={`text-xs mx-0.5 ${isPast || isCurrent ? "text-gray-400" : "text-gray-200"}`}>→</span>}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Client feedback toggle */}
+      <button onClick={handleExpand}
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-teal transition-colors">
+        <MessageSquare size={12} />
+        {expanded ? "Hide client feedback" : "View client feedback"}
+        {loadingFb && <Loader2 size={11} className="animate-spin ml-1" />}
+      </button>
+
+      {expanded && !loadingFb && (
+        <div className="mt-3 space-y-2">
+          {feedback.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">No client feedback for this role yet</p>
+          ) : (
+            feedback.map(fb => (
+              <div key={fb.id}
+                className="bg-white border border-gray-100 rounded-xl px-3 py-2.5 cursor-pointer hover:border-teal/30 transition-colors"
+                onClick={() => setFbPopup(fb)}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`badge text-xs ${SENTIMENT_MAP[fb.sentiment || "neutral"] || "bg-gray-100 text-gray-500"}`}>
+                    {fb.sentiment || "neutral"}
+                  </span>
+                  <span className="text-xs text-gray-400">{fb.client_user?.full_name}</span>
+                  <span className="text-xs text-gray-300">{new Date(fb.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short" })}</span>
+                </div>
+                <p className="text-xs text-gray-600 line-clamp-2">{fb.feedback_text}</p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Feedback popup */}
+      {fbPopup && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFbPopup(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div className="font-bold text-gray-900 text-sm">Client feedback</div>
+                <div className="text-xs text-gray-400 mt-1">{fbPopup.client_user?.full_name} · {new Date(fbPopup.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`badge text-xs ${SENTIMENT_MAP[fbPopup.sentiment || "neutral"] || "bg-gray-100 text-gray-500"}`}>{fbPopup.sentiment || "neutral"}</span>
+                <button onClick={() => setFbPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={15} /></button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">{fbPopup.feedback_text}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CandidateProfile() {
   const { id } = useParams()
   const router = useRouter()
@@ -437,22 +567,20 @@ export default function CandidateProfile() {
         </div>
       )}
 
-      {/* Roles & History tab — placeholder, full logic coming soon */}
+      {/* Roles & History tab */}
       {activeTab === "roles" && (
-        <div className="card space-y-4">
-          <div className="flex items-center gap-3">
-            <h3 className="font-semibold text-gray-900">Roles & History</h3>
-            <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700 font-medium">Coming soon</span>
-          </div>
-          <p className="text-sm text-gray-500">
-            This tab will show a full history of mandates this candidate has been considered for,
-            including active pipeline stages, rejections, and placements.
-          </p>
-          <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center text-gray-400 text-sm">
-            <div className="text-2xl mb-2">📋</div>
-            <div className="font-medium text-gray-500 mb-1">Mandate history will appear here</div>
-            <div className="text-xs">Active mandates, rejections, and placements across all roles</div>
-          </div>
+        <div className="space-y-3">
+          <p className="text-xs text-gray-400">All mandates this candidate has been assigned to</p>
+          {applications.length === 0 ? (
+            <div className="card border-dashed text-center py-10">
+              <Briefcase size={28} className="mx-auto mb-2 text-gray-200" />
+              <p className="text-gray-400 text-sm">No roles yet</p>
+            </div>
+          ) : (
+            applications.map(app => (
+              <RoleCard key={app.id} app={app} candidateId={id as string} />
+            ))
+          )}
         </div>
       )}
     </div>
