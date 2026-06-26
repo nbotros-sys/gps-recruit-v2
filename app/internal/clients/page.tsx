@@ -3,54 +3,47 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
 import {
   Plus, Building2, ExternalLink, Trash2, MessageSquare,
-  Calendar, Send, FileText, CheckCircle, Loader2,
+  Send, FileText, CheckCircle, Loader2,
   ThumbsUp, ThumbsDown, Minus, RefreshCw, X, AlertTriangle
 } from "lucide-react"
 
-const TEAM = ["Mona", "Juana"]
+const TEAM_MEMBERS = ["Mona", "Juana"]
 
-function generatePassword() {
-  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#"
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
+function generatePassword(): string {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+  let out = ""
+  for (let i = 0; i < 12; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return out
 }
 
-const SENTIMENT_MAP: { [key: string]: { icon: any; color: string; badge: string } } = {
-  positive: { icon: ThumbsUp,   color: "text-teal",       badge: "bg-teal/10 text-teal" },
-  neutral:  { icon: Minus,      color: "text-gray-400",   badge: "bg-gray-100 text-gray-500" },
-  negative: { icon: ThumbsDown, color: "text-amber-500",  badge: "bg-amber-100 text-amber-700" },
-}
-
-const STATUS_MAP: { [key: string]: { label: string; cls: string } } = {
-  new:         { label: "New",         cls: "bg-blue-100 text-blue-700" },
-  in_progress: { label: "In progress", cls: "bg-amber-100 text-amber-700" },
-  done:        { label: "Done",        cls: "bg-green-100 text-green-700" },
-}
+type TabId = "accounts" | "feedback" | "interviews" | "commentary"
 
 export default function ClientsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<"accounts" | "feedback" | "interviews" | "commentary">("accounts")
+  const [tab, setTab] = useState<TabId>("accounts")
 
-  // ── Accounts state ──
   const [clients, setClients] = useState<any[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ full_name: "", email: "", company_name: "", mandate_name: "" })
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [company, setCompany] = useState("")
+  const [mandateName, setMandateName] = useState("")
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
-  const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string; portal: string } | null>(null)
+  const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string } | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<any>(null)
   const [revoking, setRevoking] = useState(false)
 
-  // ── Feedback state ──
   const [feedback, setFeedback] = useState<any[]>([])
   const [loadingFeedback, setLoadingFeedback] = useState(false)
   const [feedbackPopup, setFeedbackPopup] = useState<any>(null)
 
-  // ── Interview requests state ──
   const [interviews, setInterviews] = useState<any[]>([])
   const [loadingInterviews, setLoadingInterviews] = useState(false)
 
-  // ── Commentary state ──
   const [mandates, setMandates] = useState<any[]>([])
   const [selectedMandate, setSelectedMandate] = useState("")
   const [commentaryText, setCommentaryText] = useState("")
@@ -68,10 +61,7 @@ export default function ClientsPage() {
 
   async function loadClients() {
     setLoadingClients(true)
-    const { data } = await supabase
-      .from("client_users")
-      .select("*")
-      .order("created_at", { ascending: false })
+    const { data } = await supabase.from("client_users").select("*").order("created_at", { ascending: false })
     setClients(data || [])
     setLoadingClients(false)
   }
@@ -106,45 +96,61 @@ export default function ClientsPage() {
     if (m && m.length > 0 && !selectedMandate) setSelectedMandate(m[0].id)
   }
 
-  async function createClient() {
-    if (!form.full_name || !form.email || !form.mandate_name) { setCreateError("Name, email and mandate are required."); return }
-    setCreating(true); setCreateError("")
+  async function handleCreateClient() {
+    if (!fullName || !email || !mandateName) {
+      setCreateError("Name, email and mandate are required.")
+      return
+    }
+    setCreating(true)
+    setCreateError("")
     const password = generatePassword()
     try {
       const res = await fetch("/api/create-client-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, temp_password: password, mandate_id: null, mandate_name: form.mandate_name }),
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          company_name: company,
+          mandate_name: mandateName,
+          temp_password: password,
+        }),
       })
       const data = await res.json()
-      if (data.error) { setCreateError(data.error); setCreating(false); return }
-      setCreatedInfo({ email: form.email, password, portal: `${window.location.origin}/client/${data.client_user?.mandate_id || ""}` })
-      setForm({ full_name: "", email: "", company_name: "", mandate_name: "" })
+      if (data.error) {
+        setCreateError(data.error)
+        setCreating(false)
+        return
+      }
+      setCreatedInfo({ email, password })
+      setFullName(""); setEmail(""); setCompany(""); setMandateName("")
       setShowForm(false)
       loadClients()
-    } catch { setCreateError("Failed to create account.") }
+    } catch {
+      setCreateError("Failed to create account.")
+    }
     setCreating(false)
   }
 
-  async function revokeAccess(client: any) {
+  async function handleRevoke(client: any) {
     setRevoking(true)
-    await supabase.from("client_users").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", client.id)
+    await supabase.from("client_users").update({ is_active: false }).eq("id", client.id)
     setRevokeTarget(null)
     setRevoking(false)
     loadClients()
   }
 
-  async function updateInterviewStatus(id: string, status: string) {
+  async function handleInterviewStatus(id: string, status: string) {
     await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
     setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, status } : ir))
   }
 
-  async function updateInterviewAssignee(id: string, assignee: string) {
-    await supabase.from("client_interview_requests").update({ assigned_to_name: assignee, updated_at: new Date().toISOString() }).eq("id", id)
-    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: assignee } : ir))
+  async function handleInterviewAssign(id: string, name: string) {
+    await supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id)
+    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
   }
 
-  async function sendCommentary() {
+  async function handleSendCommentary() {
     if (!commentaryText.trim() || !selectedMandate) return
     setSending(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -160,8 +166,22 @@ export default function ClientsPage() {
       setSentOk(true)
       setTimeout(() => setSentOk(false), 5000)
       loadCommentaryData()
-    } catch { alert("Failed to send.") }
+    } catch {
+      alert("Failed to send.")
+    }
     setSending(false)
+  }
+
+  const sentimentBadge = (s: string) => {
+    if (s === "positive") return "bg-teal/10 text-teal"
+    if (s === "negative") return "bg-amber-100 text-amber-700"
+    return "bg-gray-100 text-gray-500"
+  }
+
+  const statusBadge = (s: string) => {
+    if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
+    if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
+    return { label: "New", cls: "bg-blue-100 text-blue-700" }
   }
 
   const activeClients = clients.filter(c => c.is_active)
@@ -171,7 +191,7 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
@@ -185,92 +205,83 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {([
-          { id: "accounts",    label: "Accounts",            count: activeClients.length },
-          { id: "feedback",    label: "Feedback",            count: feedback.length },
-          { id: "interviews",  label: "Interview requests",  count: pendingInterviews.length },
-          { id: "commentary",  label: "Commentary",          count: null },
-        ]).map(({ id, label, count }: { id: "accounts" | "feedback" | "interviews" | "commentary"; label: string; count: number | null }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              tab === id ? "bg-white text-teal shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"
-            }`}>
-            {label}
-            {count !== null && count > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${tab === id ? "bg-teal/10 text-teal" : "bg-gray-200 text-gray-500"}`}>
-                {count}
-              </span>
-            )}
-          </button>
-        ))}
+        <TabButton id="accounts"   label="Accounts"           count={activeClients.length}    current={tab} onClick={setTab} />
+        <TabButton id="feedback"   label="Feedback"           count={feedback.length}          current={tab} onClick={setTab} />
+        <TabButton id="interviews" label="Interview requests" count={pendingInterviews.length} current={tab} onClick={setTab} />
+        <TabButton id="commentary" label="Commentary"         count={null}                     current={tab} onClick={setTab} />
       </div>
 
-      {/* ── ACCOUNTS TAB ── */}
       {tab === "accounts" && (
         <div className="space-y-4">
-          {/* Created info banner */}
+
           {createdInfo && (
-            <div className="card p-4 border-teal/30 bg-teal/5">
+            <div className="card p-4 border border-teal/30 bg-teal/5">
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-teal font-semibold text-sm"><CheckCircle size={15} /> Account created — share these credentials with the client</div>
-                  <div className="text-xs text-gray-600 font-mono bg-white rounded-lg p-3 space-y-1 mt-2 border border-teal/20">
-                    <div><span className="text-gray-400">Login URL:</span> {createdInfo.portal.includes("undefined") ? `${window.location.origin}/client/login` : createdInfo.portal}</div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-teal font-semibold text-sm">
+                    <CheckCircle size={15} /> Account created — share these credentials with the client
+                  </div>
+                  <div className="text-xs font-mono bg-white rounded-lg p-3 border border-teal/20 space-y-1">
+                    <div><span className="text-gray-400">Login:</span> {window.location.origin}/client/login</div>
                     <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
                     <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Share via WhatsApp or phone — this will not be shown again</p>
+                  <p className="text-xs text-gray-400">Share via WhatsApp or phone — not shown again</p>
                 </div>
-                <button onClick={() => setCreatedInfo(null)} className="text-gray-400 hover:text-gray-600 flex-shrink-0"><X size={16} /></button>
+                <button onClick={() => setCreatedInfo(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={16} />
+                </button>
               </div>
             </div>
           )}
 
-          {/* Add client form */}
           {showForm && (
             <div className="card p-5 space-y-4">
               <h3 className="font-semibold text-gray-900 text-sm">New client account</h3>
-              {createError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>}
+              {createError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>
+              )}
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "Full name *", key: "full_name", placeholder: "e.g. Ahmed Hassan" },
-                  { label: "Email *", key: "email", placeholder: "ahmed@company.com" },
-                  { label: "Mandate *", key: "mandate_name", placeholder: "e.g. CFO Search — TechCorp" },
-                  { label: "Company", key: "company_name", placeholder: "e.g. TechCorp Egypt" },
-                ].map(({ label, key, placeholder }) => (
-                  <div key={key}>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{label}</label>
-                    <input
-                      type={key === "email" ? "email" : "text"}
-                      value={(form as any)[key]}
-                      onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                      placeholder={placeholder}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Full name *</label>
+                  <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Email *</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ahmed@company.com"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate *</label>
+                  <input value={mandateName} onChange={e => setMandateName(e.target.value)} placeholder="e.g. CFO Search — TechCorp"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Company</label>
+                  <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. TechCorp Egypt"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                </div>
               </div>
               <div className="flex gap-3">
-                <button onClick={createClient} disabled={creating}
+                <button onClick={handleCreateClient} disabled={creating}
                   className="btn-primary flex items-center gap-2 disabled:opacity-50">
-                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create & send welcome email</>}
+                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create &amp; send welcome email</>}
                 </button>
                 <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
               </div>
-              <p className="text-xs text-gray-400">A welcome email with login credentials will be sent automatically.</p>
+              <p className="text-xs text-gray-400">A welcome email with login credentials is sent automatically.</p>
             </div>
           )}
 
-          {/* Client list */}
           {loadingClients ? (
             <div className="card text-center py-12"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
           ) : clients.length === 0 ? (
             <div className="card border-dashed text-center py-14">
               <Building2 size={36} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 font-medium">No client accounts yet</p>
-              <p className="text-gray-300 text-sm mt-1">Click "Add client" to create the first one</p>
+              <p className="text-gray-300 text-sm mt-1">Click &quot;Add client&quot; to create the first one</p>
             </div>
           ) : (
             <div className="card divide-y divide-gray-50">
@@ -311,7 +322,7 @@ export default function ClientsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-700 text-sm">{cu.full_name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{cu.email}{cu.company_name ? ` · ${cu.company_name}` : ""}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{cu.email}</div>
                         {cu.mandate_name && <div className="text-xs text-gray-300 mt-0.5">{cu.mandate_name}</div>}
                       </div>
                       <span className="badge bg-gray-100 text-gray-400 text-xs">Inactive</span>
@@ -324,12 +335,13 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* ── FEEDBACK TAB ── */}
       {tab === "feedback" && (
         <div className="space-y-3 max-w-3xl">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">All client feedback across mandates — click to read in full</p>
-            <button onClick={loadFeedback} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
+            <p className="text-sm text-gray-500">All client feedback — click any row to read in full</p>
+            <button onClick={loadFeedback} className="text-xs text-teal hover:underline flex items-center gap-1">
+              <RefreshCw size={11} /> Refresh
+            </button>
           </div>
           {loadingFeedback ? (
             <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
@@ -337,48 +349,43 @@ export default function ClientsPage() {
             <div className="card border-dashed text-center py-12">
               <MessageSquare size={32} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 font-medium">No feedback yet</p>
-              <p className="text-gray-300 text-sm mt-1">Client feedback will appear here once submitted from the portal</p>
             </div>
           ) : (
             <div className="card divide-y divide-gray-50">
-              {feedback.map(fb => {
-                const sm = SENTIMENT_MAP[fb.sentiment || "neutral"] || SENTIMENT_MAP.neutral
-                const SIcon = sm.icon
-                return (
-                  <div key={fb.id} className="flex items-start gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => setFeedbackPopup(fb)}>
-                    <SIcon size={15} className={`mt-0.5 flex-shrink-0 ${sm.color}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
-                        <span className={`badge text-xs ${sm.badge}`}>{fb.sentiment || "neutral"}</span>
-                        <span className="text-xs text-gray-400">{fb.client_user?.full_name}{fb.client_user?.company_name ? ` · ${fb.client_user.company_name}` : ""}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
+              {feedback.map(fb => (
+                <div key={fb.id} className="flex items-start gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => setFeedbackPopup(fb)}>
+                  {fb.sentiment === "positive" ? <ThumbsUp size={15} className="mt-0.5 flex-shrink-0 text-teal" /> : fb.sentiment === "negative" ? <ThumbsDown size={15} className="mt-0.5 flex-shrink-0 text-amber-500" /> : <Minus size={15} className="mt-0.5 flex-shrink-0 text-gray-400" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
+                      <span className={`badge text-xs ${sentimentBadge(fb.sentiment || "neutral")}`}>{fb.sentiment || "neutral"}</span>
+                      <span className="text-xs text-gray-400">{fb.client_user?.full_name}</span>
                     </div>
-                    <span className="text-xs text-gray-300 flex-shrink-0">
-                      {new Date(fb.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short" })}
-                    </span>
+                    <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
                   </div>
-                )
-              })}
+                  <span className="text-xs text-gray-300 flex-shrink-0">
+                    {new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── INTERVIEWS TAB ── */}
       {tab === "interviews" && (
         <div className="space-y-4 max-w-3xl">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Assign to a team member to avoid duplication</p>
-            <button onClick={loadInterviews} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
+            <button onClick={loadInterviews} className="text-xs text-teal hover:underline flex items-center gap-1">
+              <RefreshCw size={11} /> Refresh
+            </button>
           </div>
           {loadingInterviews ? (
             <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
           ) : interviews.length === 0 ? (
             <div className="card border-dashed text-center py-12">
-              <Calendar size={32} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 font-medium">No interview requests yet</p>
             </div>
           ) : (
@@ -386,7 +393,7 @@ export default function ClientsPage() {
               {pendingInterviews.length > 0 && (
                 <div className="card divide-y divide-gray-50">
                   {pendingInterviews.map(ir => {
-                    const sc = STATUS_MAP[ir.status] || STATUS_MAP.new
+                    const sc = statusBadge(ir.status)
                     return (
                       <div key={ir.id} className="p-4">
                         <div className="flex items-start justify-between gap-3">
@@ -396,25 +403,33 @@ export default function ClientsPage() {
                               <span className={`badge text-xs ${sc.cls}`}>{sc.label}</span>
                               {ir.mandate?.title && <span className="text-xs text-gray-400">{ir.mandate.title}</span>}
                             </div>
-                            {ir.client_user && <div className="text-xs text-gray-500 mb-2">Requested by {ir.client_user.full_name}{ir.client_user.company_name ? ` · ${ir.client_user.company_name}` : ""}</div>}
+                            {ir.client_user && (
+                              <div className="text-xs text-gray-500 mb-2">
+                                Requested by {ir.client_user.full_name}{ir.client_user.company_name ? ` · ${ir.client_user.company_name}` : ""}
+                              </div>
+                            )}
                             {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-2">{ir.notes}</p>}
-                            <div className="text-xs text-gray-300">{new Date(ir.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}</div>
+                            <div className="text-xs text-gray-300">
+                              {new Date(ir.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </div>
                           </div>
                           <div className="flex flex-col gap-2 items-end flex-shrink-0">
-                            <select
-                              value={ir.assigned_to_name || ""}
-                              onChange={e => updateInterviewAssignee(ir.id, e.target.value)}
-                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-teal/30">
+                            <select value={ir.assigned_to_name || ""} onChange={e => handleInterviewAssign(ir.id, e.target.value)}
+                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none">
                               <option value="">Assign to…</option>
-                              {TEAM.map(name => <option key={name} value={name}>{name}</option>)}
+                              {TEAM_MEMBERS.map(name => <option key={name} value={name}>{name}</option>)}
                             </select>
                             <div className="flex gap-1.5">
                               {ir.status !== "in_progress" && (
-                                <button onClick={() => updateInterviewStatus(ir.id, "in_progress")}
-                                  className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">→ In progress</button>
+                                <button onClick={() => handleInterviewStatus(ir.id, "in_progress")}
+                                  className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">
+                                  In progress
+                                </button>
                               )}
-                              <button onClick={() => updateInterviewStatus(ir.id, "done")}
-                                className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">✓ Done</button>
+                              <button onClick={() => handleInterviewStatus(ir.id, "done")}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">
+                                Done
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -433,9 +448,11 @@ export default function ClientsPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-gray-700 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
                             <span className="badge text-xs bg-green-100 text-green-700">Done</span>
-                            {ir.assigned_to_name && <span className="text-xs text-gray-400">→ {ir.assigned_to_name}</span>}
+                            {ir.assigned_to_name && <span className="text-xs text-gray-400">assigned to {ir.assigned_to_name}</span>}
                           </div>
-                          <div className="text-xs text-gray-400 mt-0.5">{ir.mandate?.title} · {new Date(ir.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {ir.mandate?.title} · {new Date(ir.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -447,44 +464,40 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* ── COMMENTARY TAB ── */}
       {tab === "commentary" && (
         <div className="grid grid-cols-2 gap-6 items-start max-w-4xl">
           <div className="card p-5 space-y-4">
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2"><Send size={13} className="text-teal" /> Send market commentary</h3>
-              <p className="text-xs text-gray-400 mt-1">Generates a branded PDF, emails the client, and posts to their portal</p>
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <Send size={13} className="text-teal" /> Send market commentary
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Generates a branded PDF, emails the client, posts to their portal</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate</label>
               <select value={selectedMandate} onChange={e => setSelectedMandate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
-                {mandates.map(m => <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>)}
+                {mandates.map(m => (
+                  <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Commentary</label>
-              <textarea
-                value={commentaryText}
-                onChange={e => setCommentaryText(e.target.value)}
-                rows={8}
-                placeholder={"Write your market commentary here…
-
-Share search progress, market insights, candidate observations, or updates relevant to this mandate."}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed"
-              />
+              <textarea value={commentaryText} onChange={e => setCommentaryText(e.target.value)} rows={8}
+                placeholder="Write your market commentary here&#x2026;"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed" />
             </div>
             {sentOk && (
               <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
                 <CheckCircle size={14} /> Sent — PDF generated, email delivered, portal updated
               </div>
             )}
-            <button onClick={sendCommentary} disabled={sending || !commentaryText.trim() || !selectedMandate}
+            <button onClick={handleSendCommentary} disabled={sending || !commentaryText.trim() || !selectedMandate}
               className="btn-primary flex items-center justify-center gap-2 w-full disabled:opacity-40">
               {sending ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to client</>}
             </button>
           </div>
-
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-900 text-sm">Sent commentary</h3>
             {pastCommentary.length === 0 ? (
@@ -499,13 +512,15 @@ Share search progress, market insights, candidate observations, or updates relev
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 text-sm">{c.mandate?.title || "Unknown mandate"}</div>
                       <div className="text-xs text-gray-400 mt-0.5">
-                        {new Date(c.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}
-                        {c.email_sent && <span className="ml-2 text-teal">· Delivered</span>}
+                        {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {c.email_sent && <span className="ml-2 text-teal">Delivered</span>}
                       </div>
                     </div>
                     {c.pdf_url && (
                       <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
-                        className="btn-ghost text-xs flex items-center gap-1"><FileText size={11} /> PDF</a>
+                        className="btn-ghost text-xs flex items-center gap-1">
+                        <FileText size={11} /> PDF
+                      </a>
                     )}
                   </div>
                 ))}
@@ -515,7 +530,6 @@ Share search progress, market insights, candidate observations, or updates relev
         </div>
       )}
 
-      {/* ── REVOKE CONFIRMATION MODAL ── */}
       {revokeTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
@@ -529,10 +543,10 @@ Share search progress, market insights, candidate observations, or updates relev
               </div>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed mb-5">
-              This will immediately remove <strong>{revokeTarget.full_name}&apos;s</strong> access to the client portal. They will no longer be able to log in. This action can be reversed by creating a new account.
+              This will immediately remove their access to the client portal. They will no longer be able to log in.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => revokeAccess(revokeTarget)} disabled={revoking}
+              <button onClick={() => handleRevoke(revokeTarget)} disabled={revoking}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
                 {revoking ? "Revoking…" : "Yes, revoke access"}
               </button>
@@ -542,19 +556,19 @@ Share search progress, market insights, candidate observations, or updates relev
         </div>
       )}
 
-      {/* ── FEEDBACK POPUP ── */}
       {feedbackPopup && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFeedbackPopup(null)}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6"
+          onClick={() => setFeedbackPopup(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <div className="font-bold text-gray-900">Feedback on {feedbackPopup.application?.candidate?.name}</div>
                 <div className="text-xs text-gray-400 mt-1">
-                  {feedbackPopup.client_user?.full_name} · {new Date(feedbackPopup.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}
+                  {feedbackPopup.client_user?.full_name} · {new Date(feedbackPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={`badge text-xs ${(SENTIMENT_MAP[feedbackPopup.sentiment || "neutral"] || SENTIMENT_MAP.neutral).badge}`}>{feedbackPopup.sentiment || "neutral"}</span>
+                <span className={`badge text-xs ${sentimentBadge(feedbackPopup.sentiment || "neutral")}`}>{feedbackPopup.sentiment || "neutral"}</span>
                 <button onClick={() => setFeedbackPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
               </div>
             </div>
@@ -562,15 +576,31 @@ Share search progress, market insights, candidate observations, or updates relev
             <div className="flex gap-3">
               {feedbackPopup.application?.candidate?.id && (
                 <a href={`/internal/candidates/${feedbackPopup.application.candidate.id}`}
-                  className="btn-primary text-sm flex items-center gap-1.5">
-                  Open candidate profile
-                </a>
+                  className="btn-primary text-sm">Open candidate profile</a>
               )}
               <button onClick={() => setFeedbackPopup(null)} className="btn-ghost text-sm">Close</button>
             </div>
           </div>
         </div>
       )}
+
     </div>
+  )
+}
+
+function TabButton({ id, label, count, current, onClick }: {
+  id: TabId; label: string; count: number | null; current: TabId; onClick: (id: TabId) => void
+}) {
+  const active = id === current
+  return (
+    <button onClick={() => onClick(id)}
+      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${active ? "bg-white text-teal shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}>
+      {label}
+      {count !== null && count > 0 && (
+        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${active ? "bg-teal/10 text-teal" : "bg-gray-200 text-gray-500"}`}>
+          {count}
+        </span>
+      )}
+    </button>
   )
 }
