@@ -205,10 +205,10 @@ export default function ClientsPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-0 -mx-6 -my-6 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] gap-0 -mx-6 -my-6 overflow-hidden">
 
       {/* ── LEFT: Client list ── */}
-      <div className="w-72 border-r border-gray-100 flex flex-col bg-white flex-shrink-0">
+      <div className="w-72 border-r border-gray-100 flex flex-col bg-white flex-shrink-0 overflow-hidden">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-900">Clients</h1>
@@ -225,7 +225,7 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {loadingClients ? (
             <div className="flex items-center justify-center py-12"><Loader2 size={18} className="animate-spin text-teal" /></div>
           ) : filtered.length === 0 ? (
