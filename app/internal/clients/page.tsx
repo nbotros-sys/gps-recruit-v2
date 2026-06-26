@@ -14,6 +14,18 @@ function generatePassword() {
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
 }
 
+const SENTIMENT_MAP: { [key: string]: { icon: any; color: string; badge: string } } = {
+  positive: { icon: ThumbsUp,   color: "text-teal",       badge: "bg-teal/10 text-teal" },
+  neutral:  { icon: Minus,      color: "text-gray-400",   badge: "bg-gray-100 text-gray-500" },
+  negative: { icon: ThumbsDown, color: "text-amber-500",  badge: "bg-amber-100 text-amber-700" },
+}
+
+const STATUS_MAP: { [key: string]: { label: string; cls: string } } = {
+  new:         { label: "New",         cls: "bg-blue-100 text-blue-700" },
+  in_progress: { label: "In progress", cls: "bg-amber-100 text-amber-700" },
+  done:        { label: "Done",        cls: "bg-green-100 text-green-700" },
+}
+
 export default function ClientsPage() {
   const supabase = createClient()
   const [tab, setTab] = useState<"accounts" | "feedback" | "interviews" | "commentary">("accounts")
@@ -150,18 +162,6 @@ export default function ClientsPage() {
       loadCommentaryData()
     } catch { alert("Failed to send.") }
     setSending(false)
-  }
-
-  const SENTIMENT_MAP: Record<string, { icon: any; color: string; badge: string }> = {
-    positive: { icon: ThumbsUp,   color: "text-teal",       badge: "bg-teal/10 text-teal" },
-    neutral:  { icon: Minus,      color: "text-gray-400",   badge: "bg-gray-100 text-gray-500" },
-    negative: { icon: ThumbsDown, color: "text-amber-500",  badge: "bg-amber-100 text-amber-700" },
-  }
-
-  const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-    "new":       { label: "New",         cls: "bg-blue-100 text-blue-700" },
-    in_progress: { label: "In progress", cls: "bg-amber-100 text-amber-700" },
-    done:        { label: "Done",        cls: "bg-green-100 text-green-700" },
   }
 
   const activeClients = clients.filter(c => c.is_active)
