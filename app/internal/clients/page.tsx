@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase"
 import {
   Plus, Building2, ExternalLink, Trash2, MessageSquare,
   Send, FileText, CheckCircle, Loader2,
-  ThumbsUp, ThumbsDown, Minus, RefreshCw, X, AlertTriangle
+  ThumbsUp, ThumbsDown, Minus, RefreshCw, X, AlertTriangle, ChevronDown, ChevronUp
 } from "lucide-react"
 
 const TEAM_MEMBERS = ["Mona", "Juana"]
@@ -12,9 +12,7 @@ const TEAM_MEMBERS = ["Mona", "Juana"]
 function generatePassword(): string {
   const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
   let out = ""
-  for (let i = 0; i < 12; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)]
-  }
+  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)]
   return out
 }
 
@@ -27,11 +25,15 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [company, setCompany] = useState("")
-  const [selectedMandateId, setSelectedMandateId] = useState("")
-  const [allMandates, setAllMandates] = useState<any[]>([])
+
+  // Client fields
+  const [contactName, setContactName] = useState("")
+  const [contactEmail, setContactEmail] = useState("")
+  const [companyName, setCompanyName] = useState("")
+
+  // Mandate fields (one per client creation)
+  const [mandates, setMandateRows] = useState([{ title: "", location: "", salary_range: "", job_description: "" }])
+
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
   const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string } | null>(null)
@@ -45,25 +47,14 @@ export default function ClientsPage() {
   const [interviews, setInterviews] = useState<any[]>([])
   const [loadingInterviews, setLoadingInterviews] = useState(false)
 
-  const [mandates, setMandates] = useState<any[]>([])
+  const [commentaryMandates, setCommentaryMandates] = useState<any[]>([])
   const [selectedMandate, setSelectedMandate] = useState("")
   const [commentaryText, setCommentaryText] = useState("")
   const [sending, setSending] = useState(false)
   const [sentOk, setSentOk] = useState(false)
   const [pastCommentary, setPastCommentary] = useState<any[]>([])
 
-  useEffect(() => {
-    loadClients()
-    loadAllMandates()
-  }, [])
-
-  async function loadAllMandates() {
-    const { data } = await supabase
-      .from("mandates")
-      .select("id, title, client_name")
-      .order("created_at", { ascending: false })
-    setAllMandates(data || [])
-  }
+  useEffect(() => { loadClients() }, [])
 
   useEffect(() => {
     if (tab === "feedback") loadFeedback()
@@ -73,7 +64,10 @@ export default function ClientsPage() {
 
   async function loadClients() {
     setLoadingClients(true)
-    const { data } = await supabase.from("client_users").select("*").order("created_at", { ascending: false })
+    const { data } = await supabase
+      .from("client_users")
+      .select("*, mandates:mandates(id, title, status)")
+      .order("created_at", { ascending: false })
     setClients(data || [])
     setLoadingClients(false)
   }
@@ -103,45 +97,86 @@ export default function ClientsPage() {
       supabase.from("mandates").select("id, title, client_name").in("status", ["active", "open"]).order("created_at", { ascending: false }),
       supabase.from("mandate_commentary").select("*, mandate:mandates(title)").order("created_at", { ascending: false }),
     ])
-    setMandates(m || [])
+    setCommentaryMandates(m || [])
     setPastCommentary(c || [])
     if (m && m.length > 0 && !selectedMandate) setSelectedMandate(m[0].id)
   }
 
-  async function handleCreateClient() {
-    if (!fullName || !email || !selectedMandateId) {
-      setCreateError("Name, email and mandate are required.")
+  function updateMandate(idx: number, field: string, value: string) {
+    setMandateRows(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m))
+  }
+
+  function addMandate() {
+    setMandateRows(prev => [...prev, { title: "", location: "", salary_range: "", job_description: "" }])
+  }
+
+  function removeMandate(idx: number) {
+    if (mandates.length === 1) return
+    setMandateRows(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleCreate() {
+    if (!contactName || !contactEmail || !companyName) {
+      setCreateError("Contact name, email and company are required.")
+      return
+    }
+    if (mandates.some(m => !m.title)) {
+      setCreateError("Each mandate needs a job title.")
       return
     }
     setCreating(true)
     setCreateError("")
     const password = generatePassword()
-    const mandate = allMandates.find(m => m.id === selectedMandateId)
+
     try {
+      // 1. Create mandates first
+      const createdMandateIds: string[] = []
+      for (const m of mandates) {
+        const { data: mandate, error: mErr } = await supabase
+          .from("mandates")
+          .insert([{
+            title: m.title,
+            client_name: companyName,
+            location: m.location || null,
+            salary_range: m.salary_range || null,
+            job_description: m.job_description || null,
+            status: "active",
+          }])
+          .select("id")
+          .single()
+        if (mErr) { setCreateError("Failed to create mandate: " + mErr.message); setCreating(false); return }
+        createdMandateIds.push(mandate.id)
+      }
+
+      // 2. Create client account (linked to first mandate)
       const res = await fetch("/api/create-client-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          full_name: fullName,
-          email,
-          company_name: company,
-          mandate_id: selectedMandateId,
-          mandate_name: mandate ? `${mandate.title}${mandate.client_name ? ` — ${mandate.client_name}` : ""}` : "",
+          full_name: contactName,
+          email: contactEmail,
+          company_name: companyName,
+          mandate_id: createdMandateIds[0],
+          mandate_name: mandates[0].title,
           temp_password: password,
         }),
       })
       const data = await res.json()
-      if (data.error) {
-        setCreateError(data.error)
-        setCreating(false)
-        return
+      if (data.error) { setCreateError(data.error); setCreating(false); return }
+
+      // 3. If multiple mandates, update client record with all mandate IDs via additional rows or just link first
+      // For additional mandates, update mandate to reference client
+      for (const mid of createdMandateIds) {
+        await supabase.from("mandates").update({ client_user_id: data.client_user?.id }).eq("id", mid)
       }
-      setCreatedInfo({ email, password })
-      setFullName(""); setEmail(""); setCompany(""); setSelectedMandateId("")
+
+      setCreatedInfo({ email: contactEmail, password })
+      setContactName(""); setContactEmail(""); setCompanyName("")
+      setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
       setShowForm(false)
       loadClients()
-    } catch {
-      setCreateError("Failed to create account.")
+    } catch (e: any) {
+      setCreateError("Something went wrong: " + e.message)
     }
     setCreating(false)
   }
@@ -180,9 +215,7 @@ export default function ClientsPage() {
       setSentOk(true)
       setTimeout(() => setSentOk(false), 5000)
       loadCommentaryData()
-    } catch {
-      alert("Failed to send.")
-    }
+    } catch { alert("Failed to send.") }
     setSending(false)
   }
 
@@ -234,7 +267,7 @@ export default function ClientsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-teal font-semibold text-sm">
-                    <CheckCircle size={15} /> Account created — share these credentials with the client
+                    <CheckCircle size={15} /> Client and mandate created — share these credentials
                   </div>
                   <div className="text-xs font-mono bg-white rounded-lg p-3 border border-teal/20 space-y-1">
                     <div><span className="text-gray-400">Login:</span> {window.location.origin}/client/login</div>
@@ -243,54 +276,93 @@ export default function ClientsPage() {
                   </div>
                   <p className="text-xs text-gray-400">Share via WhatsApp or phone — not shown again</p>
                 </div>
-                <button onClick={() => setCreatedInfo(null)} className="text-gray-400 hover:text-gray-600">
-                  <X size={16} />
-                </button>
+                <button onClick={() => setCreatedInfo(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
               </div>
             </div>
           )}
 
           {showForm && (
-            <div className="card p-5 space-y-4">
-              <h3 className="font-semibold text-gray-900 text-sm">New client account</h3>
+            <div className="card p-5 space-y-5">
+              <h3 className="font-semibold text-gray-900">New client</h3>
               {createError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Full name *</label>
-                  <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Email *</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ahmed@company.com"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate *</label>
-                  <select value={selectedMandateId} onChange={e => setSelectedMandateId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
-                    <option value="">Select a mandate…</option>
-                    {allMandates.map(m => (
-                      <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Company</label>
-                  <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. TechCorp Egypt"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+
+              {/* Client contact details */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Client contact</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name *</label>
+                    <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="e.g. Ahmed Hassan"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Email *</label>
+                    <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="ahmed@company.com"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Company *</label>
+                    <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="e.g. TechCorp Egypt"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button onClick={handleCreateClient} disabled={creating}
+
+              {/* Mandates */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mandates</p>
+                  <button onClick={addMandate} className="text-xs text-teal hover:underline flex items-center gap-1">
+                    <Plus size={11} /> Add another mandate
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {mandates.map((m, idx) => (
+                    <div key={idx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-500">Mandate {mandates.length > 1 ? idx + 1 : ""}</span>
+                        {mandates.length > 1 && (
+                          <button onClick={() => removeMandate(idx)} className="text-xs text-gray-400 hover:text-red-500">Remove</button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
+                          <input value={m.title} onChange={e => updateMandate(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                          <input value={m.location} onChange={e => updateMandate(idx, "location", e.target.value)} placeholder="e.g. Cairo, Egypt"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
+                          <input value={m.salary_range} onChange={e => updateMandate(idx, "salary_range", e.target.value)} placeholder="e.g. 40,000 – 60,000 EGP"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">✦ AI Ready</span></label>
+                          <textarea value={m.job_description} onChange={e => updateMandate(idx, "job_description", e.target.value)}
+                            rows={4} placeholder="Paste the full job description — AI will use this to score candidates"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none bg-white" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={handleCreate} disabled={creating}
                   className="btn-primary flex items-center gap-2 disabled:opacity-50">
-                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create &amp; send welcome email</>}
+                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><CheckCircle size={13} /> Create client &amp; mandate</>}
                 </button>
                 <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
               </div>
-              <p className="text-xs text-gray-400">A welcome email with login credentials is sent automatically.</p>
+              <p className="text-xs text-gray-400">Creates the client account, mandate(s), and sends a welcome email automatically.</p>
             </div>
           )}
 
@@ -305,28 +377,37 @@ export default function ClientsPage() {
           ) : (
             <div className="card divide-y divide-gray-50">
               {activeClients.map(cu => (
-                <div key={cu.id} className="flex items-center gap-3 p-4">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {cu.full_name?.charAt(0)?.toUpperCase()}
+                <div key={cu.id} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {cu.full_name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-900 text-sm">{cu.full_name}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{cu.email}{cu.company_name ? ` · ${cu.company_name}` : ""}</div>
+                    </div>
+                    <span className="badge bg-teal/10 text-teal text-xs">Active</span>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {cu.mandate_id && (
+                        <a href={`/client/${cu.mandate_id}`} target="_blank" rel="noopener noreferrer"
+                          className="btn-ghost text-xs flex items-center gap-1">
+                          <ExternalLink size={11} /> Portal
+                        </a>
+                      )}
+                      <button onClick={() => setRevokeTarget(cu)}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1">
+                        <Trash2 size={11} /> Revoke
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm">{cu.full_name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{cu.email}{cu.company_name ? ` · ${cu.company_name}` : ""}</div>
-                    {cu.mandate_name && <div className="text-xs text-gray-400 mt-0.5">{cu.mandate_name}</div>}
-                  </div>
-                  <span className="badge bg-teal/10 text-teal text-xs">Active</span>
-                  <div className="flex gap-2 flex-shrink-0">
-                    {cu.mandate_id && (
-                      <a href={`/client/${cu.mandate_id}`} target="_blank" rel="noopener noreferrer"
-                        className="btn-ghost text-xs flex items-center gap-1">
-                        <ExternalLink size={11} /> Portal
+                  {cu.mandate_id && (
+                    <div className="mt-2 ml-12">
+                      <a href={`/internal/mandates/${cu.mandate_id}`}
+                        className="text-xs text-teal hover:underline flex items-center gap-1 w-fit">
+                        <ExternalLink size={10} /> {cu.mandate_name || "View mandate"}
                       </a>
-                    )}
-                    <button onClick={() => setRevokeTarget(cu)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1">
-                      <Trash2 size={11} /> Revoke
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {inactiveClients.length > 0 && (
@@ -342,7 +423,6 @@ export default function ClientsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-700 text-sm">{cu.full_name}</div>
                         <div className="text-xs text-gray-400 mt-0.5">{cu.email}</div>
-                        {cu.mandate_name && <div className="text-xs text-gray-300 mt-0.5">{cu.mandate_name}</div>}
                       </div>
                       <span className="badge bg-gray-100 text-gray-400 text-xs">Inactive</span>
                     </div>
@@ -358,9 +438,7 @@ export default function ClientsPage() {
         <div className="space-y-3 max-w-3xl">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">All client feedback — click any row to read in full</p>
-            <button onClick={loadFeedback} className="text-xs text-teal hover:underline flex items-center gap-1">
-              <RefreshCw size={11} /> Refresh
-            </button>
+            <button onClick={loadFeedback} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
           </div>
           {loadingFeedback ? (
             <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
@@ -397,9 +475,7 @@ export default function ClientsPage() {
         <div className="space-y-4 max-w-3xl">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">Assign to a team member to avoid duplication</p>
-            <button onClick={loadInterviews} className="text-xs text-teal hover:underline flex items-center gap-1">
-              <RefreshCw size={11} /> Refresh
-            </button>
+            <button onClick={loadInterviews} className="text-xs text-teal hover:underline flex items-center gap-1"><RefreshCw size={11} /> Refresh</button>
           </div>
           {loadingInterviews ? (
             <div className="card text-center py-10"><Loader2 size={20} className="animate-spin mx-auto text-teal" /></div>
@@ -441,14 +517,10 @@ export default function ClientsPage() {
                             <div className="flex gap-1.5">
                               {ir.status !== "in_progress" && (
                                 <button onClick={() => handleInterviewStatus(ir.id, "in_progress")}
-                                  className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">
-                                  In progress
-                                </button>
+                                  className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
                               )}
                               <button onClick={() => handleInterviewStatus(ir.id, "done")}
-                                className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">
-                                Done
-                              </button>
+                                className="text-xs px-2.5 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
                             </div>
                           </div>
                         </div>
@@ -496,7 +568,7 @@ export default function ClientsPage() {
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Mandate</label>
               <select value={selectedMandate} onChange={e => setSelectedMandate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white">
-                {mandates.map(m => (
+                {commentaryMandates.map(m => (
                   <option key={m.id} value={m.id}>{m.title}{m.client_name ? ` — ${m.client_name}` : ""}</option>
                 ))}
               </select>
@@ -537,9 +609,7 @@ export default function ClientsPage() {
                     </div>
                     {c.pdf_url && (
                       <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
-                        className="btn-ghost text-xs flex items-center gap-1">
-                        <FileText size={11} /> PDF
-                      </a>
+                        className="btn-ghost text-xs flex items-center gap-1"><FileText size={11} /> PDF</a>
                     )}
                   </div>
                 ))}
@@ -576,8 +646,7 @@ export default function ClientsPage() {
       )}
 
       {feedbackPopup && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6"
-          onClick={() => setFeedbackPopup(null)}>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFeedbackPopup(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
