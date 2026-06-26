@@ -45,19 +45,45 @@ export async function POST(req: NextRequest) {
       authUserId = authData.user.id
     }
 
-    // 2. Create client_users row (no mandate_id yet — linked by mandate_name free text)
-    const { data: cu, error: cuErr } = await supabase
+    // 2. Create client_users row (no mandate_id — linked by mandate_name free text)
+    // Check if a row already exists for this email and update it, otherwise insert
+    const { data: existing } = await supabase
       .from("client_users")
-      .upsert([{
-        auth_user_id: authUserId,
-        email: email.toLowerCase().trim(),
-        full_name,
-        company_name: company_name || null,
-        mandate_name: mandate_name || null,
-        is_active: true,
-      }], { onConflict: "email" })
-      .select()
-      .single()
+      .select("id")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle()
+
+    let cu, cuErr
+    if (existing) {
+      const res = await supabase
+        .from("client_users")
+        .update({
+          auth_user_id: authUserId,
+          full_name,
+          company_name: company_name || null,
+          mandate_name: mandate_name || null,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select()
+        .single()
+      cu = res.data; cuErr = res.error
+    } else {
+      const res = await supabase
+        .from("client_users")
+        .insert([{
+          auth_user_id: authUserId,
+          email: email.toLowerCase().trim(),
+          full_name,
+          company_name: company_name || null,
+          mandate_name: mandate_name || null,
+          is_active: true,
+        }])
+        .select()
+        .single()
+      cu = res.data; cuErr = res.error
+    }
 
     if (cuErr) return NextResponse.json({ error: cuErr.message }, { status: 500 })
 
