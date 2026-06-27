@@ -379,6 +379,24 @@ function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: 
   )
 }
 
+function sentimentIcon(s: string) {
+  if (s === "positive") return <ThumbsUp size={13} className="text-teal" />
+  if (s === "negative") return <ThumbsDown size={13} className="text-amber-500" />
+  return <Minus size={13} className="text-gray-400" />
+}
+
+function sentimentBadge(s: string): string {
+  if (s === "positive") return "bg-teal/10 text-teal"
+  if (s === "negative") return "bg-amber-100 text-amber-700"
+  return "bg-gray-100 text-gray-500"
+}
+
+function statusBadge(s: string): { label: string; cls: string } {
+  if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
+  if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
+  return { label: "New", cls: "bg-blue-100 text-blue-700" }
+}
+
 export default function ClientsPage() {
   const supabase = createClient()
   const [clients, setClients] = useState<any[]>([])
@@ -554,21 +572,7 @@ export default function ClientsPage() {
     setSending(false)
   }
 
-  function sentimentIcon(s: string) {
-    if (s === "positive") return <ThumbsUp size={13} className="text-teal" />
-    if (s === "negative") return <ThumbsDown size={13} className="text-amber-500" />
-    return <Minus size={13} className="text-gray-400" />
-  }
-  const sentimentBadge = (s: string) => {
-    if (s === "positive") return "bg-teal/10 text-teal"
-    if (s === "negative") return "bg-amber-100 text-amber-700"
-    return "bg-gray-100 text-gray-500"
-  }
-  const statusBadge = (s: string) => {
-    if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
-    if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
-    return { label: "New", cls: "bg-blue-100 text-blue-700" }
-  }
+
 
   const filtered = clients.filter(c =>
     c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
