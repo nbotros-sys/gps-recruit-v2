@@ -554,7 +554,7 @@ export default function ClientsPage() {
     setSending(false)
   }
 
-  const sentimentIcon = (s: string) => {
+  function sentimentIcon(s: string) {
     if (s === "positive") return <ThumbsUp size={13} className="text-teal" />
     if (s === "negative") return <ThumbsDown size={13} className="text-amber-500" />
     return <Minus size={13} className="text-gray-400" />
@@ -673,7 +673,7 @@ export default function ClientsPage() {
                   { id: "mandates",   label: "Mandates" },
                   { id: "feedback",   label: "Feedback" },
                   { id: "interviews", label: "Interview requests" },
-                ] as const).map(({ id, label }) => (
+                ]).map(({ id, label }: { id: "mandates" | "feedback" | "interviews"; label: string }) => (
                   <button key={id} onClick={() => setRightTab(id)}
                     className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
                       rightTab === id
