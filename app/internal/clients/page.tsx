@@ -19,6 +19,368 @@ function generatePassword(): string {
 
 type TabId = "accounts" | "feedback" | "interviews" | "commentary"
 
+
+type MandateTab = "overview" | "commentary" | "feedback" | "interviews"
+
+function MandateCard({ mandate, clientId, onSendCommentary }: {
+  mandate: any
+  clientId: string
+  onSendCommentary: (m: any) => void
+}) {
+  const supabase = createClient()
+  const [open, setOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState<MandateTab>("overview")
+  const [feedback, setFeedback] = useState<any[]>([])
+  const [interviews, setInterviews] = useState<any[]>([])
+  const [commentary, setCommentary] = useState<any[]>([])
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set())
+  const [fbPopup, setFbPopup] = useState<any>(null)
+
+  async function loadTab(tab: MandateTab) {
+    if (loadedTabs.has(tab)) return
+    setLoadedTabs(prev => new Set([...prev, tab]))
+    if (tab === "feedback") {
+      const { data } = await supabase
+        .from("client_feedback")
+        .select("*, application:applications(id, candidate:candidates(id, name, current_title))")
+        .eq("mandate_id", mandate.id)
+        .order("created_at", { ascending: false })
+      setFeedback(data || [])
+    }
+    if (tab === "interviews") {
+      const { data } = await supabase
+        .from("client_interview_requests")
+        .select("*, application:applications(candidate:candidates(name, current_title))")
+        .eq("mandate_id", mandate.id)
+        .order("created_at", { ascending: false })
+      setInterviews(data || [])
+    }
+    if (tab === "commentary") {
+      const { data } = await supabase
+        .from("mandate_commentary")
+        .select("*")
+        .eq("mandate_id", mandate.id)
+        .order("created_at", { ascending: false })
+      setCommentary(data || [])
+    }
+  }
+
+  function switchTab(tab: MandateTab) {
+    setActiveTab(tab)
+    loadTab(tab)
+  }
+
+  async function updateInterviewStatus(id: string, status: string) {
+    await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
+    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, status } : ir))
+  }
+
+  async function updateInterviewAssignee(id: string, name: string) {
+    await supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id)
+    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
+  }
+
+  const TABS: { id: MandateTab; label: string }[] = [
+    { id: "overview",    label: "Overview" },
+    { id: "commentary",  label: "Commentary" },
+    { id: "feedback",    label: "Feedback" },
+    { id: "interviews",  label: "Interview requests" },
+  ]
+
+  const sentimentBadge = (s: string) => {
+    if (s === "positive") return "bg-teal/10 text-teal"
+    if (s === "negative") return "bg-amber-100 text-amber-700"
+    return "bg-gray-100 text-gray-500"
+  }
+
+  const generalFeedback = feedback.filter(fb => !fb.application_id)
+  const candidateFeedback = feedback.filter(fb => !!fb.application_id)
+
+  return (
+    <div className="card overflow-hidden">
+
+      {/* Card header — click to collapse */}
+      <div className={`flex items-center justify-between gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${open ? "border-b border-gray-100" : ""}`}
+        onClick={() => setOpen(o => !o)}>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-900 text-sm">{mandate.title}</div>
+          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+            {mandate.location && <span className="flex items-center gap-1"><MapPin size={10} />{mandate.location}</span>}
+            {mandate.salary_range && <span className="flex items-center gap-1"><DollarSign size={10} />{mandate.salary_range}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`badge text-xs ${mandate.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+            {mandate.status}
+          </span>
+          <ChevronRight size={14} className={`text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} />
+        </div>
+      </div>
+
+      {open && (
+        <>
+          {/* Tab bar */}
+          <div className="flex border-b border-gray-100 px-1">
+            {TABS.map(t => (
+              <button key={t.id}
+                onClick={() => switchTab(t.id)}
+                className={`px-3 py-2.5 text-xs font-medium transition-all border-b-2 -mb-px ${
+                  activeTab === t.id
+                    ? "text-teal border-teal"
+                    : "text-gray-400 border-transparent hover:text-gray-600"
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="p-4">
+
+            {/* Overview */}
+            {activeTab === "overview" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {mandate.location && (
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Location</div>
+                      <div className="text-sm text-gray-900">{mandate.location}</div>
+                    </div>
+                  )}
+                  {mandate.salary_range && (
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Salary range</div>
+                      <div className="text-sm text-gray-900">{mandate.salary_range}</div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">Status</div>
+                    <div className="text-sm text-gray-900 capitalize">{mandate.status}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <a href={`/internal/mandates/${mandate.id}`}
+                    className="btn-ghost text-xs flex items-center gap-1">
+                    <ExternalLink size={10} /> Open mandate
+                  </a>
+                  <a href={`/client/${mandate.id}`} target="_blank" rel="noopener noreferrer"
+                    className="btn-ghost text-xs flex items-center gap-1">
+                    <ExternalLink size={10} /> View portal
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Commentary */}
+            {activeTab === "commentary" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">New commentary</label>
+                  <CommentaryComposer mandateId={mandate.id} onSend={() => {
+                    setLoadedTabs(prev => { const n = new Set(prev); n.delete("commentary"); return n })
+                    loadTab("commentary")
+                  }} />
+                </div>
+                {commentary.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sent</div>
+                    <div className="divide-y divide-gray-50">
+                      {commentary.map(c => (
+                        <div key={c.id} className="flex items-center justify-between gap-3 py-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed">{c.commentary_text}</p>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              {c.email_sent && <span className="ml-2 text-teal">· Delivered</span>}
+                            </div>
+                          </div>
+                          {c.pdf_url && (
+                            <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
+                              className="btn-ghost text-xs flex items-center gap-1 flex-shrink-0">
+                              <FileText size={10} /> PDF
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Feedback */}
+            {activeTab === "feedback" && (
+              <div className="space-y-4">
+                {generalFeedback.length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">General feedback</div>
+                    <div className="divide-y divide-gray-50">
+                      {generalFeedback.map(fb => (
+                        <div key={fb.id} className="py-3">
+                          <p className="text-sm text-gray-700 leading-relaxed">{fb.feedback_text}</p>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Candidate feedback</div>
+                  {candidateFeedback.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-3">No candidate feedback yet</p>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {candidateFeedback.map(fb => (
+                        <div key={fb.id} className="flex items-start gap-3 py-3 cursor-pointer hover:bg-gray-50 -mx-4 px-4 transition-colors rounded-xl"
+                          onClick={() => setFbPopup(fb)}>
+                          <div className="mt-0.5 flex-shrink-0">
+                            {fb.sentiment === "positive" ? <ThumbsUp size={13} className="text-teal" /> : fb.sentiment === "negative" ? <ThumbsDown size={13} className="text-amber-500" /> : <Minus size={13} className="text-gray-400" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
+                              <span className={`badge text-xs ${sentimentBadge(fb.sentiment || "neutral")}`}>{fb.sentiment || "neutral"}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
+                          </div>
+                          <span className="text-xs text-gray-300 flex-shrink-0">
+                            {new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Interview requests */}
+            {activeTab === "interviews" && (
+              <div>
+                {interviews.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-3">No interview requests for this mandate</p>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {interviews.map(ir => {
+                      const sc = ir.status === "in_progress"
+                        ? { label: "In progress", cls: "bg-amber-100 text-amber-700" }
+                        : ir.status === "done"
+                        ? { label: "Done", cls: "bg-green-100 text-green-700" }
+                        : { label: "New", cls: "bg-blue-100 text-blue-700" }
+                      return (
+                        <div key={ir.id} className="py-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="font-semibold text-gray-900 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
+                                <span className={`badge text-xs ${sc.cls}`}>{sc.label}</span>
+                              </div>
+                              {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-2">{ir.notes}</p>}
+                            </div>
+                            <div className="flex flex-col gap-2 items-end flex-shrink-0">
+                              <select value={ir.assigned_to_name || ""} onChange={e => updateInterviewAssignee(ir.id, e.target.value)}
+                                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none">
+                                <option value="">Assign to…</option>
+                                <option value="Mona">Mona</option>
+                                <option value="Juana">Juana</option>
+                              </select>
+                              {ir.status !== "done" && (
+                                <div className="flex gap-1.5">
+                                  {ir.status !== "in_progress" && (
+                                    <button onClick={() => updateInterviewStatus(ir.id, "in_progress")}
+                                      className="text-xs px-2 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
+                                  )}
+                                  <button onClick={() => updateInterviewStatus(ir.id, "done")}
+                                    className="text-xs px-2 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Feedback popup */}
+      {fbPopup && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFbPopup(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div className="font-bold text-gray-900">Feedback on {fbPopup.application?.candidate?.name}</div>
+                <div className="text-xs text-gray-400 mt-1">{new Date(fbPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`badge text-xs ${sentimentBadge(fbPopup.sentiment || "neutral")}`}>{fbPopup.sentiment || "neutral"}</span>
+                <button onClick={() => setFbPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed mb-5">{fbPopup.feedback_text}</p>
+            <div className="flex gap-3">
+              {fbPopup.application?.candidate?.id && (
+                <a href={`/internal/candidates/${fbPopup.application.candidate.id}`} className="btn-primary text-sm">Open candidate profile</a>
+              )}
+              <button onClick={() => setFbPopup(null)} className="btn-ghost text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: () => void }) {
+  const supabase = createClient()
+  const [text, setText] = useState("")
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  async function handleSend() {
+    if (!text.trim()) return
+    setSending(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const res = await fetch("/api/send-commentary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandate_id: mandateId, commentary_text: text.trim(), created_by: user?.id }),
+      })
+      const data = await res.json()
+      if (data.error) { alert("Error: " + data.error); setSending(false); return }
+      setText(""); setSent(true)
+      setTimeout(() => setSent(false), 4000)
+      onSend()
+    } catch { alert("Failed to send.") }
+    setSending(false)
+  }
+
+  return (
+    <div className="space-y-3">
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
+        placeholder={"Write market commentary here…
+
+Share search progress, market insights, candidate observations, or any updates relevant to this mandate."}
+        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-y leading-relaxed min-h-[120px]" />
+      {sent && (
+        <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
+          <CheckCircle size={14} /> Sent — PDF generated, email delivered, portal updated
+        </div>
+      )}
+      <button onClick={handleSend} disabled={sending || !text.trim()}
+        className="btn-primary flex items-center gap-2 disabled:opacity-40">
+        {sending ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to client</>}
+      </button>
+    </div>
+  )
+}
+
 export default function ClientsPage() {
   const supabase = createClient()
   const [clients, setClients] = useState<any[]>([])
@@ -275,7 +637,40 @@ export default function ClientsPage() {
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto p-6 space-y-6">
+          <div className="flex flex-col h-full">
+
+            {/* Sticky client header */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    {selected.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900">{selected.company_name || selected.full_name}</div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                      <span>{selected.full_name}</span>
+                      <span className="text-teal">{selected.email}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`badge text-xs ${selected.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>
+                    {selected.is_active ? "Active" : "Inactive"}
+                  </span>
+                  {selected.is_active && (
+                    <button onClick={() => setRevokeTarget(selected)}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors flex items-center gap-1">
+                      <Trash2 size={11} /> Revoke
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-3xl mx-auto p-6 space-y-6">
 
             {/* Add client form */}
             {showForm && (
@@ -360,33 +755,6 @@ export default function ClientsPage() {
               </div>
             )}
 
-            {/* Client header */}
-            <div className="card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
-                    {selected.full_name?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900 text-base">{selected.full_name}</div>
-                    {selected.company_name && <div className="text-sm text-gray-600 mt-0.5">{selected.company_name}</div>}
-                    <div className="text-sm text-teal mt-0.5">{selected.email}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`badge text-xs ${selected.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>
-                    {selected.is_active ? "Active" : "Inactive"}
-                  </span>
-                  {selected.is_active && (
-                    <button onClick={() => setRevokeTarget(selected)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors flex items-center gap-1">
-                      <Trash2 size={11} /> Revoke
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Mandates */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -442,34 +810,8 @@ export default function ClientsPage() {
               ) : (
                 <div className="space-y-3">
                   {detailMandates.map(m => (
-                    <div key={m.id} className="card p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 text-sm">{m.title}</div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                            {m.location && <span className="flex items-center gap-1"><MapPin size={10} />{m.location}</span>}
-                            {m.salary_range && <span className="flex items-center gap-1"><DollarSign size={10} />{m.salary_range}</span>}
-                          </div>
-                        </div>
-                        <span className={`badge text-xs flex-shrink-0 ${m.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                          {m.status}
-                        </span>
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                        <a href={`/internal/mandates/${m.id}`}
-                          className="btn-ghost text-xs flex items-center gap-1">
-                          <ExternalLink size={10} /> Open mandate
-                        </a>
-                        <button onClick={() => { setCommentaryTarget(m); setCommentaryText("") }}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-teal/5 border border-teal/20 text-teal hover:bg-teal/10 transition-colors flex items-center gap-1">
-                          <Send size={10} /> Send commentary
-                        </button>
-                        <a href={`/client/${m.id}`} target="_blank" rel="noopener noreferrer"
-                          className="btn-ghost text-xs flex items-center gap-1">
-                          <ExternalLink size={10} /> View portal
-                        </a>
-                      </div>
-                    </div>
+                    <MandateCard key={m.id} mandate={m} clientId={selected.id}
+                      onSendCommentary={(mandate: any) => { setCommentaryTarget(mandate); setCommentaryText("") }} />
                   ))}
                 </div>
               )}
@@ -554,39 +896,13 @@ export default function ClientsPage() {
               )}
             </div>
 
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── COMMENTARY MODAL ── */}
-      {commentaryTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <div className="font-bold text-gray-900">Send market commentary</div>
-                <div className="text-xs text-gray-400 mt-1">{commentaryTarget.title} · {selected?.company_name}</div>
-              </div>
-              <button onClick={() => setCommentaryTarget(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-            </div>
-            <textarea value={commentaryText} onChange={e => setCommentaryText(e.target.value)} rows={8}
-              placeholder="Write your market commentary here&#x2026;"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none leading-relaxed mb-4" />
-            {sentOk && (
-              <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold mb-3">
-                <CheckCircle size={14} /> Sent — PDF generated, email delivered, portal updated
-              </div>
-            )}
-            <div className="flex gap-3">
-              <button onClick={handleSendCommentary} disabled={sending || !commentaryText.trim()}
-                className="btn-primary flex items-center gap-2 flex-1 justify-center disabled:opacity-40">
-                {sending ? <><Loader2 size={13} className="animate-spin" /> Sending…</> : <><Send size={13} /> Send to client</>}
-              </button>
-              <button onClick={() => setCommentaryTarget(null)} className="btn-ghost">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* ── REVOKE MODAL ── */}
       {revokeTarget && (
@@ -616,34 +932,7 @@ export default function ClientsPage() {
       )}
 
       {/* ── FEEDBACK POPUP ── */}
-      {feedbackPopup && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setFeedbackPopup(null)}>
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <div className="font-bold text-gray-900">Feedback on {feedbackPopup.application?.candidate?.name}</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {feedbackPopup.mandate?.title && `${feedbackPopup.mandate.title} · `}
-                  {new Date(feedbackPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={`badge text-xs ${sentimentBadge(feedbackPopup.sentiment || "neutral")}`}>{feedbackPopup.sentiment || "neutral"}</span>
-                <button onClick={() => setFeedbackPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-              </div>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-5">{feedbackPopup.feedback_text}</p>
-            <div className="flex gap-3">
-              {feedbackPopup.application?.candidate?.id && (
-                <a href={`/internal/candidates/${feedbackPopup.application.candidate.id}`} className="btn-primary text-sm">
-                  Open candidate profile
-                </a>
-              )}
-              <button onClick={() => setFeedbackPopup(null)} className="btn-ghost text-sm">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }
