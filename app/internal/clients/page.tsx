@@ -38,7 +38,7 @@ function MandateCard({ mandate, clientId, onSendCommentary }: {
 
   async function loadTab(tab: MandateTab) {
     if (loadedTabs.has(tab)) return
-    setLoadedTabs(prev => new Set([...prev, tab]))
+    setLoadedTabs(prev => { const s = new Set(Array.from(prev)); s.add(tab); return s })
     if (tab === "feedback") {
       const { data } = await supabase
         .from("client_feedback")
@@ -177,7 +177,7 @@ function MandateCard({ mandate, clientId, onSendCommentary }: {
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">New commentary</label>
                   <CommentaryComposer mandateId={mandate.id} onSend={() => {
-                    setLoadedTabs(prev => { const n = new Set(prev); n.delete("commentary"); return n })
+                    setLoadedTabs(prev => { const n = new Set(Array.from(prev)); n.delete("commentary"); return n })
                     loadTab("commentary")
                   }} />
                 </div>
