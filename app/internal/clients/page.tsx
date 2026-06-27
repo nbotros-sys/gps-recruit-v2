@@ -364,9 +364,7 @@ function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: 
   return (
     <div className="space-y-3">
       <textarea value={text} onChange={e => setText(e.target.value)} rows={6}
-        placeholder={"Write market commentary here…
-
-Share search progress, market insights, candidate observations, or any updates relevant to this mandate."}
+        placeholder="Write market commentary here&#x2026; Share search progress, market insights, candidate observations, or any updates relevant to this mandate."
         className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-y leading-relaxed min-h-[120px]" />
       {sent && (
         <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2 text-teal text-sm font-semibold">
