@@ -412,6 +412,7 @@ export default function ClientsPage() {
   const [sentOk, setSentOk] = useState(false)
 
   // Add mandate to existing client
+  const [rightTab, setRightTab] = useState<"mandates" | "feedback" | "interviews">("mandates")
   const [showAddMandate, setShowAddMandate] = useState(false)
   const [newMandate, setNewMandate] = useState({ title: "", location: "", salary_range: "", job_description: "" })
   const [addingMandate, setAddingMandate] = useState(false)
@@ -419,7 +420,7 @@ export default function ClientsPage() {
   useEffect(() => { loadClients() }, [])
 
   useEffect(() => {
-    if (selected) loadDetail(selected.id)
+    if (selected) { loadDetail(selected.id); setRightTab("mandates") }
   }, [selected])
 
   async function loadClients() {
@@ -637,38 +638,57 @@ export default function ClientsPage() {
         ) : (
           <div className="flex flex-col h-full">
 
-            {/* Sticky client header */}
-            <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4">
-              <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {selected.full_name?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900">{selected.company_name || selected.full_name}</div>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                      <span>{selected.full_name}</span>
-                      <span className="text-teal">{selected.email}</span>
+            {/* Sticky client header + right tabs */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-100">
+              <div className="px-6 py-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {selected.full_name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{selected.company_name || selected.full_name}</div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                        <span>{selected.full_name}</span>
+                        <span className="text-teal">{selected.email}</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`badge text-xs ${selected.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>
+                      {selected.is_active ? "Active" : "Inactive"}
+                    </span>
+                    {selected.is_active && (
+                      <button onClick={() => setRevokeTarget(selected)}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors flex items-center gap-1">
+                        <Trash2 size={11} /> Revoke
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`badge text-xs ${selected.is_active ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>
-                    {selected.is_active ? "Active" : "Inactive"}
-                  </span>
-                  {selected.is_active && (
-                    <button onClick={() => setRevokeTarget(selected)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors flex items-center gap-1">
-                      <Trash2 size={11} /> Revoke
-                    </button>
-                  )}
-                </div>
+              </div>
+              {/* Right panel tabs */}
+              <div className="flex gap-0 px-6 max-w-3xl mx-auto">
+                {([
+                  { id: "mandates",   label: "Mandates" },
+                  { id: "feedback",   label: "Feedback" },
+                  { id: "interviews", label: "Interview requests" },
+                ] as const).map(({ id, label }) => (
+                  <button key={id} onClick={() => setRightTab(id)}
+                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
+                      rightTab === id
+                        ? "text-teal border-teal"
+                        : "text-gray-400 border-transparent hover:text-gray-600"
+                    }`}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="max-w-3xl mx-auto p-6 space-y-6">
+              <div className="max-w-3xl mx-auto p-6 space-y-4">
 
             {/* Add client form */}
             {showForm && (
@@ -753,8 +773,8 @@ export default function ClientsPage() {
               </div>
             )}
 
-            {/* Mandates */}
-            <div>
+            {/* Mandates tab */}
+            {rightTab === "mandates" && <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 text-sm">Mandates</h3>
                 {selected.is_active && (
@@ -815,9 +835,11 @@ export default function ClientsPage() {
               )}
             </div>
 
-            {/* Feedback */}
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-3">Client feedback</h3>
+            </div>}
+
+            {/* Feedback tab */}
+            {rightTab === "feedback" && <div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-3">All client feedback</h3>
               {detailFeedback.length === 0 ? (
                 <div className="card border-dashed text-center py-8">
                   <MessageSquare size={24} className="mx-auto mb-2 text-gray-200" />
@@ -846,9 +868,11 @@ export default function ClientsPage() {
               )}
             </div>
 
-            {/* Interview requests */}
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm mb-3">Interview requests</h3>
+            </div>}
+
+            {/* Interview requests tab */}
+            {rightTab === "interviews" && <div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-3">All interview requests</h3>
               {detailInterviews.length === 0 ? (
                 <div className="card border-dashed text-center py-8">
                   <Calendar size={24} className="mx-auto mb-2 text-gray-200" />
