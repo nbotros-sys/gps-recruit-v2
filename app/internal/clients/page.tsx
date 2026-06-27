@@ -340,7 +340,6 @@ function MandateCard({ mandate, clientId, onSendCommentary }: {
 function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: () => void }) {
   const supabase = createClient()
   const [text, setText] = useState("")
-  const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
   async function handleSend() {
@@ -424,10 +423,7 @@ export default function ClientsPage() {
   const [revoking, setRevoking] = useState(false)
 
   // Commentary
-  const [commentaryTarget, setCommentaryTarget] = useState<any>(null)
-  const [commentaryText, setCommentaryText] = useState("")
   const [sending, setSending] = useState(false)
-  const [sentOk, setSentOk] = useState(false)
 
   // Add mandate to existing client
   const [rightTab, setRightTab] = useState<"mandates" | "feedback" | "interviews">("mandates")
@@ -545,32 +541,9 @@ export default function ClientsPage() {
     loadClients()
   }
 
-  async function handleInterviewStatus(id: string, status: string) {
-    await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
-    setDetailInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, status } : ir))
-  }
 
-  async function handleInterviewAssign(id: string, name: string) {
-    await supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id)
-    setDetailInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
-  }
 
-  async function handleSendCommentary() {
-    if (!commentaryText.trim() || !commentaryTarget) return
-    setSending(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    try {
-      const res = await fetch("/api/send-commentary", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandate_id: commentaryTarget.id, commentary_text: commentaryText.trim(), created_by: user?.id }),
-      })
-      const data = await res.json()
-      if (data.error) { alert("Error: " + data.error); setSending(false); return }
-      setCommentaryText(""); setCommentaryTarget(null)
-      setSentOk(true); setTimeout(() => setSentOk(false), 4000)
-    } catch { alert("Failed to send.") }
-    setSending(false)
-  }
+
 
 
 
@@ -832,8 +805,7 @@ export default function ClientsPage() {
               ) : (
                 <div className="space-y-3">
                   {detailMandates.map(m => (
-                    <MandateCard key={m.id} mandate={m} clientId={selected.id}
-                      onSendCommentary={(mandate: any) => { setCommentaryTarget(mandate); setCommentaryText("") }} />
+                    <MandateCard key={m.id} mandate={m} clientId={selected.id} />
                   ))}
                 </div>
               )}
