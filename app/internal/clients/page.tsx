@@ -469,7 +469,7 @@ export default function ClientsPage() {
           location: m.location || null, salary_range: m.salary_range || null,
           job_description: m.job_description || null, status: "active",
         }]).select("id").single()
-        if (mErr) { setCreateError("Failed to create mandate: " + mErr.message); setCreating(false); return }
+        if (mErr) { setCreateError("Something went wrong creating the mandate. Please try again."); setCreating(false); return }
         createdIds.push(mandate.id)
       }
       const res = await fetch("/api/create-client-user", {
@@ -484,7 +484,7 @@ export default function ClientsPage() {
         }
         const friendlyError = data.error.includes("already been registered") || data.error.includes("already registered")
           ? "This email address already has an account. Please use a different email."
-          : data.error
+          : "Something went wrong. Please check your details and try again."
         setCreateError(friendlyError)
         setCreating(false)
         return
@@ -497,7 +497,7 @@ export default function ClientsPage() {
       setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
       setShowForm(false)
       await loadClients()
-    } catch (e: any) { setCreateError("Something went wrong: " + e.message) }
+    } catch { setCreateError("Something went wrong. Please try again.") }
     setCreating(false)
   }
 
