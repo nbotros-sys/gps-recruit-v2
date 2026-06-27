@@ -22,10 +22,9 @@ type TabId = "accounts" | "feedback" | "interviews" | "commentary"
 
 type MandateTab = "overview" | "commentary" | "feedback" | "interviews"
 
-function MandateCard({ mandate, clientId, onSendCommentary }: {
+function MandateCard({ mandate, clientId }: {
   mandate: any
   clientId: string
-  onSendCommentary: (m: any) => void
 }) {
   const supabase = createClient()
   const [open, setOpen] = useState(true)
@@ -422,8 +421,6 @@ export default function ClientsPage() {
   const [revokeTarget, setRevokeTarget] = useState<any>(null)
   const [revoking, setRevoking] = useState(false)
 
-  // Commentary
-  const [sending, setSending] = useState(false)
 
   // Add mandate to existing client
   const [rightTab, setRightTab] = useState<"mandates" | "feedback" | "interviews">("mandates")
