@@ -439,7 +439,7 @@ export default function ClientsPage() {
   const [revokeTarget, setRevokeTarget] = useState<any>(null)
   const [revoking, setRevoking] = useState(false)
   const [showAddMandate, setShowAddMandate] = useState(false)
-  const [showClosed, setShowClosed] = useState(false)
+  const [mandateView, setMandateView] = useState<"active" | "history">("active")
   const [newMandate, setNewMandate] = useState({ title: "", location: "", salary_range: "", job_description: "" })
   const [addingMandate, setAddingMandate] = useState(false)
 
@@ -449,6 +449,7 @@ export default function ClientsPage() {
     if (selected) {
       loadDetail(selected.id)
       setRightTab("mandates")
+      setMandateView("active")
     }
   }, [selected])
 
@@ -755,8 +756,21 @@ export default function ClientsPage() {
                 {rightTab === "mandates" && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-900 text-sm">Mandates</h3>
-                      {selected.is_active && (
+                      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                        <button
+                          onClick={() => setMandateView("active")}
+                          className={"px-3 py-1.5 text-xs font-medium rounded-md transition-all " + (mandateView === "active" ? "bg-white text-teal shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                        >
+                          Active
+                        </button>
+                        <button
+                          onClick={() => setMandateView("history")}
+                          className={"px-3 py-1.5 text-xs font-medium rounded-md transition-all " + (mandateView === "history" ? "bg-white text-teal shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                        >
+                          History
+                        </button>
+                      </div>
+                      {selected.is_active && mandateView === "active" && (
                         <button onClick={() => setShowAddMandate(f => !f)} className="text-xs text-teal hover:underline flex items-center gap-1">
                           <Plus size={11} /> Add mandate
                         </button>
@@ -794,35 +808,30 @@ export default function ClientsPage() {
 
                     {loadingDetail ? (
                       <div className="card text-center py-8"><Loader2 size={18} className="animate-spin mx-auto text-teal" /></div>
-                    ) : detailMandates.length === 0 ? (
-                      <div className="card border-dashed text-center py-8">
-                        <p className="text-gray-400 text-sm">No mandates yet</p>
-                      </div>
+                    ) : mandateView === "active" ? (
+                      detailMandates.filter(m => m.status === "active" || m.status === "on_hold").length === 0 ? (
+                        <div className="card border-dashed text-center py-8">
+                          <p className="text-gray-400 text-sm">No active mandates</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id} />
+                          ))}
+                        </div>
+                      )
                     ) : (
-                      <div className="space-y-3">
-                        {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
-                          <MandateCard key={m.id} mandate={m} clientId={selected.id} />
-                        ))}
-
-                        {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").length > 0 && (
-                          <div>
-                            <button
-                              onClick={() => setShowClosed(s => !s)}
-                              className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2"
-                            >
-                              <ChevronRight size={13} className={"transition-transform " + (showClosed ? "rotate-90" : "")} />
-                              Closed mandates ({detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").length})
-                            </button>
-                            {showClosed && (
-                              <div className="space-y-3 opacity-60">
-                                {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
-                                  <MandateCard key={m.id} mandate={m} clientId={selected.id} />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").length === 0 ? (
+                        <div className="card border-dashed text-center py-8">
+                          <p className="text-gray-400 text-sm">No historical mandates</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 opacity-70">
+                          {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id} />
+                          ))}
+                        </div>
+                      )
                     )}
                   </div>
                 )}
