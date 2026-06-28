@@ -1300,8 +1300,8 @@ export default function MandateDetail() {
           {insightLoading && (
             <div className="card text-center py-16">
               <Loader2 size={28} className="animate-spin mx-auto mb-3 text-teal" />
-              <p className="text-gray-500 text-sm">AI is reviewing your talent pool...</p>
-              <p className="text-gray-400 text-xs mt-1">This takes 20–30 seconds</p>
+              <p className="text-gray-500 text-sm">{scanProgress || "AI is reviewing your talent pool..."}</p>
+              <p className="text-gray-400 text-xs mt-1">You can navigate away — scan continues in background</p>
             </div>
           )}
 
