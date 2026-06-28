@@ -89,12 +89,12 @@ function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: 
   )
 }
 
-function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) {
+function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clientId: string; onStatusChange: (mandateId: string, status: string) => void }) {
   const supabase = createClient()
   const [open, setOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<MandateTabId>("overview")
-  const [mandateStatus, setMandateStatus] = useState(mandate.status)
   const [confirmStatus, setConfirmStatus] = useState<string | null>(null)
+  const [pendingStatusValue, setPendingStatusValue] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<any[]>([])
   const [interviews, setInterviews] = useState<any[]>([])
   const [commentary, setCommentary] = useState<any[]>([])
@@ -153,24 +153,25 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
 
   function handleStatusChange(newStatus: string) {
     if (newStatus === "filled" || newStatus === "cancelled") {
-      setMandateStatus(newStatus)
+      setPendingStatusValue(newStatus)
       setConfirmStatus(newStatus)
     } else {
-      setMandateStatus(newStatus)
       saveStatus(newStatus)
     }
   }
 
   async function saveStatus(newStatus: string) {
     await supabase.from("mandates").update({ status: newStatus }).eq("id", mandate.id)
+    onStatusChange(mandate.id, newStatus)
   }
 
   async function confirmStatusChange() {
-    if (!confirmStatus) return
-    await supabase.from("mandates").update({ status: confirmStatus }).eq("id", mandate.id)
-    // Auto-revoke client portal access
+    if (!confirmStatus || !pendingStatusValue) return
+    await supabase.from("mandates").update({ status: pendingStatusValue }).eq("id", mandate.id)
     await supabase.from("client_users").update({ is_active: false }).eq("mandate_id", mandate.id)
+    onStatusChange(mandate.id, pendingStatusValue)
     setConfirmStatus(null)
+    setPendingStatusValue(null)
   }
 
   const tabs: { id: MandateTabId; label: string }[] = [
@@ -237,7 +238,7 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
                   <div>
                     <div className="text-xs text-gray-400 mb-1">Status</div>
                     <select
-                      value={mandateStatus}
+                      value={pendingStatusValue || mandate.status}
                       onChange={e => handleStatusChange(e.target.value)}
                       className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal/30 capitalize"
                     >
@@ -253,7 +254,7 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <p className="text-sm text-amber-800 font-medium mb-1">Close this mandate?</p>
                     <p className="text-xs text-amber-700 mb-3">
-                      This will mark the mandate as <strong>{confirmStatus}</strong> and revoke the client portal access.
+                      This will mark the mandate as <strong>{confirmStatus}</strong> and revoke client portal access.
                     </p>
                     <div className="flex gap-2">
                       <button onClick={confirmStatusChange} className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm</button>
@@ -491,6 +492,32 @@ export default function ClientsPage() {
     if (mandateRows.some(m => !m.title)) { setCreateError("Each mandate needs a job title."); return }
     setCreating(true)
     setCreateError("")
+
+    // Check for duplicate email BEFORE creating anything
+    const { data: existingCheck } = await supabase
+      .from("client_users")
+      .select("id, full_name, company_name, email")
+      .eq("email", contactEmail.toLowerCase().trim())
+      .maybeSingle()
+
+    if (existingCheck) {
+      // Show duplicate warning immediately — no mandates created yet
+      const password = generatePassword()
+      const createdIds: string[] = []
+      for (const m of mandateRows) {
+        const { data: mandate, error: mErr } = await supabase.from("mandates").insert([{
+          title: m.title, client_name: companyName,
+          location: m.location || null, salary_range: m.salary_range || null,
+          job_description: m.job_description || null, status: "active",
+        }]).select("id").single()
+        if (!mErr) createdIds.push(mandate.id)
+      }
+      setPendingMandates(createdIds.map((mid, i) => ({ id: mid, title: mandateRows[i]?.title })))
+      setDuplicateClient(existingCheck)
+      setCreating(false)
+      return
+    }
+
     const password = generatePassword()
     try {
       const createdIds: string[] = []
@@ -510,21 +537,6 @@ export default function ClientsPage() {
       })
       const data = await res.json()
       if (data.error) {
-        if (data.error.includes("already been registered") || data.error.includes("already registered")) {
-          // Find the existing client to show in the warning
-          const { data: existing } = await supabase
-            .from("client_users")
-            .select("id, full_name, company_name, email")
-            .eq("email", contactEmail.toLowerCase().trim())
-            .maybeSingle()
-          if (existing) {
-            // Store the created mandate IDs so we can link them if user confirms
-            setPendingMandates(createdIds.map((mid, i) => ({ id: mid, title: mandateRows[i]?.title })))
-            setDuplicateClient(existing)
-            setCreating(false)
-            return
-          }
-        }
         for (const mid of createdIds) {
           await supabase.from("mandates").delete().eq("id", mid)
         }
@@ -788,7 +800,10 @@ export default function ClientsPage() {
                       ) : (
                         <div className="space-y-3">
                           {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
-                            <MandateCard key={m.id} mandate={m} clientId={selected.id} />
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id}
+                            onStatusChange={(mandateId, status) => {
+                              setDetailMandates(prev => prev.map(dm => dm.id === mandateId ? { ...dm, status } : dm))
+                            }} />
                           ))}
                         </div>
                       )
@@ -800,7 +815,10 @@ export default function ClientsPage() {
                       ) : (
                         <div className="space-y-3 opacity-70">
                           {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
-                            <MandateCard key={m.id} mandate={m} clientId={selected.id} />
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id}
+                            onStatusChange={(mandateId, status) => {
+                              setDetailMandates(prev => prev.map(dm => dm.id === mandateId ? { ...dm, status } : dm))
+                            }} />
                           ))}
                         </div>
                       )
