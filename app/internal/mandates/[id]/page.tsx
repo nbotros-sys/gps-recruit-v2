@@ -582,13 +582,13 @@ export default function MandateDetail() {
             </div>
           </div>
           <span className={`badge ${
-            mandate.status === "active" ? "bg-green-100 text-green-700" :
-            mandate.status === "on_hold" ? "bg-amber-100 text-amber-700" :
-            mandate.status === "filled" ? "bg-blue-100 text-blue-700" :
-            mandate.status === "cancelled" ? "bg-red-100 text-red-600" :
+            (mandate.status as string) === "active" ? "bg-green-100 text-green-700" :
+            (mandate.status as string) === "on_hold" ? "bg-amber-100 text-amber-700" :
+            (mandate.status as string) === "filled" ? "bg-blue-100 text-blue-700" :
+            (mandate.status as string) === "cancelled" ? "bg-red-100 text-red-600" :
             "bg-gray-100 text-gray-600"
           }`}>
-            {({"active":"Active","on_hold":"On Hold","filled":"Filled","cancelled":"Cancelled"} as Record<string,string>)[mandate.status] || mandate.status}
+            {({"active":"Active","on_hold":"On Hold","filled":"Filled","cancelled":"Cancelled"} as Record<string,string>)[mandate.status as string] || mandate.status}
           </span>
         </div>
       </div>
