@@ -93,6 +93,8 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
   const supabase = createClient()
   const [open, setOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<MandateTabId>("overview")
+  const [mandateStatus, setMandateStatus] = useState(mandate.status)
+  const [confirmStatus, setConfirmStatus] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<any[]>([])
   const [interviews, setInterviews] = useState<any[]>([])
   const [commentary, setCommentary] = useState<any[]>([])
@@ -147,6 +149,28 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
     const newLoaded = loadedTabs.filter(t => t !== "commentary")
     setLoadedTabs(newLoaded)
     switchTab("commentary")
+  }
+
+  function handleStatusChange(newStatus: string) {
+    if (newStatus === "filled" || newStatus === "cancelled") {
+      setMandateStatus(newStatus)
+      setConfirmStatus(newStatus)
+    } else {
+      setMandateStatus(newStatus)
+      saveStatus(newStatus)
+    }
+  }
+
+  async function saveStatus(newStatus: string) {
+    await supabase.from("mandates").update({ status: newStatus }).eq("id", mandate.id)
+  }
+
+  async function confirmStatusChange() {
+    if (!confirmStatus) return
+    await supabase.from("mandates").update({ status: confirmStatus }).eq("id", mandate.id)
+    // Auto-revoke client portal access
+    await supabase.from("client_users").update({ is_active: false }).eq("mandate_id", mandate.id)
+    setConfirmStatus(null)
   }
 
   const tabs: { id: MandateTabId; label: string }[] = [
@@ -212,9 +236,32 @@ function MandateCard({ mandate, clientId }: { mandate: any; clientId: string }) 
                   )}
                   <div>
                     <div className="text-xs text-gray-400 mb-1">Status</div>
-                    <div className="text-sm text-gray-900 capitalize">{mandate.status}</div>
+                    <select
+                      value={mandateStatus}
+                      onChange={e => handleStatusChange(e.target.value)}
+                      className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal/30 capitalize"
+                    >
+                      <option value="active">Active</option>
+                      <option value="on_hold">On Hold</option>
+                      <option value="filled">Filled</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
                   </div>
                 </div>
+
+                {confirmStatus && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p className="text-sm text-amber-800 font-medium mb-1">Close this mandate?</p>
+                    <p className="text-xs text-amber-700 mb-3">
+                      This will mark the mandate as <strong>{confirmStatus}</strong> and revoke the client portal access.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={confirmStatusChange} className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm</button>
+                      <button onClick={() => { setConfirmStatus(null); setMandateStatus(mandate.status) }} className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">Cancel</button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <a href={"/internal/mandates/" + mandate.id} className="btn-ghost text-xs flex items-center gap-1">
                     <ExternalLink size={10} /> Open mandate
