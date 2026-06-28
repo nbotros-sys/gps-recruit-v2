@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -36,6 +35,7 @@ export async function middleware(request: NextRequest) {
   if (!isPublic && (isInternalRoute || isInternalApi)) {
     const response = NextResponse.next()
 
+    // Auth client — uses anon key to verify session cookie
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -62,39 +62,41 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // For internal pages/routes, also check user is in staff_users table
-    if (isInternalRoute || isInternalApi) {
-      try {
-        const adminSupabase = createAdminClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          { auth: { autoRefreshToken: false, persistSession: false } }
-        )
-        const { data: staffUser } = await adminSupabase
-          .from("staff_users")
-          .select("id, is_active")
-          .eq("email", user.email!)
-          .eq("is_active", true)
-          .maybeSingle()
-
-        if (!staffUser) {
-          if (isInternalApi) {
-            return NextResponse.json({ error: "Not authorised as staff" }, { status: 403 })
-          }
-          // Redirect to login with an error message
-          const loginUrl = new URL("/internal/login", request.url)
-          loginUrl.searchParams.set("error", "not_staff")
-          return NextResponse.redirect(loginUrl)
+    // Staff check — use service role key client (edge-compatible via createServerClient)
+    try {
+      const adminClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: {
+            getAll() { return [] },
+            setAll() {},
+          },
         }
-      } catch (err) {
-        console.error("Staff check error:", err)
-        // On error, fail safe — block access
+      )
+
+      const { data: staffUser } = await adminClient
+        .from("staff_users")
+        .select("id")
+        .eq("email", user.email!)
+        .eq("is_active", true)
+        .maybeSingle()
+
+      if (!staffUser) {
         if (isInternalApi) {
-          return NextResponse.json({ error: "Auth check failed" }, { status: 500 })
+          return NextResponse.json({ error: "Not authorised as staff" }, { status: 403 })
         }
         const loginUrl = new URL("/internal/login", request.url)
+        loginUrl.searchParams.set("error", "not_staff")
         return NextResponse.redirect(loginUrl)
       }
+    } catch (err) {
+      console.error("Staff check error:", err)
+      if (isInternalApi) {
+        return NextResponse.json({ error: "Auth check failed" }, { status: 500 })
+      }
+      const loginUrl = new URL("/internal/login", request.url)
+      return NextResponse.redirect(loginUrl)
     }
 
     return response
