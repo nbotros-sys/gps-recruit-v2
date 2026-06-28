@@ -365,6 +365,11 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">{notes.length} characters</span>
+                {notesSaved && (
+                  <span className="text-xs text-teal flex items-center gap-1 font-medium">
+                    <CheckCircle size={13} /> Saved
+                  </span>
+                )}
                 <button onClick={saveNotes} disabled={savingNotes}
                   className="btn-primary flex items-center gap-2 text-sm">
                   <Save size={13} /> {savingNotes ? "Saving..." : "Save notes"}
