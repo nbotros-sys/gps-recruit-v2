@@ -23,6 +23,21 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getAdmin()
+    const emailNorm = email.toLowerCase().trim()
+
+    // 0. Check client_users table first for duplicate — return error before touching Auth
+    const { data: existingClient } = await supabase
+      .from("client_users")
+      .select("id, full_name, company_name")
+      .ilike("email", emailNorm)
+      .maybeSingle()
+
+    if (existingClient) {
+      return NextResponse.json({
+        error: "already been registered",
+        existing_client: existingClient
+      }, { status: 409 })
+    }
 
     // 1. Create Supabase Auth user
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
