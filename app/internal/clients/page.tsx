@@ -494,15 +494,15 @@ export default function ClientsPage() {
     setCreateError("")
 
     // Check for duplicate email BEFORE creating anything
+    const emailNorm = contactEmail.toLowerCase().trim()
     const { data: existingCheck } = await supabase
       .from("client_users")
       .select("id, full_name, company_name, email")
-      .eq("email", contactEmail.toLowerCase().trim())
+      .ilike("email", emailNorm)
       .maybeSingle()
 
     if (existingCheck) {
-      // Show duplicate warning immediately — no mandates created yet
-      const password = generatePassword()
+      // Duplicate found — create the mandates then show warning
       const createdIds: string[] = []
       for (const m of mandateRows) {
         const { data: mandate, error: mErr } = await supabase.from("mandates").insert([{
@@ -510,7 +510,7 @@ export default function ClientsPage() {
           location: m.location || null, salary_range: m.salary_range || null,
           job_description: m.job_description || null, status: "active",
         }]).select("id").single()
-        if (!mErr) createdIds.push(mandate.id)
+        if (!mErr && mandate) createdIds.push(mandate.id)
       }
       setPendingMandates(createdIds.map((mid, i) => ({ id: mid, title: mandateRows[i]?.title })))
       setDuplicateClient(existingCheck)
@@ -801,8 +801,8 @@ export default function ClientsPage() {
                         <div className="space-y-3">
                           {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
                             <MandateCard key={m.id} mandate={m} clientId={selected.id}
-                            onStatusChange={(mandateId, status) => {
-                              setDetailMandates(prev => prev.map(dm => dm.id === mandateId ? { ...dm, status } : dm))
+                            onStatusChange={(_mandateId, _status) => {
+                              if (selected) loadDetail(selected.id)
                             }} />
                           ))}
                         </div>
@@ -816,8 +816,8 @@ export default function ClientsPage() {
                         <div className="space-y-3 opacity-70">
                           {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
                             <MandateCard key={m.id} mandate={m} clientId={selected.id}
-                            onStatusChange={(mandateId, status) => {
-                              setDetailMandates(prev => prev.map(dm => dm.id === mandateId ? { ...dm, status } : dm))
+                            onStatusChange={(_mandateId, _status) => {
+                              if (selected) loadDetail(selected.id)
                             }} />
                           ))}
                         </div>
