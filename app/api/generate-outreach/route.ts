@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 export async function POST(req: NextRequest) {
+  // Auth guard — belt-and-braces (middleware is primary)
+  const _authClient = createServerSupabaseClient()
+  const { data: { user: _authUser } } = await _authClient.auth.getUser()
+  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+
   const { candidate_background, mandate_context, platform, tone } = await req.json()
 
   const toneGuides: Record<string, string> = {
