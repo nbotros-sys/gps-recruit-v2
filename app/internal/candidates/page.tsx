@@ -62,6 +62,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
   const [notes, setNotes] = useState(candidate.internal_notes || "")
   // internal_notes is separate from AI notes field
   const [savingNotes, setSavingNotes] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
   const supabase = createClient()
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
 
@@ -70,6 +71,8 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
     await supabase.from("candidates").update({ internal_notes: notes }).eq("id", candidate.id)
     onNoteSaved(candidate.id, notes)
     setSavingNotes(false)
+    setNotesSaved(true)
+    setTimeout(() => setNotesSaved(false), 3000)
   }
 
   return (
