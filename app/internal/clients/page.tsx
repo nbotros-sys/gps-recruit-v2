@@ -439,6 +439,7 @@ export default function ClientsPage() {
   const [revokeTarget, setRevokeTarget] = useState<any>(null)
   const [revoking, setRevoking] = useState(false)
   const [showAddMandate, setShowAddMandate] = useState(false)
+  const [showClosed, setShowClosed] = useState(false)
   const [newMandate, setNewMandate] = useState({ title: "", location: "", salary_range: "", job_description: "" })
   const [addingMandate, setAddingMandate] = useState(false)
 
@@ -799,9 +800,28 @@ export default function ClientsPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {detailMandates.map(m => (
+                        {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
                           <MandateCard key={m.id} mandate={m} clientId={selected.id} />
                         ))}
+
+                        {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").length > 0 && (
+                          <div>
+                            <button
+                              onClick={() => setShowClosed(s => !s)}
+                              className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2"
+                            >
+                              <ChevronRight size={13} className={"transition-transform " + (showClosed ? "rotate-90" : "")} />
+                              Closed mandates ({detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").length})
+                            </button>
+                            {showClosed && (
+                              <div className="space-y-3 opacity-60">
+                                {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
+                                  <MandateCard key={m.id} mandate={m} clientId={selected.id} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
