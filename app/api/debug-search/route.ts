@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 export async function POST(req: NextRequest) {
+  // Auth check
+  const serverSupabase = createServerSupabaseClient()
+  const { data: { user } } = await serverSupabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Step 1: Can we fetch candidates?
   const { data: candidates, error: candError } = await supabase
     .from("candidates")
     .select("id, name, current_title, cv_text, notes")
     .limit(5)
 
-  // Step 2: Can we call Claude?
   let claudeWorking = false
   let claudeError = ""
   try {
@@ -35,7 +39,6 @@ export async function POST(req: NextRequest) {
     if (!claudeWorking) claudeError = JSON.stringify(data).slice(0, 200)
   } catch (e: any) { claudeError = e.message }
 
-  // Step 3: Can we call OpenAI?
   let openaiWorking = false
   let openaiError = ""
   try {
