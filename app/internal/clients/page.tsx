@@ -613,7 +613,17 @@ export default function ClientsPage() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-900">Clients</h1>
-            <button onClick={() => { setShowForm(f => !f); setCreateError("") }} className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5">
+            <button onClick={() => {
+                setShowForm(f => !f)
+                setCreateError("")
+                setCreatedInfo(null)
+                setDuplicateClient(null)
+                setPendingMandates([])
+                setContactName("")
+                setContactEmail("")
+                setCompanyName("")
+                setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
+              }} className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5">
               <Plus size={12} /> Add
             </button>
           </div>
