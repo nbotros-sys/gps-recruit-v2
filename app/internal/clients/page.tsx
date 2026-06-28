@@ -881,7 +881,7 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {showForm && (
+      {showForm && !createdInfo && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
@@ -913,17 +913,7 @@ export default function ClientsPage() {
                   </div>
                 </div>
               )}
-              {createdInfo && (
-                <div className="bg-teal/5 border border-teal/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-teal font-semibold text-sm mb-2"><CheckCircle size={14} /> Created — share these credentials with the client</div>
-                  <div className="font-mono text-xs bg-white rounded-lg p-3 border border-teal/20 space-y-1">
-                    <div><span className="text-gray-400">Login:</span> {typeof window !== "undefined" ? window.location.origin : ""}/client/login</div>
-                    <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
-                    <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">Share via WhatsApp or phone — not shown again</p>
-                </div>
-              )}
+
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contact details</p>
                 <div className="grid grid-cols-3 gap-3">
@@ -982,6 +972,33 @@ export default function ClientsPage() {
                 <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {createdInfo && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-teal/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle size={20} className="text-teal" />
+              </div>
+              <div>
+                <div className="font-bold text-gray-900">Client created</div>
+                <div className="text-sm text-gray-500 mt-0.5">Share these credentials — not shown again</div>
+              </div>
+            </div>
+            <div className="font-mono text-sm bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2 mb-5">
+              <div><span className="text-gray-400">Login URL:</span> <span className="text-gray-900">{typeof window !== "undefined" ? window.location.origin : ""}/client/login</span></div>
+              <div><span className="text-gray-400">Email:</span> <span className="text-gray-900">{createdInfo.email}</span></div>
+              <div><span className="text-gray-400">Password:</span> <span className="text-gray-900 font-bold">{createdInfo.password}</span></div>
+            </div>
+            <button
+              onClick={() => setCreatedInfo(null)}
+              className="btn-primary w-full text-center"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
