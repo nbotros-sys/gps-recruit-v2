@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { serverActions: { allowedOrigins: ["*"] } },
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "gps-recruit-v2.vercel.app",
+        "localhost:3000",
+      ],
+    },
+  },
 }
 
 const { withSentryConfig } = require("@sentry/nextjs")
@@ -15,4 +22,3 @@ module.exports = withSentryConfig(nextConfig, {
   autoInstrumentServerFunctions: true,
   automaticVercelMonitors: false,
 })
-// cache bust: 1781698584
