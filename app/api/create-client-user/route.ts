@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const supabase = getAdmin()
     const emailNorm = email.toLowerCase().trim()
 
-    // 0. Check client_users table first for duplicate — return error before touching Auth
+    // 0. Check client_users table AND Supabase Auth for duplicate email
     const { data: existingClient } = await supabase
       .from("client_users")
       .select("id, full_name, company_name")
@@ -36,6 +36,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: "already been registered",
         existing_client: existingClient
+      }, { status: 409 })
+    }
+
+    // Also check Auth directly — catches accounts created before email was stored in client_users
+    const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+    const authMatch = authUsers?.users?.find(u => u.email?.toLowerCase() === emailNorm)
+    if (authMatch) {
+      // Find the client_users row by auth_user_id
+      const { data: clientByAuth } = await supabase
+        .from("client_users")
+        .select("id, full_name, company_name")
+        .eq("auth_user_id", authMatch.id)
+        .maybeSingle()
+      return NextResponse.json({
+        error: "already been registered",
+        existing_client: clientByAuth || { id: null, full_name: "Existing client", company_name: "" }
       }, { status: 409 })
     }
 
