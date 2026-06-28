@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
+// Allow up to 5 minutes for the scan to complete
+export const maxDuration = 300
+
 function toArray(val: any): string[] {
   if (Array.isArray(val)) return val
   if (typeof val === "string" && val.trim()) return [val]
@@ -9,36 +12,7 @@ function toArray(val: any): string[] {
 }
 
 async function parseJD(mandate_title: string, job_description: string) {
-  const prompt = `Read this job description and extract two things:
-
-1. A 150-word paragraph describing the ideal candidate — what they would actually DO day-to-day, their real responsibilities, scope, team sizes, industries, alternative titles they might hold. Write as a candidate description, not a job spec.
-
-2. A structured list of requirements split into HARD (mandatory, non-negotiable) and SOFT (preferred, advantageous).
-
-JOB TITLE: ${mandate_title}
-JOB DESCRIPTION: ${job_description.slice(0, 3000)}
-
-Return ONLY valid JSON (no markdown):
-{
-  "candidate_description": "<150 word paragraph>",
-  "hard_requirements": {
-    "certifications": ["<cert required>"],
-    "education": ["<degree required>"],
-    "languages": ["<language required>"],
-    "min_years_experience": <number or null>,
-    "industries": ["<sector required>"],
-    "skills": ["<must-have skill>"],
-    "other": ["<any other hard requirement>"]
-  },
-  "soft_preferences": {
-    "certifications": ["<cert preferred>"],
-    "education": ["<degree preferred>"],
-    "languages": ["<language preferred>"],
-    "industries": ["<sector preferred>"],
-    "skills": ["<nice-to-have skill>"],
-    "other": ["<any other preference>"]
-  }
-}`
+  const prompt = `Read this job description and extract two things:\n\n1. A 150-word paragraph describing the ideal candidate — what they would actually DO day-to-day, their real responsibilities, scope, team sizes, industries, alternative titles they might hold. Write as a candidate description, not a job spec.\n\n2. A structured list of requirements split into HARD (mandatory, non-negotiable) and SOFT (preferred, advantageous).\n\nJOB TITLE: ${mandate_title}\nJOB DESCRIPTION: ${job_description.slice(0, 3000)}\n\nReturn ONLY valid JSON (no markdown):\n{\n  "candidate_description": "<150 word paragraph>",\n  "hard_requirements": {\n    "certifications": ["<cert required>"],\n    "education": ["<degree required>"],\n    "languages": ["<language required>"],\n    "min_years_experience": <number or null>,\n    "industries": ["<sector required>"],\n    "skills": ["<must-have skill>"],\n    "other": ["<any other hard requirement>"]\n  },\n  "soft_preferences": {\n    "certifications": ["<cert preferred>"],\n    "education": ["<degree preferred>"],\n    "languages": ["<language preferred>"],\n    "industries": ["<sector preferred>"],\n    "skills": ["<nice-to-have skill>"],\n    "other": ["<any other preference>"]\n  }\n}`
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -139,7 +113,7 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
       }
     } catch (err) { console.error("Vector error:", err) }
 
-    // Fetch candidates — smart: only new since last scan if incremental
+    // Fetch candidates
     let available: any[] = []
     if (vectorIds.length) {
       let vectorQuery = supabase.from("candidates")
@@ -181,23 +155,24 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
         await adminSupabase.from("talent_pool_scans")
           .update({ status: "no_new_candidates", progress_message: "No new candidates since last scan" })
           .eq("id", scanId)
-        return
+        return { status: "no_new_candidates" }
       }
     } else {
       await updateProgress(`Scoring ${available.length} candidates — Phase 1...`)
     }
 
     if (!available.length) {
+      const emptyResult = { total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." }
       await adminSupabase.from("talent_pool_scans").update({
         status: "complete",
         progress_message: "No candidates to scan",
-        result: { total_available: 0, strong_matches: [], possible_matches: [], summary: "No candidates available yet." },
+        result: emptyResult,
         scanned_at: new Date().toISOString(),
       }).eq("id", scanId)
-      return
+      return { status: "complete", result: emptyResult }
     }
 
-    // ── PHASE 1: Parallel batches (all at once, full CV content) ─────────────
+    // PHASE 1: Parallel batches
     const BATCH_SIZE = 10
     const batches: any[][] = []
     for (let i = 0; i < available.length; i += BATCH_SIZE) {
@@ -206,11 +181,9 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
 
     await updateProgress(`Phase 1: scoring ${available.length} candidates across ${batches.length} parallel batches...`)
 
-    // Run ALL batches in parallel — key performance improvement
     const batchResults = await Promise.all(batches.map(async (batch) => {
       const summaries = batch.map((c: any) => {
         const s = c.cv_structured
-        // Use full CV text — don't truncate early to avoid missing candidates with experience at end
         const cvFull = (c.cv_text || c.notes || "").slice(0, 3000)
         return {
           id: c.id,
@@ -223,33 +196,11 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
           certifications: s ? toArray(s.certifications) : [],
           industries: s ? toArray(s.industries) : [],
           trajectory: s?.career_trajectory,
-          // Include full structured data if available
           all_experience: s?.work_experience || null,
         }
       })
 
-      const prompt = `You are a senior recruitment consultant. Score candidates for this role.
-
-ROLE: ${mandateTitle}
-WHAT WE NEED: ${jdParsed.candidate_description}
-
-CANDIDATES:
-${JSON.stringify(summaries)}
-
-Score each 0-100 combining:
-- SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.
-- SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.
-
-Score generously. Read what each candidate actually DOES, not just their title.
-- A Group CEO or CEO of any company scores 70+ for a CEO role
-- A CFO at any company scores 70+ for a CFO role
-- A VP Engineering or Head of Engineering scores 70+ for a CTO role
-- A VP Sales at any company scores 70+ for a VP Sales role
-- Only score below 15 if the candidate's entire career is completely unrelated
-- When in doubt score 25-40, never score 0
-
-Return ONLY JSON array:
-[{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
+      const prompt = `You are a senior recruitment consultant. Score candidates for this role.\n\nROLE: ${mandateTitle}\nWHAT WE NEED: ${jdParsed.candidate_description}\n\nCANDIDATES:\n${JSON.stringify(summaries)}\n\nScore each 0-100 combining:\n- SUITABILITY (0-50): Does their actual work experience match what this role needs? Read what they DO, ignore title differences.\n- SENIORITY (0-50): Is their level right? Too junior or overqualified both score lower.\n\nScore generously. Read what each candidate actually DOES, not just their title.\n- A Group CEO or CEO of any company scores 70+ for a CEO role\n- A CFO at any company scores 70+ for a CFO role\n- A VP Engineering or Head of Engineering scores 70+ for a CTO role\n- A VP Sales at any company scores 70+ for a VP Sales role\n- Only score below 15 if the candidate's entire career is completely unrelated\n- When in doubt score 25-40, never score 0\n\nReturn ONLY JSON array:\n[{ "id": "<id>", "score": <0-100>, "tier": "strong" | "possible", "reason": "<one sentence on suitability + seniority>" }]`
 
       try {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -269,7 +220,7 @@ Return ONLY JSON array:
 
     await updateProgress(`Phase 2: deep reading top ${top15ids.length} candidates...`)
 
-    // ── PHASE 2: Deep read top candidates in parallel ─────────────────────────
+    // PHASE 2: Deep read top candidates in parallel
     const top15Candidates = available.filter((c: any) => top15ids.includes(c.id))
 
     const deepReadResults = await Promise.all(top15Candidates.map(async (c: any) => {
@@ -288,25 +239,7 @@ Return ONLY JSON array:
 
       if (fullCVText.length > 200) {
         try {
-          const deepPrompt = `You are a senior recruitment consultant doing a thorough final assessment.
-
-ROLE: ${mandateTitle}
-REQUIREMENTS: ${jobDescription.slice(0, 1500)}
-
-CANDIDATE FULL CV:
-${fullCVText}
-
-Give a final score 0-100 (suitability 0-50 + seniority 0-50), a specific 1-sentence reason, and 2-3 strengths and 1-2 areas to probe — all specific to THIS role, not generic.
-Be generous — score 25+ for any candidate with adjacent or partial relevance.
-
-Return ONLY JSON:
-{
-  "score": <0-100>,
-  "tier": "strong" | "possible",
-  "reason": "<specific 1-sentence reason referencing CV content>",
-  "strengths": ["<strength specific to this role>", "<strength 2>", "<strength 3>"],
-  "concerns": ["<area to probe specific to this role>", "<area 2>"]
-}`
+          const deepPrompt = `You are a senior recruitment consultant doing a thorough final assessment.\n\nROLE: ${mandateTitle}\nREQUIREMENTS: ${jobDescription.slice(0, 1500)}\n\nCANDIDATE FULL CV:\n${fullCVText}\n\nGive a final score 0-100 (suitability 0-50 + seniority 0-50), a specific 1-sentence reason, and 2-3 strengths and 1-2 areas to probe — all specific to THIS role, not generic.\nBe generous — score 25+ for any candidate with adjacent or partial relevance.\n\nReturn ONLY JSON:\n{\n  "score": <0-100>,\n  "tier": "strong" | "possible",\n  "reason": "<specific 1-sentence reason referencing CV content>",\n  "strengths": ["<strength specific to this role>", "<strength 2>", "<strength 3>"],\n  "concerns": ["<area to probe specific to this role>", "<area 2>"]\n}`
 
           const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
@@ -388,16 +321,19 @@ Return ONLY JSON:
       scanned_at: new Date().toISOString(),
     }).eq("id", scanId)
 
+    return { status: "complete", result }
+
   } catch (err) {
     console.error("Scan error:", err)
     await adminSupabase.from("talent_pool_scans").update({
       status: "error",
       progress_message: "Scan failed — please try again",
     }).eq("id", scanId)
+    return { status: "error" }
   }
 }
 
-// POST /api/talent-pool-scan — trigger a new scan
+// POST /api/talent-pool-scan — run scan synchronously, return result directly
 export async function POST(req: NextRequest) {
   try {
     const { mandate_id, job_description, mandate_title, incremental } = await req.json()
@@ -436,11 +372,41 @@ export async function POST(req: NextRequest) {
 
     if (error || !scan) return NextResponse.json({ error: "Failed to create scan" }, { status: 500 })
 
-    // Fire and forget — don't await, return scan ID immediately
-    runScan(scan.id, mandate_id, job_description, mandate_title, lastScanAt).catch(console.error)
+    // Run scan synchronously — Vercel will keep the function alive for up to maxDuration seconds
+    const scanResult = await runScan(scan.id, mandate_id, job_description, mandate_title, lastScanAt)
 
-    return NextResponse.json({ scan_id: scan.id, status: "pending" })
+    // Return the result directly — no polling needed
+    if (scanResult?.status === "complete" && scanResult.result) {
+      return NextResponse.json({
+        scan_id: scan.id,
+        status: "complete",
+        result: scanResult.result,
+        scanned_at: new Date().toISOString(),
+      })
+    }
+
+    if (scanResult?.status === "no_new_candidates") {
+      // Return the last completed scan result
+      const { data: lastComplete } = await adminSupabase
+        .from("talent_pool_scans")
+        .select("result, scanned_at")
+        .eq("mandate_id", mandate_id)
+        .eq("status", "complete")
+        .order("scanned_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      return NextResponse.json({
+        scan_id: scan.id,
+        status: "no_new_candidates",
+        result: lastComplete?.result || null,
+        scanned_at: lastComplete?.scanned_at || null,
+      })
+    }
+
+    return NextResponse.json({ scan_id: scan.id, status: "error", error: "Scan failed" }, { status: 500 })
+
   } catch (err) {
+    console.error("POST scan error:", err)
     return NextResponse.json({ error: "Failed" }, { status: 500 })
   }
 }
