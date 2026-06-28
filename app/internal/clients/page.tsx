@@ -676,83 +676,6 @@ export default function ClientsPage() {
             <div className="flex-1 overflow-y-auto min-h-0">
               <div className="max-w-3xl mx-auto p-6 space-y-4">
 
-                {showForm && (
-                  <div className="card p-5 space-y-5 border-teal/20">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">New client</h3>
-                      <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-                    </div>
-                    {createError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>}
-                    {createdInfo && (
-                      <div className="bg-teal/5 border border-teal/20 rounded-xl p-4">
-                        <div className="flex items-center gap-2 text-teal font-semibold text-sm mb-2"><CheckCircle size={14} /> Created — share these credentials</div>
-                        <div className="font-mono text-xs bg-white rounded-lg p-3 border border-teal/20 space-y-1">
-                          <div><span className="text-gray-400">Login:</span> {typeof window !== "undefined" ? window.location.origin : ""}/client/login</div>
-                          <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
-                          <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
-                        </div>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contact details</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name *</label>
-                          <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ahmed Hassan" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Email *</label>
-                          <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="ahmed@company.com" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Company *</label>
-                          <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="TechCorp Egypt" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mandates</p>
-                        <button onClick={() => setMandateRows(p => [...p, { title: "", location: "", salary_range: "", job_description: "" }])} className="text-xs text-teal hover:underline flex items-center gap-1"><Plus size={10} /> Add mandate</button>
-                      </div>
-                      <div className="space-y-3">
-                        {mandateRows.map((m, idx) => (
-                          <div key={idx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-white">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-gray-500">{mandateRows.length > 1 ? "Mandate " + (idx + 1) : "Mandate"}</span>
-                              {mandateRows.length > 1 && <button onClick={() => setMandateRows(p => p.filter((_, i) => i !== idx))} className="text-xs text-gray-400 hover:text-red-500">Remove</button>}
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="col-span-2">
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
-                                <input value={m.title} onChange={e => updateMandateRow(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                                <input value={m.location} onChange={e => updateMandateRow(idx, "location", e.target.value)} placeholder="Cairo, Egypt" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
-                                <input value={m.salary_range} onChange={e => updateMandateRow(idx, "salary_range", e.target.value)} placeholder="40,000-60,000 EGP" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
-                              </div>
-                              <div className="col-span-2">
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">AI Ready</span></label>
-                                <textarea value={m.job_description} onChange={e => updateMandateRow(idx, "job_description", e.target.value)} rows={3} placeholder="Paste the full job description" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <button onClick={handleCreate} disabled={creating} className="btn-primary flex items-center gap-2 disabled:opacity-50">
-                        {creating ? <><Loader2 size={13} className="animate-spin" /> Creating...</> : <><CheckCircle size={13} /> Create client &amp; mandate</>}
-                      </button>
-                      <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
-                    </div>
-                  </div>
-                )}
-
                 {rightTab === "mandates" && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -918,6 +841,88 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6" onClick={() => setShowForm(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h3 className="font-bold text-gray-900">New client</h3>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              {createError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>}
+              {createdInfo && (
+                <div className="bg-teal/5 border border-teal/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-teal font-semibold text-sm mb-2"><CheckCircle size={14} /> Created — share these credentials with the client</div>
+                  <div className="font-mono text-xs bg-white rounded-lg p-3 border border-teal/20 space-y-1">
+                    <div><span className="text-gray-400">Login:</span> {typeof window !== "undefined" ? window.location.origin : ""}/client/login</div>
+                    <div><span className="text-gray-400">Email:</span> {createdInfo.email}</div>
+                    <div><span className="text-gray-400">Password:</span> {createdInfo.password}</div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Share via WhatsApp or phone — not shown again</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contact details</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name *</label>
+                    <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ahmed Hassan" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Email *</label>
+                    <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="ahmed@company.com" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Company *</label>
+                    <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="TechCorp Egypt" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mandates</p>
+                  <button onClick={() => setMandateRows(p => [...p, { title: "", location: "", salary_range: "", job_description: "" }])} className="text-xs text-teal hover:underline flex items-center gap-1"><Plus size={10} /> Add mandate</button>
+                </div>
+                <div className="space-y-3">
+                  {mandateRows.map((m, idx) => (
+                    <div key={idx} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-500">{mandateRows.length > 1 ? "Mandate " + (idx + 1) : "Mandate"}</span>
+                        {mandateRows.length > 1 && <button onClick={() => setMandateRows(p => p.filter((_, i) => i !== idx))} className="text-xs text-gray-400 hover:text-red-500">Remove</button>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
+                          <input value={m.title} onChange={e => updateMandateRow(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                          <input value={m.location} onChange={e => updateMandateRow(idx, "location", e.target.value)} placeholder="Cairo, Egypt" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary range</label>
+                          <input value={m.salary_range} onChange={e => updateMandateRow(idx, "salary_range", e.target.value)} placeholder="40,000-60,000 EGP" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Job description <span className="text-teal text-xs">AI Ready</span></label>
+                          <textarea value={m.job_description} onChange={e => updateMandateRow(idx, "job_description", e.target.value)} rows={4} placeholder="Paste the full job description" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none bg-white" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={handleCreate} disabled={creating} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+                  {creating ? <><Loader2 size={13} className="animate-spin" /> Creating...</> : <><CheckCircle size={13} /> Create client &amp; mandate</>}
+                </button>
+                <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {revokeTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-6">
