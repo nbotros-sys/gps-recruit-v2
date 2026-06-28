@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 function locationToCountry(location: string): string | null {
   const l = location.toLowerCase().trim()
@@ -35,6 +36,11 @@ function nameFromUrl(url: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth guard — belt-and-braces (middleware is primary)
+  const _authClient = createServerSupabaseClient()
+  const { data: { user: _authUser } } = await _authClient.auth.getUser()
+  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+
   try {
     const { title, location, keywords } = await req.json()
 
