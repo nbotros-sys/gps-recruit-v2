@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { setSentryUser, withSpan, captureError } from "@/lib/sentry"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 function toArray(val: any): string[] {
   if (Array.isArray(val)) return val
@@ -99,6 +100,11 @@ function analyseGaps(structured: any, hard: any, soft: any) {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth guard — belt-and-braces (middleware is primary)
+  const _authClient = createServerSupabaseClient()
+  const { data: { user: _authUser } } = await _authClient.auth.getUser()
+  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+
   try {
     const { mandate_id, job_description, mandate_title, deeper_search } = await req.json()
     if (!job_description) return NextResponse.json({ error: "No JD" }, { status: 400 })
