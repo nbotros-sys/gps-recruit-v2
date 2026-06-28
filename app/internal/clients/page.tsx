@@ -258,7 +258,7 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                     </p>
                     <div className="flex gap-2">
                       <button onClick={confirmStatusChange} className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors">Confirm</button>
-                      <button onClick={() => { setConfirmStatus(null); setMandateStatus(mandate.status) }} className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">Cancel</button>
+                      <button onClick={() => { setConfirmStatus(null); setPendingStatusValue(null) }} className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">Cancel</button>
                     </div>
                   </div>
                 )}
