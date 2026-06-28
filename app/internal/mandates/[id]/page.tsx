@@ -94,6 +94,9 @@ export default function MandateDetail() {
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
   const [insightCachedAt, setInsightCachedAt] = useState<string | null>(null)
+  const [scanId, setScanId] = useState<string | null>(null)
+  const [scanProgress, setScanProgress] = useState<string>("")
+  const [scanPolling, setScanPolling] = useState(false)
   const [linkedinSearch, setLinkedinSearch] = useState<{ title: string; location: string; keywords: string }>({ title: "", location: "", keywords: "" })
   const [linkedinResults, setLinkedinResults] = useState<any[]>([])
   const [linkedinSearching, setLinkedinSearching] = useState(false)
@@ -238,6 +241,41 @@ export default function MandateDetail() {
     loadInsight(false, false)
   }, [tab, mandate])
 
+  // Poll for scan results when a background scan is in progress
+  useEffect(() => {
+    if (!scanId || !scanPolling) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
+        const data = await res.json()
+        if (data.progress_message) setScanProgress(data.progress_message)
+        if (data.status === "complete" && data.result) {
+          setInsightData(data.result)
+          setInsightCachedAt(data.scanned_at)
+          setScanPolling(false)
+          setScanId(null)
+          setInsightLoading(false)
+          // Cache in mandates table
+          await supabase.from("mandates").update({
+            talent_pool_cache: data.result,
+            talent_pool_cached_at: data.scanned_at,
+          }).eq("id", id)
+        } else if (data.status === "no_new_candidates") {
+          setScanPolling(false)
+          setScanId(null)
+          setInsightLoading(false)
+          setScanProgress("No new candidates since last scan — showing cached results")
+        } else if (data.status === "error") {
+          setScanPolling(false)
+          setScanId(null)
+          setInsightLoading(false)
+          setInsightData({ error: "Scan failed — please try again" })
+        }
+      } catch { /* keep polling */ }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [scanId, scanPolling, id])
+
   async function runLinkedinSearch(force = false) {
     if (!mandate) return
     // Always clear current results so stale cache doesn't show
@@ -322,7 +360,7 @@ export default function MandateDetail() {
   async function loadInsight(deeper = false, forceRescan = false) {
     if (!mandate) return
 
-    // Load from cache if available and fresh (under 24hrs), unless forcing rescan
+    // Load from cache first (under 24hrs), unless forcing rescan
     if (!forceRescan && !deeper) {
       const cached = (mandate as any).talent_pool_cache
       const cachedAt = (mandate as any).talent_pool_cached_at
@@ -334,43 +372,52 @@ export default function MandateDetail() {
           return
         }
       }
+      // Also check database for a recent completed scan
+      try {
+        const res = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
+        const scan = await res.json()
+        if (scan.status === "complete" && scan.result) {
+          setInsightData(scan.result)
+          setInsightCachedAt(scan.scanned_at)
+          return
+        }
+        // If a scan is already in progress, start polling
+        if (scan.status === "pending" || scan.status === "running") {
+          setScanId(scan.id)
+          setScanProgress(scan.progress_message || "Scan in progress...")
+          setScanPolling(true)
+          setInsightLoading(true)
+          return
+        }
+      } catch {}
     }
 
-    if (deeper) setDeeperSearching(true)
-    else setInsightLoading(true)
-
+    // Trigger a new background scan
+    setInsightLoading(true)
+    setScanProgress("Starting scan...")
     try {
-      const res = await fetch("/api/mandate-insight", {
+      const res = await fetch("/api/talent-pool-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mandate_id: id,
           job_description: mandate.job_description,
           mandate_title: mandate.title,
-          deeper_search: deeper,
+          incremental: !forceRescan && !deeper,
         })
       })
       const data = await res.json()
-      setInsightData(data)
-
-      // Save results to cache
-      if (!data.error) {
-        const now = new Date().toISOString()
-        setInsightCachedAt(now)
-        await supabase.from("mandates").update({
-          talent_pool_cache: data,
-          talent_pool_cached_at: now,
-        }).eq("id", id)
-        setMandate((prev: any) => prev ? {
-          ...prev,
-          talent_pool_cache: data,
-          talent_pool_cached_at: now,
-        } : prev)
+      if (data.scan_id) {
+        setScanId(data.scan_id)
+        setScanPolling(true)
+      } else {
+        setInsightData({ error: "Failed to start scan" })
+        setInsightLoading(false)
       }
-    } catch { setInsightData({ error: "Failed to load insight" }) }
-
-    if (deeper) setDeeperSearching(false)
-    else setInsightLoading(false)
+    } catch {
+      setInsightData({ error: "Failed to start scan" })
+      setInsightLoading(false)
+    }
   }
 
   async function addFromInsight(candidate: any) {
