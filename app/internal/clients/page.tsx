@@ -431,6 +431,8 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
   const [createdInfo, setCreatedInfo] = useState<{ email: string; password: string } | null>(null)
+  const [duplicateClient, setDuplicateClient] = useState<any>(null)
+  const [pendingMandates, setPendingMandates] = useState<any[]>([])
 
   const [detailFeedback, setDetailFeedback] = useState<any[]>([])
   const [detailInterviews, setDetailInterviews] = useState<any[]>([])
@@ -508,13 +510,25 @@ export default function ClientsPage() {
       })
       const data = await res.json()
       if (data.error) {
+        if (data.error.includes("already been registered") || data.error.includes("already registered")) {
+          // Find the existing client to show in the warning
+          const { data: existing } = await supabase
+            .from("client_users")
+            .select("id, full_name, company_name, email")
+            .eq("email", contactEmail.toLowerCase().trim())
+            .maybeSingle()
+          if (existing) {
+            // Store the created mandate IDs so we can link them if user confirms
+            setPendingMandates(createdIds.map((mid, i) => ({ id: mid, title: mandateRows[i]?.title })))
+            setDuplicateClient(existing)
+            setCreating(false)
+            return
+          }
+        }
         for (const mid of createdIds) {
           await supabase.from("mandates").delete().eq("id", mid)
         }
-        const msg = data.error.includes("already been registered") || data.error.includes("already registered")
-          ? "This email address already has an account. Please use a different email."
-          : "Something went wrong. Please check your details and try again."
-        setCreateError(msg)
+        setCreateError("Something went wrong. Please check your details and try again.")
         setCreating(false)
         return
       }
@@ -528,6 +542,31 @@ export default function ClientsPage() {
       await loadClients()
     } catch { setCreateError("Something went wrong. Please try again.") }
     setCreating(false)
+  }
+
+  async function handleLinkToExisting() {
+    if (!duplicateClient || pendingMandates.length === 0) return
+    for (const m of pendingMandates) {
+      await supabase.from("mandates").update({ client_user_id: duplicateClient.id }).eq("id", m.id)
+    }
+    setDuplicateClient(null)
+    setPendingMandates([])
+    setContactName(""); setContactEmail(""); setCompanyName("")
+    setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
+    setShowForm(false)
+    await loadClients()
+    // Select the existing client
+    const { data } = await supabase.from("client_users").select("*").eq("id", duplicateClient.id).single()
+    if (data) setSelected(data)
+  }
+
+  async function handleCancelDuplicate() {
+    // Delete the mandates we created since user wants to use a different email
+    for (const m of pendingMandates) {
+      await supabase.from("mandates").delete().eq("id", m.id)
+    }
+    setDuplicateClient(null)
+    setPendingMandates([])
   }
 
   async function handleAddMandate() {
@@ -851,6 +890,29 @@ export default function ClientsPage() {
             </div>
             <div className="p-6 space-y-5">
               {createError && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{createError}</div>}
+
+              {duplicateClient && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-900 mb-1">This email is already registered</p>
+                      <p className="text-sm text-amber-800 mb-3">
+                        <strong>{duplicateClient.full_name}</strong> ({duplicateClient.company_name}) already has an account with this email.
+                        Would you like to add {pendingMandates.map(m => m.title).join(", ")} to their existing account instead?
+                      </p>
+                      <div className="flex gap-2">
+                        <button onClick={handleLinkToExisting} className="text-xs px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors font-medium">
+                          Yes, add to {duplicateClient.company_name}
+                        </button>
+                        <button onClick={handleCancelDuplicate} className="text-xs px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors">
+                          No, use a different email
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {createdInfo && (
                 <div className="bg-teal/5 border border-teal/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-teal font-semibold text-sm mb-2"><CheckCircle size={14} /> Created — share these credentials with the client</div>
