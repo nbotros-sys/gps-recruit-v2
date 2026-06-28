@@ -392,9 +392,9 @@ export default function MandateDetail() {
       } catch {}
     }
 
-    // Trigger a new background scan
+    // Trigger scan — runs synchronously on the server, returns result directly
     setInsightLoading(true)
-    setScanProgress("Starting scan...")
+    setScanProgress("Scanning talent pool...")
     try {
       const res = await fetch("/api/talent-pool-scan", {
         method: "POST",
@@ -407,11 +407,29 @@ export default function MandateDetail() {
         })
       })
       const data = await res.json()
-      if (data.scan_id) {
-        setScanId(data.scan_id)
-        setScanPolling(true)
+      if (data.status === "complete" && data.result) {
+        setInsightData(data.result)
+        setInsightCachedAt(data.scanned_at)
+        setInsightLoading(false)
+        // Cache in mandates table
+        await supabase.from("mandates").update({
+          talent_pool_cache: data.result,
+          talent_pool_cached_at: data.scanned_at,
+        }).eq("id", id)
+      } else if (data.status === "no_new_candidates") {
+        setInsightLoading(false)
+        setScanProgress("No new candidates since last scan — showing cached results")
+        // Load the cached result from DB
+        try {
+          const cached = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
+          const cachedData = await cached.json()
+          if (cachedData.result) {
+            setInsightData(cachedData.result)
+            setInsightCachedAt(cachedData.scanned_at)
+          }
+        } catch {}
       } else {
-        setInsightData({ error: "Failed to start scan" })
+        setInsightData({ error: data.error || "Scan failed — please try again" })
         setInsightLoading(false)
       }
     } catch {
@@ -1301,7 +1319,7 @@ export default function MandateDetail() {
             <div className="card text-center py-16">
               <Loader2 size={28} className="animate-spin mx-auto mb-3 text-teal" />
               <p className="text-gray-500 text-sm">{scanProgress || "AI is reviewing your talent pool..."}</p>
-              <p className="text-gray-400 text-xs mt-1">You can navigate away — scan continues in background</p>
+              <p className="text-gray-400 text-xs mt-1">This takes 30–60 seconds — please keep this tab open</p>
             </div>
           )}
 
@@ -1686,3 +1704,4 @@ export default function MandateDetail() {
     </div>
   )
 }
+
