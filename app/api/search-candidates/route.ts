@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 const CANDIDATE_FIELDS = "id, name, current_title, current_company, location, tags, avatar_url, email, phone, notes, cv_text, applications(ai_score, mandate:mandates(title))"
 
@@ -109,6 +110,11 @@ Return ONLY a JSON array (no markdown):
 }
 
 export async function POST(req: NextRequest) {
+  // Auth guard — belt-and-braces (middleware is primary)
+  const _authClient = createServerSupabaseClient()
+  const { data: { user: _authUser } } = await _authClient.auth.getUser()
+  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+
   const { query } = await req.json()
   if (!query?.trim()) return NextResponse.json({ error: "No query" }, { status: 400 })
 
