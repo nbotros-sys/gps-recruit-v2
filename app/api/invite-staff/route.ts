@@ -131,7 +131,30 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
 
   const supabase = getAdmin()
-  await supabase.from("staff_users").update({ is_active: false }).eq("id", id)
+
+  // Get their email so we can delete from Supabase Auth too
+  const { data: staffMember } = await supabase
+    .from("staff_users")
+    .select("email")
+    .eq("id", id)
+    .maybeSingle()
+
+  // Delete from staff_users table
+  await supabase.from("staff_users").delete().eq("id", id)
+
+  // Delete from Supabase Auth (hard delete)
+  if (staffMember?.email) {
+    try {
+      const { data: authUsers } = await supabase.auth.admin.listUsers()
+      const authUser = authUsers?.users?.find((u: any) => u.email === staffMember.email)
+      if (authUser) {
+        await supabase.auth.admin.deleteUser(authUser.id)
+      }
+    } catch (e: any) {
+      console.error("Auth user delete error:", e?.message)
+      // Non-blocking — staff_users row is already gone
+    }
+  }
 
   return NextResponse.json({ success: true })
 }
