@@ -7,9 +7,9 @@ import Image from "next/image"
 export default function AcceptInvitePageWrapper() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #091f23 0%, #0d2b30 50%, #0a2428 100%)" }}
-        className="flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-white/30" />
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #091f23 0%, #0d2b30 50%, #0a2428 100%)" }}>
+        <Loader2 size={24} className="animate-spin text-white opacity-30" />
       </div>
     }>
       <AcceptInvitePage />
@@ -26,26 +26,43 @@ function AcceptInvitePage() {
   const [error, setError] = useState("")
   const [done, setDone] = useState(false)
   const [email, setEmail] = useState("")
-  const [ready, setReady] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [checking, setChecking] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
-    let attempts = 0
-    async function poll() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setEmail(user.email || "")
-        setName(user.user_metadata?.full_name || "")
-        setReady(true)
-      } else if (attempts < 20) {
-        attempts++
-        setTimeout(poll, 500)
-      } else {
-        setError("Session could not be established. Please use the link from your invitation email.")
-        setReady(false)
+    // First try to get existing session (already set by callback)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setEmail(session.user.email || "")
+        setName(session.user.user_metadata?.full_name || "")
+        setSessionReady(true)
+        setChecking(false)
+        return
       }
+      // No session yet — listen for it to arrive
+      setChecking(true)
+    })
+
+    // Listen for auth state change — fires when session cookies are picked up
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
+        setEmail(session.user.email || "")
+        setName(session.user.user_metadata?.full_name || "")
+        setSessionReady(true)
+        setChecking(false)
+      }
+    })
+
+    // Timeout after 8 seconds
+    const timeout = setTimeout(() => {
+      setChecking(false)
+    }, 8000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-    poll()
   }, [])
 
   async function submit(e: React.FormEvent) {
@@ -55,23 +72,26 @@ function AcceptInvitePage() {
     if (password !== confirm) { setError("Passwords do not match."); return }
     setLoading(true)
     setError("")
+
     const { error: authError } = await supabase.auth.updateUser({
       password,
       data: { full_name: name, password_set: true },
     })
+
     if (authError) {
-      setError("Could not set password. Please try again.")
+      setError("Could not set password. Please try again or contact your admin.")
       setLoading(false)
       return
     }
-    try { await supabase.from("staff_users").update({ full_name: name }).eq("email", email) } catch {}
+
+    try {
+      await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
+    } catch {}
+
     setDone(true)
     setTimeout(() => { window.location.href = "/internal/dashboard" }, 2000)
     setLoading(false)
   }
-
-  const showForm = ready
-  const showSpinner = !ready && !error
 
   return (
     <div className="min-h-screen w-full flex"
@@ -93,18 +113,12 @@ function AcceptInvitePage() {
           <h1 className="text-white text-3xl font-light tracking-wide mb-3">Welcome to GPS</h1>
           <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-10">Internal Platform</p>
           <div className="space-y-4">
-            <div className="flex items-center gap-3 text-white/30 text-sm">
-              <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span>Confirm your name and set a password</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/30 text-sm">
-              <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span>You'll be taken straight to the platform</span>
-            </div>
-            <div className="flex items-center gap-3 text-white/30 text-sm">
-              <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span>Keep your password safe</span>
-            </div>
+            {["Confirm your name and set a password", "You'll be taken straight to the platform", "Keep your password safe"].map(t => (
+              <div key={t} className="flex items-center gap-3 text-white/30 text-sm">
+                <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0" />
+                <span>{t}</span>
+              </div>
+            ))}
           </div>
         </div>
         <p className="absolute bottom-8 text-white/15 text-xs">
@@ -114,12 +128,14 @@ function AcceptInvitePage() {
 
       {/* Right panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8"
-        style={{ background: "rgba(255,255,255,0.03)" }}>
+        style={{ background: "rgba(255,255,255,0.02)" }}>
         <div className="w-full max-w-sm">
+
           <div className="lg:hidden flex flex-col items-center mb-10">
             <div className="relative w-20 h-20 mb-4">
               <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
             </div>
+            <p className="text-white/35 text-[10px] tracking-widest uppercase font-medium">Welcome to GPS</p>
           </div>
 
           <div className="rounded-2xl p-8"
@@ -134,24 +150,34 @@ function AcceptInvitePage() {
                 <h2 className="text-xl font-semibold text-gray-900">You're all set!</h2>
                 <p className="text-sm text-gray-400">Taking you to the dashboard...</p>
               </div>
-            ) : showSpinner ? (
+
+            ) : checking ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 size={24} className="animate-spin text-teal" />
-                <p className="text-sm text-gray-400">Setting up your account...</p>
+                <Loader2 size={22} className="animate-spin text-teal" />
+                <p className="text-sm text-gray-400">Verifying your invite...</p>
               </div>
-            ) : error && !showForm ? (
-              <div className="text-center py-6">
-                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{error}</div>
+
+            ) : !sessionReady ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 leading-relaxed">
+                  This invite link has expired or already been used.<br />
+                  Ask your admin to send a new invite from Settings → Team.
+                </div>
               </div>
+
             ) : (
               <>
                 <div className="mb-7">
                   <h2 className="text-2xl font-semibold text-gray-900 mb-1">Set up your account</h2>
                   <p className="text-sm text-gray-400">Confirm your details and choose a password.</p>
                 </div>
+
                 {error && (
-                  <div className="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{error}</div>
+                  <div className="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                    {error}
+                  </div>
                 )}
+
                 <form onSubmit={submit} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
