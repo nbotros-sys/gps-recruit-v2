@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
       email: emailNorm,
       options: {
         redirectTo: BASE_URL + "/auth/accept-invite",
+        data: { full_name },
       },
-      data: { full_name },
     })
 
     if (linkError) {
