@@ -58,37 +58,37 @@ export async function POST(req: NextRequest) {
 }
 
 function buildResetEmail(resetLink: string): string {
-  const LOGO_URL = "https://recruit.gps4hr.com/gps-logo-full.png"
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f3;padding:48px 20px;">
-<tr><td align="center">
-<table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;">
-<tr><td align="center" style="padding-bottom:28px;">
-  <img src="${LOGO_URL}" alt="GPS Recruitment" width="150" style="display:block;width:150px;height:auto;" />
-</td></tr>
-<tr><td style="background:white;border-radius:16px;overflow:hidden;border:1px solid #e0e0e0;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="background:#028090;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  const LOGO = "https://recruit.gps4hr.com/gps-logo-full.png"
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Reset your password</title></head>
+<body style="margin:0;padding:0;background-color:#f0f4f3;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f4f3;">
+<tr><td align="center" style="padding:48px 20px;">
+<table border="0" cellpadding="0" cellspacing="0" width="520">
+<tr><td align="center" style="padding-bottom:24px;"><img src="${LOGO}" alt="GPS Recruitment" width="160" style="display:block;border:0;" /></td></tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="520" style="background-color:#ffffff;border:1px solid #e0e0e0;">
+<tr><td height="4" style="background-color:#028090;font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="padding:40px 44px 36px;">
-  <h1 style="font-size:22px;font-weight:700;color:#0a1f24;margin:0 0 8px 0;">Reset your password</h1>
-  <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 28px 0;">
+  <h1 style="font-size:22px;font-weight:bold;color:#0a1f24;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;">Reset your password</h1>
+  <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 28px 0;font-family:Arial,Helvetica,sans-serif;">
     We received a request to reset your GPS Recruitment password.
     Click the button below to choose a new one. This link expires in 1 hour.
   </p>
-  <a href="${resetLink}" style="display:block;background:#028090;color:white;text-align:center;padding:15px 32px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.01em;">Reset password &rarr;</a>
-  <p style="font-size:12px;color:#9ca3af;margin:18px 0 0;line-height:1.6;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tr><td align="center">
+    <a href="${resetLink}" style="display:inline-block;background-color:#028090;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;text-decoration:none;padding:15px 40px;border:0;">Reset password &#8594;</a>
+  </td></tr>
+  </table>
+  <p style="font-size:12px;color:#9ca3af;margin:20px 0 0;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
     If you didn't request a password reset, you can safely ignore this email. Your password won't change.
   </p>
 </td></tr>
-<tr><td style="background:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr>
-  <td style="font-size:11px;color:#9ca3af;">GPS Recruitment &middot; Your Trusted HR Partner</td>
-  <td align="right" style="font-size:11px;color:#9ca3af;">Egypt &middot; MENA</td>
+<tr><td style="background-color:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>
+<td style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">GPS Recruitment &middot; Your Trusted HR Partner</td>
+<td align="right" style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">Egypt &middot; MENA</td>
 </tr></table>
-</td></tr>
-</table>
 </td></tr>
 </table>
 </td></tr>
