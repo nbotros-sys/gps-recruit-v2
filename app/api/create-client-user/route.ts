@@ -146,44 +146,66 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function buildWelcomeEmail(name: string, email: string, password: string, baseUrl: string) {
+function buildWelcomeEmail(name: string, email: string, password: string, baseUrl: string): string {
   const firstName = name.split(" ")[0] || name
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f8f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
-    <tr><td align="center">
-      <table width="520" cellpadding="0" cellspacing="0" style="background:white;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;">
-        <tr><td style="background:#0a1f24;padding:28px 36px;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="background:#028090;border-radius:8px;width:34px;height:34px;text-align:center;vertical-align:middle;">
-                <span style="color:white;font-size:10px;font-weight:700;">GPS</span>
-              </td>
-              <td style="padding-left:10px;">
-                <div style="color:white;font-size:14px;font-weight:700;">GPS Recruitment</div>
-                <div style="color:rgba(168,213,209,0.6);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Client Portal</div>
-              </td>
-            </tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:32px 36px;">
-          <h1 style="font-size:20px;font-weight:700;color:#0a1f24;margin:0 0 8px;">Hi ${firstName},</h1>
-          <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px;">Your GPS client portal is ready. You can now view your shortlisted candidates, leave feedback, and request interviews.</p>
-          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;margin-bottom:24px;">
-            <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Your login credentials</div>
-            <table cellpadding="0" cellspacing="0" width="100%">
-              <tr><td style="font-size:13px;color:#6b7280;padding:4px 0;">Login URL</td><td style="font-size:13px;color:#028090;font-weight:600;text-align:right;padding:4px 0;">${baseUrl}/client/login</td></tr>
-              <tr><td style="font-size:13px;color:#6b7280;padding:4px 0;">Email</td><td style="font-size:13px;color:#0a1f24;font-weight:600;text-align:right;padding:4px 0;">${email}</td></tr>
-              <tr><td style="font-size:13px;color:#6b7280;padding:4px 0;">Password</td><td style="font-size:13px;color:#0a1f24;font-weight:600;text-align:right;padding:4px 0;font-family:monospace;">${password}</td></tr>
-            </table>
-          </div>
-          <a href="${baseUrl}/client/login" style="display:block;background:#028090;color:white;text-align:center;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;">Sign in to your portal →</a>
-        </td></tr>
-        <tr><td style="padding:16px 36px 24px;text-align:center;border-top:1px solid #f0f0f0;">
-          <p style="font-size:11px;color:#9ca3af;margin:0;">GPS — Your Trusted HR Partner · Egypt<br>Questions? Reply to this email or contact your GPS consultant.</p>
-        </td></tr>
+  const LOGO_URL = "https://recruit.gps4hr.com/gps-logo-full.png"
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f3;padding:48px 20px;">
+<tr><td align="center">
+<table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;">
+<tr><td align="center" style="padding-bottom:28px;">
+  <img src="${LOGO_URL}" alt="GPS Recruitment" width="150" style="display:block;width:150px;height:auto;" />
+</td></tr>
+<tr><td style="background:white;border-radius:16px;overflow:hidden;border:1px solid #e0e0e0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="background:#028090;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td style="padding:40px 44px 36px;">
+  <h1 style="font-size:22px;font-weight:700;color:#0a1f24;margin:0 0 8px 0;">Hi ${firstName},</h1>
+  <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 28px 0;">
+    Your GPS client portal is ready. You can now view shortlisted candidates,
+    leave feedback, and request interviews &mdash; all in one place.
+  </p>
+
+  <!-- Credentials box -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:28px;">
+    <tr><td style="padding:18px 20px 8px;">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Your login credentials</div>
+    </td></tr>
+    <tr><td style="padding:0 20px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #f0f0f0;">
+        <tr>
+          <td style="font-size:12px;color:#9ca3af;padding:9px 0;border-bottom:1px solid #f0f0f0;">Portal</td>
+          <td align="right" style="font-size:12px;color:#028090;font-weight:500;padding:9px 0;border-bottom:1px solid #f0f0f0;">${baseUrl}/client/login</td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#9ca3af;padding:9px 0;border-bottom:1px solid #f0f0f0;">Email</td>
+          <td align="right" style="font-size:13px;color:#0a1f24;font-weight:500;font-family:monospace;padding:9px 0;border-bottom:1px solid #f0f0f0;">${email}</td>
+        </tr>
+        <tr>
+          <td style="font-size:12px;color:#9ca3af;padding:9px 0;">Password</td>
+          <td align="right" style="font-size:13px;color:#0a1f24;font-weight:500;font-family:monospace;padding:9px 0;">${password}</td>
+        </tr>
       </table>
     </td></tr>
+    <tr><td style="padding:8px 20px 16px;">
+      <p style="font-size:12px;color:#9ca3af;margin:4px 0 0;">Please change your password after your first login.</p>
+    </td></tr>
   </table>
+
+  <a href="${baseUrl}/client/login" style="display:block;background:#028090;color:white;text-align:center;padding:15px 32px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.01em;">Access your portal &rarr;</a>
+</td></tr>
+<tr><td style="background:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+  <td style="font-size:11px;color:#9ca3af;">GPS Recruitment &middot; Your Trusted HR Partner</td>
+  <td align="right" style="font-size:11px;color:#9ca3af;">Egypt &middot; MENA</td>
+</tr></table>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</td></tr>
+</table>
 </body></html>`
 }
