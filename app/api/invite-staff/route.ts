@@ -83,11 +83,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 500 })
     }
 
-    // Get the generated invite link
-    const inviteLink = linkData?.properties?.action_link
-    if (!inviteLink) {
+    // Extract token_hash from the action_link and build our own callback URL
+    // action_link = https://xxx.supabase.co/auth/v1/verify?token=HASH&type=invite&redirect_to=...
+    const actionLink = linkData?.properties?.action_link
+    if (!actionLink) {
       return NextResponse.json({ error: "Could not generate invite link" }, { status: 500 })
     }
+    const actionUrl = new URL(actionLink)
+    const extractedToken = actionUrl.searchParams.get("token")
+    const extractedType = actionUrl.searchParams.get("type") || "invite"
+    // Build our own link that goes directly to our callback with token_hash
+    const inviteLink = extractedToken
+      ? `${BASE_URL}/auth/callback?token_hash=${extractedToken}&type=${extractedType}`
+      : actionLink
 
     // Add to staff_users table
     const { error: staffError } = await supabase
