@@ -26,26 +26,31 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  // PKCE code flow (most common for magic links)
+  // PKCE code flow
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
-      return NextResponse.redirect(`${origin}/account`)
+      // Invite flow — user needs to set their password
+      if (type === "invite" || (!type && data.user?.email_confirmed_at === data.user?.created_at)) {
+        return NextResponse.redirect(`${origin}/auth/accept-invite`)
+      }
+      return NextResponse.redirect(`${origin}/internal/dashboard`)
     }
   }
 
   // token_hash flow
   if (token_hash) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       token_hash,
       type: type || "magiclink",
     })
     if (!error) {
       if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
-      return NextResponse.redirect(`${origin}/account`)
+      if (type === "invite") return NextResponse.redirect(`${origin}/auth/accept-invite`)
+      return NextResponse.redirect(`${origin}/internal/dashboard`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/error?error=auth_failed`)
+  return NextResponse.redirect(`${origin}/internal/login?error=auth_failed`)
 }
