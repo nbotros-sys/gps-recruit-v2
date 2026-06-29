@@ -1,3 +1,4 @@
+import { createNotification } from "@/lib/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -321,6 +322,14 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
       result,
       scanned_at: new Date().toISOString(),
     }).eq("id", scanId)
+    // Fire notification
+    try {
+      await createNotification({
+        type: "scan_complete",
+        title: "Talent pool scan complete",
+        message: `${strong_matches.length} strong match${strong_matches.length !== 1 ? "es" : ""}, ${possible_matches.length} possible — scan finished`,
+      })
+    } catch {}
 
     return { status: "complete", result }
 
