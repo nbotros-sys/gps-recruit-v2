@@ -1,9 +1,10 @@
 "use client"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut } from "lucide-react"
+import { createClient } from "@/lib/supabase"
 
 const nav = [
   { href: "/internal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -19,7 +20,26 @@ const nav = [
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.push("/internal/login")
+  }
 
   return (
     <div className="flex h-screen bg-cream overflow-hidden">
@@ -78,8 +98,24 @@ export default function InternalLayout({ children }: { children: React.ReactNode
               <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-400 rounded-full" />
             </button>
             <div className="w-px h-4 bg-gray-200" />
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-              style={{ background: "#028090" }}>G</div>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold hover:opacity-80 transition-opacity"
+                style={{ background: "#028090" }}>
+                G
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-9 w-40 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-50">
+                  <button
+                    onClick={signOut}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                    <LogOut size={14} />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-auto p-6">{children}</main>
