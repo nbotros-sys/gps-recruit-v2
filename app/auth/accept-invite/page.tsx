@@ -1,11 +1,19 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { Loader2, Eye, EyeOff, CheckCircle } from "lucide-react"
 import Image from "next/image"
 
-export default function AcceptInvitePage() {
+export default function AcceptInvitePageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #091f23 0%, #0d2b30 50%, #0a2428 100%)" }} />}>
+      <AcceptInvitePage />
+    </Suspense>
+  )
+}
+
+function AcceptInvitePage() {
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
