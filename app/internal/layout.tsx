@@ -41,6 +41,11 @@ export default function InternalLayout({ children }: { children: React.ReactNode
     router.push("/internal/login")
   }
 
+  // Login page gets a completely clean full-screen render — no sidebar, no header
+  if (pathname === "/internal/login") {
+    return <>{children}</>
+  }
+
   return (
     <div className="flex h-screen bg-cream overflow-hidden">
       <aside className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 flex flex-col transition-all duration-200`}
