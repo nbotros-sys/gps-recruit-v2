@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Try to invite via Supabase Auth
     const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(emailNorm, {
-      redirectTo: BASE_URL + "/auth/callback",
+      redirectTo: BASE_URL + "/auth/accept-invite",
       data: { full_name },
     })
 
