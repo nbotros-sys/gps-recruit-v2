@@ -15,7 +15,6 @@ export default function InternalLogin() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Check for not_staff error from middleware redirect
     const params = new URLSearchParams(window.location.search)
     if (params.get("error") === "not_staff") {
       setError("This account does not have access to the GPS internal platform. Please contact your administrator.")
@@ -52,15 +51,17 @@ export default function InternalLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#0d2b30" }}>
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm px-4">
+
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="relative w-16 h-16 mb-4">
-            <Image src="/gps-logo.png" alt="GPS" fill className="object-contain" />
+          <div className="relative w-24 h-24 mb-3">
+            <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
           </div>
-          <div className="text-white font-bold text-xl">GPS</div>
-          <div className="text-white/40 text-xs tracking-widest uppercase font-medium mt-0.5">Internal Platform</div>
+          <div className="text-white/40 text-[10px] tracking-widest uppercase font-medium">Internal Platform</div>
         </div>
 
+        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {resetSent ? (
             <div className="text-center space-y-4">
@@ -155,6 +156,7 @@ export default function InternalLogin() {
             </>
           )}
         </div>
+
         <p className="text-center text-white/20 text-xs mt-6">GPS Recruitment Platform · Internal Access Only</p>
       </div>
     </div>
