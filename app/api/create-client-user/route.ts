@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
 
   try {
-    const { email, full_name, company_name, mandate_id, mandate_name, temp_password } = await req.json()
+    const { email, full_name, phone, company_name, mandate_id, mandate_name, temp_password } = await req.json()
     if (!email || !full_name || !temp_password) {
       return NextResponse.json({ error: "email, full_name and temp_password are required" }, { status: 400 })
     }
