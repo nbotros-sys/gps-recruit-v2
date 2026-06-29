@@ -6,15 +6,36 @@ import { Plus, Check, Trash2, Loader2, ArrowUpRight, Bell, Calendar, User, Check
 
 const STAFF = ["Nader", "Mona", "Juana"]
 
-const NOTIF_META: Record<string, { emoji: string; bg: string }> = {
-  stage_changed:    { emoji: "📋", bg: "#dbeafe" },
-  candidate_placed: { emoji: "🎯", bg: "#dcfce7" },
-  cv_scored:        { emoji: "⭐", bg: "#ede9fe" },
-  candidate_added:  { emoji: "➕", bg: "#ccfbf1" },
-  mandate_created:  { emoji: "📁", bg: "#ccfbf1" },
-  commentary_sent:  { emoji: "💬", bg: "#fef3c7" },
-  scan_complete:    { emoji: "⚡", bg: "#e0e7ff" },
-  new_client:       { emoji: "🏢", bg: "#fce7f3" },
+const NOTIF_META: Record<string, { emoji: string; bg: string; color: string }> = {
+  stage_changed:    { emoji: "📋", bg: "#dbeafe", color: "#1d4ed8" },
+  candidate_placed: { emoji: "🎯", bg: "#dcfce7", color: "#15803d" },
+  cv_scored:        { emoji: "⭐", bg: "#ede9fe", color: "#7c3aed" },
+  candidate_added:  { emoji: "➕", bg: "#ccfbf1", color: "#0f766e" },
+  mandate_created:  { emoji: "📁", bg: "#ccfbf1", color: "#0f766e" },
+  commentary_sent:  { emoji: "💬", bg: "#fef3c7", color: "#92400e" },
+  scan_complete:    { emoji: "⚡", bg: "#e0e7ff", color: "#4338ca" },
+  new_client:       { emoji: "🏢", bg: "#fce7f3", color: "#9d174d" },
+}
+
+function NotifIcon({ type }: { type: string }) {
+  const meta = NOTIF_META[type]
+  const bg = meta?.bg || "#f3f4f6"
+  const color = meta?.color || "#6b7280"
+  const icons: Record<string, React.ReactNode> = {
+    stage_changed: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/><path d="M3 12h18"/></svg>,
+    candidate_placed: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+    cv_scored: <svg width="14" height="14" viewBox="0 0 24 24" fill={color} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    candidate_added: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>,
+    mandate_created: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><path d="M8 7V5a2 2 0 0 0-4 0v2"/></svg>,
+    commentary_sent: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    scan_complete: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    new_client: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  }
+  return (
+    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
+      {icons[type] || <Bell size={13} style={{ color }} />}
+    </div>
+  )
 }
 
 function timeAgo(ts: string) {
@@ -341,15 +362,11 @@ export default function ActivityPage() {
               </div>
             ) : (
               notifications.map(n => {
-                const meta = NOTIF_META[n.type] || { emoji: "🔔", bg: "#f3f4f6" }
                 return (
                   <div key={n.id}
                     className={`flex items-start gap-2.5 px-3.5 py-3 ${!n.read ? "bg-teal/[0.02]" : ""}`}>
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5 ${!n.read ? "bg-teal" : ""}`} />
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
-                      style={{ background: meta.bg }}>
-                      {meta.emoji}
-                    </div>
+                    <NotifIcon type={n.type} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
                         <p className="text-xs font-semibold text-gray-800 leading-snug">{n.title}</p>
