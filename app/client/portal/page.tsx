@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
 import Image from "next/image"
-import { Loader2, LogOut, Star, MessageSquare, Calendar, X, FileText, ExternalLink, Eye, EyeOff, ChevronRight } from "lucide-react"
+import { Loader2, LogOut, Star, MessageSquare, Calendar, X, FileText, ExternalLink, ChevronRight } from "lucide-react"
 
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   shortlisted: { label: "Shortlisted", color: "bg-blue-50 text-blue-700" },
@@ -28,7 +28,6 @@ export default function ClientPortal() {
   const [error, setError] = useState("")
   const [tab, setTab] = useState<"candidates" | "commentary" | "interviews">("candidates")
   const [selectedApp, setSelectedApp] = useState<any>(null)
-  const [showScores, setShowScores] = useState(true)
   const [feedbackApp, setFeedbackApp] = useState<any>(null)
   const [interviewApp, setInterviewApp] = useState<any>(null)
   const [feedbackRating, setFeedbackRating] = useState("")
@@ -185,13 +184,7 @@ export default function ClientPortal() {
               )}
             </button>
           ))}
-          <div className="ml-auto pb-2">
-            <button onClick={() => setShowScores(!showScores)}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white transition-colors">
-              {showScores ? <EyeOff size={12} /> : <Eye size={12} />}
-              {showScores ? "Hide" : "Show"} scores
-            </button>
-          </div>
+
         </div>
 
         {/* ── CANDIDATES ── */}
@@ -221,7 +214,7 @@ export default function ClientPortal() {
                       <p className="text-xs text-gray-400 truncate mt-0.5">{c.current_title}{c.current_company ? ` · ${c.current_company}` : ""}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {showScores && app.ai_score && (
+                      {app.ai_score && (
                         <span className="text-sm font-bold text-teal">{app.ai_score}</span>
                       )}
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${stageInfo.color}`}>{stageInfo.label}</span>
@@ -246,7 +239,7 @@ export default function ClientPortal() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {showScores && selectedApp.ai_score && (
+                    {selectedApp.ai_score && (
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(2,128,144,0.08)" }}>
                         <Star size={12} fill="#028090" stroke="none" />
                         <span className="text-sm font-bold text-teal">{selectedApp.ai_score}</span>
