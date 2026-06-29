@@ -58,24 +58,40 @@ export async function POST(req: NextRequest) {
 }
 
 function buildResetEmail(resetLink: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f8f7;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:white;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;">
-<tr><td style="background:#0a1f24;padding:28px 36px;">
-<table cellpadding="0" cellspacing="0"><tr>
-<td style="background:#028090;border-radius:8px;width:34px;height:34px;text-align:center;vertical-align:middle;"><span style="color:white;font-size:10px;font-weight:700;">GPS</span></td>
-<td style="padding-left:10px;"><div style="color:white;font-size:14px;font-weight:700;">GPS Recruitment</div><div style="color:rgba(168,213,209,0.6);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Internal Platform</div></td>
-</tr></table></td></tr>
-<tr><td style="padding:32px 36px;">
-<h1 style="font-size:20px;font-weight:700;color:#0a1f24;margin:0 0 8px;">Reset your password</h1>
-<p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px;">Click the button below to set a new password for your GPS Recruitment account. This link expires in 1 hour.</p>
-<a href="${resetLink}" style="display:block;background:#028090;color:white;text-align:center;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;">Reset password</a>
-<p style="font-size:12px;color:#9ca3af;margin:16px 0 0;">If you didn't request this, you can safely ignore this email.</p>
+  const LOGO_URL = "https://recruit.gps4hr.com/gps-logo-full.png"
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f4f3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f3;padding:48px 20px;">
+<tr><td align="center">
+<table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;">
+<tr><td align="center" style="padding-bottom:28px;">
+  <img src="${LOGO_URL}" alt="GPS Recruitment" width="150" style="display:block;width:150px;height:auto;" />
 </td></tr>
-<tr><td style="padding:16px 36px 24px;text-align:center;border-top:1px solid #f0f0f0;">
-<p style="font-size:11px;color:#9ca3af;margin:0;">GPS Recruitment · Your Trusted HR Partner</p>
+<tr><td style="background:white;border-radius:16px;overflow:hidden;border:1px solid #e0e0e0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="background:#028090;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td style="padding:40px 44px 36px;">
+  <h1 style="font-size:22px;font-weight:700;color:#0a1f24;margin:0 0 8px 0;">Reset your password</h1>
+  <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 28px 0;">
+    We received a request to reset your GPS Recruitment password.
+    Click the button below to choose a new one. This link expires in 1 hour.
+  </p>
+  <a href="${resetLink}" style="display:block;background:#028090;color:white;text-align:center;padding:15px 32px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.01em;">Reset password &rarr;</a>
+  <p style="font-size:12px;color:#9ca3af;margin:18px 0 0;line-height:1.6;">
+    If you didn't request a password reset, you can safely ignore this email. Your password won't change.
+  </p>
 </td></tr>
-</table></td></tr></table>
+<tr><td style="background:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+  <td style="font-size:11px;color:#9ca3af;">GPS Recruitment &middot; Your Trusted HR Partner</td>
+  <td align="right" style="font-size:11px;color:#9ca3af;">Egypt &middot; MENA</td>
+</tr></table>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</td></tr>
+</table>
 </body></html>`
 }
