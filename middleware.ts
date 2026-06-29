@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
   // Public paths — never require auth
   const PUBLIC_PREFIXES = [
     "/internal/login",
+    "/client/login",
     "/auth/",
     "/api/generate-cv",
     "/api/generate-cv-pdf",
