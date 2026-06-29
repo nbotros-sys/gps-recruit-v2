@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { Loader2, Eye, EyeOff, CheckCircle } from "lucide-react"
 import Image from "next/image"
@@ -13,32 +14,69 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState("")
   const [done, setDone] = useState(false)
   const [email, setEmail] = useState("")
-  const [loadingUser, setLoadingUser] = useState(true)
   const [sessionReady, setSessionReady] = useState(false)
+  const [verifying, setVerifying] = useState(true)
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
-    async function getSession() {
-      // Poll for session — invite token verification is async and may take a moment
-      let attempts = 0
-      const maxAttempts = 10
-      const poll = async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          if (user.email) setEmail(user.email)
-          if (user.user_metadata?.full_name) setName(user.user_metadata.full_name)
-          setSessionReady(true)
-          setLoadingUser(false)
-        } else if (attempts < maxAttempts) {
-          attempts++
-          setTimeout(poll, 500)
+    async function verify() {
+      const token_hash = searchParams.get("token_hash")
+      const type = searchParams.get("type") || "invite"
+      const code = searchParams.get("code")
+
+      try {
+        if (token_hash) {
+          // Verify OTP client-side — establishes session in browser directly
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type: type as any,
+          })
+          if (error) {
+            console.error("verifyOtp error:", error.message)
+            setError("This invite link has expired or already been used. Ask your admin to resend.")
+            setVerifying(false)
+            return
+          }
+          if (data.user) {
+            setEmail(data.user.email || "")
+            if (data.user.user_metadata?.full_name) {
+              setName(data.user.user_metadata.full_name)
+            }
+            setSessionReady(true)
+          }
+        } else if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) {
+            setError("This invite link has expired. Ask your admin to resend.")
+            setVerifying(false)
+            return
+          }
+          if (data.user) {
+            setEmail(data.user.email || "")
+            if (data.user.user_metadata?.full_name) {
+              setName(data.user.user_metadata.full_name)
+            }
+            setSessionReady(true)
+          }
         } else {
-          setLoadingUser(false)
+          // No token — check if already has session
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            setEmail(user.email || "")
+            if (user.user_metadata?.full_name) setName(user.user_metadata.full_name)
+            setSessionReady(true)
+          } else {
+            setError("No invite token found. Please use the link from your invitation email.")
+          }
         }
+      } catch (e) {
+        console.error("Verify error:", e)
+        setError("Something went wrong. Please try again.")
       }
-      poll()
+      setVerifying(false)
     }
-    getSession()
+    verify()
   }, [])
 
   async function submit(e: React.FormEvent) {
@@ -46,7 +84,6 @@ export default function AcceptInvitePage() {
     if (!name.trim()) { setError("Please enter your full name."); return }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return }
     if (password !== confirm) { setError("Passwords do not match."); return }
-    if (!sessionReady) { setError("Session not ready yet, please wait a moment and try again."); return }
     setLoading(true)
     setError("")
 
@@ -56,18 +93,14 @@ export default function AcceptInvitePage() {
     })
 
     if (authError) {
-      console.error("updateUser error:", authError)
-      setError("Could not set password. Your invite link may have expired — ask your admin to resend the invite.")
+      setError("Could not set password. Please try again.")
       setLoading(false)
       return
     }
 
-    // Update full_name in staff_users
-    if (email) {
-      try {
-        await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
-      } catch {}
-    }
+    try {
+      await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
+    } catch {}
 
     setDone(true)
     setTimeout(() => { window.location.href = "/internal/dashboard" }, 2000)
@@ -79,7 +112,6 @@ export default function AcceptInvitePage() {
       className="min-h-screen w-full flex"
       style={{ background: "linear-gradient(135deg, #091f23 0%, #0d2b30 50%, #0a2428 100%)" }}
     >
-      {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center opacity-5">
           <svg viewBox="0 0 500 500" className="w-full h-full">
@@ -114,7 +146,6 @@ export default function AcceptInvitePage() {
         </p>
       </div>
 
-      {/* Right panel */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8"
         style={{ background: "rgba(255,255,255,0.03)" }}>
         <div className="w-full max-w-sm">
@@ -137,10 +168,16 @@ export default function AcceptInvitePage() {
                 <h2 className="text-xl font-semibold text-gray-900">You're all set!</h2>
                 <p className="text-sm text-gray-400">Taking you to the dashboard...</p>
               </div>
-            ) : loadingUser ? (
+            ) : verifying ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={24} className="animate-spin text-teal" />
-                <p className="text-sm text-gray-400">Setting up your session...</p>
+                <p className="text-sm text-gray-400">Verifying your invite...</p>
+              </div>
+            ) : error && !sessionReady ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                  {error}
+                </div>
               </div>
             ) : (
               <>
@@ -188,14 +225,11 @@ export default function AcceptInvitePage() {
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
                       style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties} />
                   </div>
-                  <button type="submit" disabled={loading || !sessionReady}
+                  <button type="submit" disabled={loading}
                     className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all disabled:opacity-60 hover:opacity-90 mt-2"
                     style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                     {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Complete setup"}
                   </button>
-                  {!sessionReady && !loadingUser && (
-                    <p className="text-xs text-center text-amber-500">Your invite link may have expired. Ask your admin to resend.</p>
-                  )}
                 </form>
               </>
             )}
