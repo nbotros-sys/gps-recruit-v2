@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) }
-          catch {}
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {}
         },
       },
     }
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest) {
       if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
       return NextResponse.redirect(`${origin}/auth/accept-invite`)
     }
+    console.error("verifyOtp error for token_hash:", error?.message)
   }
 
   if (code) {
@@ -37,6 +41,7 @@ export async function GET(request: NextRequest) {
       if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
       return NextResponse.redirect(`${origin}/auth/accept-invite`)
     }
+    console.error("exchangeCodeForSession error:", error?.message)
   }
 
   return NextResponse.redirect(`${origin}/internal/login?error=auth_failed`)
