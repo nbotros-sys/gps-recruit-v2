@@ -1,3 +1,4 @@
+import { createNotification } from "@/lib/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
@@ -86,6 +87,16 @@ export async function POST(req: NextRequest) {
         await supabase.from("mandate_commentary").update({ email_sent: true, sent_at: new Date().toISOString() }).eq("id", commentary.id)
       }
     }
+
+    // Fire notification
+    try {
+      await createNotification({
+        type: "commentary_sent",
+        title: "Market commentary sent",
+        message: `Commentary sent for ${mandate?.title || "mandate"} — ${emailsSent} client(s) notified`,
+        link: `/internal/clients`,
+      })
+    } catch {}
 
     return NextResponse.json({ success: true, commentary_id: commentary.id, pdf_url: pdfUrl, emails_sent: emailsSent })
   } catch (err: any) {
