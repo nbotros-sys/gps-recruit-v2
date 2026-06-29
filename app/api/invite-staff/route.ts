@@ -40,42 +40,53 @@ export async function POST(req: NextRequest) {
     }
 
     // Try to invite via Supabase Auth
-    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(emailNorm, {
-      redirectTo: BASE_URL + "/auth/callback?type=invite",
-      data: { full_name },
+    // Generate the invite link ourselves so we control where it goes
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: "invite",
+      email: emailNorm,
+      options: {
+        redirectTo: BASE_URL + "/auth/accept-invite",
+        data: { full_name },
+      }
     })
 
-    if (inviteError) {
-      const msg = inviteError.message || JSON.stringify(inviteError)
+    if (linkError) {
+      const msg = linkError.message || JSON.stringify(linkError)
       const isExisting = msg.includes("already") || msg.includes("registered") || msg.includes("exists")
       if (isExisting) {
-        // User already exists in Auth — send a password reset link so they can set their password
-        // First check if already in staff_users
+        // Already exists — generate a recovery link instead
         const { data: alreadyStaff } = await supabase.from("staff_users").select("id").ilike("email", emailNorm).maybeSingle()
         if (!alreadyStaff) {
           await supabase.from("staff_users").insert([{ email: emailNorm, full_name, role: "recruiter", is_active: true }])
         }
-        // Send password reset so they can get in
         try {
-          const resend = new Resend(process.env.RESEND_API_KEY!)
-          const resetLink = `${BASE_URL}/auth/update-password`
-          await supabase.auth.admin.generateLink({
+          const { data: recoveryData } = await supabase.auth.admin.generateLink({
             type: "recovery",
             email: emailNorm,
-            options: { redirectTo: BASE_URL + "/auth/callback?type=recovery" }
+            options: { redirectTo: BASE_URL + "/auth/accept-invite" }
           })
-          await resend.emails.send({
-            from: FROM,
-            to: emailNorm,
-            subject: "Set your password — GPS Recruitment Platform",
-            html: buildInviteEmail(full_name, BASE_URL),
-          })
+          const recoveryLink = recoveryData?.properties?.action_link
+          if (recoveryLink) {
+            const resend = new Resend(process.env.RESEND_API_KEY!)
+            await resend.emails.send({
+              from: FROM,
+              to: emailNorm,
+              subject: "Set your password — GPS Recruitment Platform",
+              html: buildInviteEmail(full_name, recoveryLink),
+            })
+          }
         } catch (e: any) {
-          console.error("Reset email failed:", e?.message)
+          console.error("Recovery email failed:", e?.message)
         }
         return NextResponse.json({ success: true })
       }
-      console.error("inviteUserByEmail error:", msg)
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+
+    // Get the generated invite link
+    const inviteLink = linkData?.properties?.action_link
+    if (!inviteLink) {
+      return NextResponse.json({ error: "Could not generate invite link" }, { status: 500 })
     }
 
     // Add to staff_users table
@@ -87,18 +98,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: staffError.message }, { status: 500 })
     }
 
-    // Send GPS-branded invite email via Resend
+    // Send GPS-branded invite email with the real invite link
     try {
       const resend = new Resend(process.env.RESEND_API_KEY!)
       await resend.emails.send({
         from: FROM,
         to: emailNorm,
         subject: "You've been invited to GPS Recruitment Platform",
-        html: buildInviteEmail(full_name, BASE_URL),
+        html: buildInviteEmail(full_name, inviteLink),
       })
     } catch (emailErr: any) {
       console.error("Invite email failed:", emailErr?.message)
-      // Non-blocking
     }
 
     return NextResponse.json({ success: true })
@@ -159,7 +169,7 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ success: true })
 }
 
-function buildInviteEmail(name: string, baseUrl: string): string {
+function buildInviteEmail(name: string, inviteLink: string): string {
   const firstName = name.split(" ")[0] || name
   return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head>" +
     "<body style=\"margin:0;padding:0;background:#f4f8f7;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;\">" +
@@ -172,9 +182,8 @@ function buildInviteEmail(name: string, baseUrl: string): string {
     "</tr></table></td></tr>" +
     "<tr><td style=\"padding:32px 36px;\">" +
     "<h1 style=\"font-size:20px;font-weight:700;color:#0a1f24;margin:0 0 8px;\">Hi " + firstName + ",</h1>" +
-    "<p style=\"font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px;\">You have been invited to join the GPS Recruitment internal platform. You will receive a separate email from our system with a link to set your password.</p>" +
-    "<p style=\"font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px;\">Once your password is set, you can sign in at the link below.</p>" +
-    "<a href=\"" + baseUrl + "/internal/login\" style=\"display:block;background:#028090;color:white;text-align:center;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;\">Sign in to GPS Platform</a>" +
+    "<p style=\"font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px;\">You have been invited to join the GPS Recruitment internal platform. Click the button below to set up your account.</p>" +
+    "<a href=\"" + inviteLink + "\" style=\"display:block;background:#028090;color:white;text-align:center;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;\">Set up your account</a>" +
     "</td></tr>" +
     "<tr><td style=\"padding:16px 36px 24px;text-align:center;border-top:1px solid #f0f0f0;\">" +
     "<p style=\"font-size:11px;color:#9ca3af;margin:0;\">GPS Recruitment - Your Trusted HR Partner</p>" +
