@@ -14,14 +14,29 @@ export default function AcceptInvitePage() {
   const [done, setDone] = useState(false)
   const [email, setEmail] = useState("")
   const [loadingUser, setLoadingUser] = useState(true)
+  const [sessionReady, setSessionReady] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     async function getSession() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.email) setEmail(user.email)
-      if (user?.user_metadata?.full_name) setName(user.user_metadata.full_name)
-      setLoadingUser(false)
+      // Poll for session — invite token verification is async and may take a moment
+      let attempts = 0
+      const maxAttempts = 10
+      const poll = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          if (user.email) setEmail(user.email)
+          if (user.user_metadata?.full_name) setName(user.user_metadata.full_name)
+          setSessionReady(true)
+          setLoadingUser(false)
+        } else if (attempts < maxAttempts) {
+          attempts++
+          setTimeout(poll, 500)
+        } else {
+          setLoadingUser(false)
+        }
+      }
+      poll()
     }
     getSession()
   }, [])
@@ -31,6 +46,7 @@ export default function AcceptInvitePage() {
     if (!name.trim()) { setError("Please enter your full name."); return }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return }
     if (password !== confirm) { setError("Passwords do not match."); return }
+    if (!sessionReady) { setError("Session not ready yet, please wait a moment and try again."); return }
     setLoading(true)
     setError("")
 
@@ -38,16 +54,20 @@ export default function AcceptInvitePage() {
       password,
       data: { full_name: name, password_set: true },
     })
+
     if (authError) {
-      setError("Could not set up your account. Please try again.")
+      console.error("updateUser error:", authError)
+      setError("Could not set password. Your invite link may have expired — ask your admin to resend the invite.")
       setLoading(false)
       return
     }
 
     // Update full_name in staff_users
-    try {
-      await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
-    } catch {}
+    if (email) {
+      try {
+        await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
+      } catch {}
+    }
 
     setDone(true)
     setTimeout(() => { window.location.href = "/internal/dashboard" }, 2000)
@@ -98,8 +118,6 @@ export default function AcceptInvitePage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8"
         style={{ background: "rgba(255,255,255,0.03)" }}>
         <div className="w-full max-w-sm">
-
-          {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-10">
             <div className="relative w-20 h-20 mb-4">
               <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
@@ -108,7 +126,7 @@ export default function AcceptInvitePage() {
           </div>
 
           <div className="rounded-2xl p-8"
-            style={{ background: "rgba(255,255,255,0.97)", boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)" }}>
+            style={{ background: "rgba(255,255,255,0.97)", boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}>
 
             {done ? (
               <div className="text-center py-6 space-y-4">
@@ -120,8 +138,9 @@ export default function AcceptInvitePage() {
                 <p className="text-sm text-gray-400">Taking you to the dashboard...</p>
               </div>
             ) : loadingUser ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 size={20} className="animate-spin text-gray-300" />
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 size={24} className="animate-spin text-teal" />
+                <p className="text-sm text-gray-400">Setting up your session...</p>
               </div>
             ) : (
               <>
@@ -137,67 +156,46 @@ export default function AcceptInvitePage() {
                 )}
 
                 <form onSubmit={submit} className="space-y-4">
-                  {/* Email — read only */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
-                    />
+                    <input type="email" value={email} readOnly
+                      className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm text-gray-400 bg-gray-50 cursor-not-allowed" />
                   </div>
-                  {/* Name — pre-filled, editable */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full name</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      placeholder="Your full name"
-                      required
-                      autoFocus={!name}
+                    <input type="text" value={name} onChange={e => setName(e.target.value)}
+                      placeholder="Your full name" required autoFocus={!name}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
-                    />
+                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties} />
                   </div>
-                  {/* Password */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
                     <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="Min. 8 characters"
-                        required
+                      <input type={showPassword ? "text" : "password"} value={password}
+                        onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" required
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-11"
-                        style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
-                      />
+                        style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties} />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
-                  {/* Confirm */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Confirm password</label>
-                    <input
-                      type="password"
-                      value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
-                      placeholder="Repeat password"
-                      required
+                    <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+                      placeholder="Repeat password" required
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
-                    />
+                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties} />
                   </div>
-                  <button type="submit" disabled={loading}
-                    className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all disabled:opacity-60 hover:opacity-90 active:scale-[0.99] mt-2"
+                  <button type="submit" disabled={loading || !sessionReady}
+                    className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all disabled:opacity-60 hover:opacity-90 mt-2"
                     style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                     {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Complete setup"}
                   </button>
+                  {!sessionReady && !loadingUser && (
+                    <p className="text-xs text-center text-amber-500">Your invite link may have expired. Ask your admin to resend.</p>
+                  )}
                 </form>
               </>
             )}
