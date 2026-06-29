@@ -43,7 +43,7 @@ export default function ClientLogin() {
             <Image src="/gps-logo-full.png" alt="GPS Recruitment" fill className="object-contain" />
           </div>
           <h1 className="text-white text-3xl font-light tracking-wide mb-2">Client Portal</h1>
-          <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-10">Your Trusted HR Partner</p>
+          <p className="text-white/70 text-sm tracking-widest uppercase font-medium mb-10">Your Trusted HR Partner</p>
 
           <div className="space-y-5 text-left">
             <div className="flex items-start gap-4">
