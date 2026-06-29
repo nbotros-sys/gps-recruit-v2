@@ -42,19 +42,49 @@ export default function ClientLogin() {
           <div className="relative w-36 h-36 mx-auto mb-8">
             <Image src="/gps-logo-full.png" alt="GPS Recruitment" fill className="object-contain" />
           </div>
-          <h1 className="text-white text-3xl font-light tracking-wide mb-3">Client Portal</h1>
+          <h1 className="text-white text-3xl font-light tracking-wide mb-2">Client Portal</h1>
           <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-10">Your Trusted HR Partner</p>
-          <div className="space-y-4">
-            {[
-              "View your shortlisted candidates",
-              "Leave feedback and request interviews",
-              "Access GPS market commentary",
-            ].map(t => (
-              <div key={t} className="flex items-center gap-3 text-white/30 text-sm">
-                <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0" />
-                <span>{t}</span>
+
+          <div className="space-y-5 text-left">
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(2,128,144,0.3)" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(168,213,209,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               </div>
-            ))}
+              <div>
+                <p className="text-white/80 text-sm font-semibold mb-0.5">AI-powered screening</p>
+                <p className="text-white/35 text-xs leading-relaxed">Every candidate is scored and ranked by our AI against your specific role requirements — so you only see the best fit.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(2,128,144,0.3)" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(168,213,209,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <p className="text-white/80 text-sm font-semibold mb-0.5">Dedicated recruitment consultant</p>
+                <p className="text-white/35 text-xs leading-relaxed">A GPS consultant personally reviews every candidate before they reach your portal — human expertise behind every recommendation.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(2,128,144,0.3)" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(168,213,209,0.9)" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+              </div>
+              <div>
+                <p className="text-white/80 text-sm font-semibold mb-0.5">Real-time market intelligence</p>
+                <p className="text-white/35 text-xs leading-relaxed">Access GPS market commentary and salary benchmarks for your sector — insights that help you make faster, smarter hiring decisions.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(2,128,144,0.3)" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(168,213,209,0.9)" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div>
+                <p className="text-white/80 text-sm font-semibold mb-0.5">Seamless collaboration</p>
+                <p className="text-white/35 text-xs leading-relaxed">Leave feedback, request interviews, and track progress — all in one place. No emails back and forth.</p>
+              </div>
+            </div>
           </div>
         </div>
         <p className="absolute bottom-8 text-white/15 text-xs">
