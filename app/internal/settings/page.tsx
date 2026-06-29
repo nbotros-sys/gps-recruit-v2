@@ -1,4 +1,3 @@
-import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import SettingsClient from "./SettingsClient"
 
