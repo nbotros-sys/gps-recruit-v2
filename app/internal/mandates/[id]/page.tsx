@@ -465,6 +465,49 @@ export default function MandateDetail() {
   async function moveStage(appId: string, newStage: string) {
     await supabase.from("applications").update({ stage: newStage }).eq("id", appId)
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, stage: newStage as any } : a))
+    // Find candidate name for notification
+    const app = applications.find(a => a.id === appId)
+    const candidateName = app?.candidate?.name || "Candidate"
+    const mandateTitle = mandate?.title || "mandate"
+    if (newStage === "placed") {
+      // Placed notification + auto post-placement task
+      fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "candidate_placed", title: "Candidate placed",
+          message: `${candidateName} has been placed on ${mandateTitle}`,
+          link: `/internal/mandates/${id}` }) }).catch(() => {})
+      // Auto-task: 2-week post-placement check-in
+      fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: `Post-placement check-in — ${candidateName}`,
+          description: `Follow up with ${candidateName} 2 weeks after placement on ${mandateTitle}`,
+          due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0] })(),
+          link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
+          auto_generated: true }) }).catch(() => {})
+      // Auto-task: notify client
+      fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: `Notify client of placement — ${mandateTitle}`,
+          description: `${candidateName} has been placed. Confirm start date and send placement confirmation to client.`,
+          due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0] })(),
+          link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
+          auto_generated: true }) }).catch(() => {})
+    } else {
+      // Stage change notification
+      fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "stage_changed", title: "Pipeline update",
+          message: `${candidateName} moved to ${newStage} on ${mandateTitle}`,
+          link: `/internal/mandates/${id}` }) }).catch(() => {})
+      // Auto-task: send shortlist to client when 3+ candidates are shortlisted
+      if (newStage === "shortlisted") {
+        const shortlisted = applications.filter(a => a.id === appId ? true : a.stage === "shortlisted").length
+        if (shortlisted >= 3) {
+          fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: `Send shortlist to client — ${mandateTitle}`,
+              description: `${shortlisted} candidates are now shortlisted. Time to send the shortlist to the client.`,
+              due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split("T")[0] })(),
+              link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
+              auto_generated: true }) }).catch(() => {})
+        }
+      }
+    }
   }
 
   async function scoreCV() {
