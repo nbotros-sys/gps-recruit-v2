@@ -21,7 +21,7 @@ export default function Dashboard() {
           supabase.from("mandates").select("id").eq("status", "active").then(r => r.data || []),
           supabase.from("candidates").select("id").then(r => r.data || []),
           supabase.from("applications").select("id").eq("stage", "placed").then(r => r.data || []),
-          supabase.from("clients").select("id").then(r => r.data || []),
+          supabase.from("client_users").select("id").then(r => r.data || []),
           supabase.from("applications").select("stage").then(r => r.data || []),
           supabase.from("mandates").select("id, title, client_name, status").order("created_at", { ascending: false }).limit(5).then(r => r.data || []),
           supabase.from("candidates").select("id, name, current_title, current_company, source").order("created_at", { ascending: false }).limit(6).then(r => r.data || []),
