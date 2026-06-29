@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 const nav = [
@@ -15,6 +15,7 @@ const nav = [
   { href: "/internal/search", icon: Search, label: "AI Search" },
   { href: "/internal/clients", icon: Building2, label: "Clients" },
   { href: "/internal/sourcing", icon: Zap, label: "AI Sourcing" },
+  { href: "/internal/activity", icon: Activity, label: "Activity" },
   { href: "/internal/settings", icon: Settings, label: "Settings" },
 ]
 
@@ -24,6 +25,8 @@ export default function InternalLayout({ children }: { children: React.ReactNode
   const [collapsed, setCollapsed] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingTaskCount, setPendingTaskCount] = useState(0)
   const supabase = createClient()
 
   useEffect(() => {
@@ -34,6 +37,24 @@ export default function InternalLayout({ children }: { children: React.ReactNode
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const [nr, tr] = await Promise.all([
+          fetch("/api/notifications"),
+          fetch("/api/tasks"),
+        ])
+        const nd = await nr.json()
+        const td = await tr.json()
+        setUnreadCount((nd.notifications || []).filter((n: any) => !n.read).length)
+        setPendingTaskCount((td.tasks || []).filter((t: any) => !t.done).length)
+      } catch {}
+    }
+    fetchCounts()
+    const interval = setInterval(fetchCounts, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   async function signOut() {
@@ -98,10 +119,14 @@ export default function InternalLayout({ children }: { children: React.ReactNode
             {nav.find(n => pathname.startsWith(n.href))?.label}
           </p>
           <div className="flex items-center gap-3">
-            <button className="relative p-2 text-gray-400 hover:text-teal rounded-lg hover:bg-gray-50 transition-colors">
+            <Link href="/internal/activity" className="relative p-2 text-gray-400 hover:text-teal rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
               <Bell size={17} />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-400 rounded-full" />
-            </button>
+              {(unreadCount + pendingTaskCount) > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                  {unreadCount + pendingTaskCount}
+                </span>
+              )}
+            </Link>
             <div className="w-px h-4 bg-gray-200" />
             <div className="relative" ref={menuRef}>
               <button
