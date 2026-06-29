@@ -13,14 +13,15 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState("")
   const [done, setDone] = useState(false)
   const [email, setEmail] = useState("")
+  const [loadingUser, setLoadingUser] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     async function getSession() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) setEmail(user.email)
-      // Pre-fill name from user metadata if set during invite
       if (user?.user_metadata?.full_name) setName(user.user_metadata.full_name)
+      setLoadingUser(false)
     }
     getSession()
   }, [])
@@ -33,10 +34,9 @@ export default function AcceptInvitePage() {
     setLoading(true)
     setError("")
 
-    // Update password + name in Supabase Auth
     const { error: authError } = await supabase.auth.updateUser({
       password,
-      data: { full_name: name },
+      data: { full_name: name, password_set: true },
     })
     if (authError) {
       setError("Could not set up your account. Please try again.")
@@ -44,7 +44,7 @@ export default function AcceptInvitePage() {
       return
     }
 
-    // Update full_name in staff_users table
+    // Update full_name in staff_users
     try {
       await supabase.from("staff_users").update({ full_name: name }).eq("email", email)
     } catch {}
@@ -73,11 +73,11 @@ export default function AcceptInvitePage() {
             <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
           </div>
           <h1 className="text-white text-3xl font-light tracking-wide mb-3">Welcome to GPS</h1>
-          <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-10">You've been invited</p>
+          <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-10">Internal Platform</p>
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-white/30 text-sm">
               <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span>Set your name and password below</span>
+              <span>Confirm your name and set a password</span>
             </div>
             <div className="flex items-center gap-3 text-white/30 text-sm">
               <div className="w-1 h-1 rounded-full bg-white/20" />
@@ -104,7 +104,7 @@ export default function AcceptInvitePage() {
             <div className="relative w-20 h-20 mb-4">
               <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
             </div>
-            <p className="text-white/35 text-[10px] tracking-widest uppercase font-medium">You've been invited</p>
+            <p className="text-white/35 text-[10px] tracking-widest uppercase font-medium">Welcome to GPS</p>
           </div>
 
           <div className="rounded-2xl p-8"
@@ -116,16 +116,18 @@ export default function AcceptInvitePage() {
                   style={{ background: "rgba(2,128,144,0.1)" }}>
                   <CheckCircle size={28} style={{ color: "#028090" }} />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">You're all set</h2>
+                <h2 className="text-xl font-semibold text-gray-900">You're all set!</h2>
                 <p className="text-sm text-gray-400">Taking you to the dashboard...</p>
+              </div>
+            ) : loadingUser ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={20} className="animate-spin text-gray-300" />
               </div>
             ) : (
               <>
                 <div className="mb-7">
                   <h2 className="text-2xl font-semibold text-gray-900 mb-1">Set up your account</h2>
-                  <p className="text-sm text-gray-400">
-                    {email ? <span>Joining as <span className="font-medium text-gray-600">{email}</span></span> : "Complete your account setup to get started"}
-                  </p>
+                  <p className="text-sm text-gray-400">Confirm your details and choose a password.</p>
                 </div>
 
                 {error && (
@@ -135,6 +137,17 @@ export default function AcceptInvitePage() {
                 )}
 
                 <form onSubmit={submit} className="space-y-4">
+                  {/* Email — read only */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+                    />
+                  </div>
+                  {/* Name — pre-filled, editable */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full name</label>
                     <input
@@ -143,11 +156,12 @@ export default function AcceptInvitePage() {
                       onChange={e => setName(e.target.value)}
                       placeholder="Your full name"
                       required
-                      autoFocus
+                      autoFocus={!name}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
                       style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
                     />
                   </div>
+                  {/* Password */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
                     <div className="relative">
@@ -166,6 +180,7 @@ export default function AcceptInvitePage() {
                       </button>
                     </div>
                   </div>
+                  {/* Confirm */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Confirm password</label>
                     <input
