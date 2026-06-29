@@ -50,114 +50,185 @@ export default function InternalLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#0d2b30" }}>
-      <div className="w-full max-w-sm px-4">
+    <div
+      className="min-h-screen w-full flex"
+      style={{
+        background: "linear-gradient(135deg, #091f23 0%, #0d2b30 50%, #0a2428 100%)",
+      }}
+    >
+      {/* Left decorative panel — hidden on small screens */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 relative overflow-hidden">
+        {/* Background hexagon shapes */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-5">
+          <svg viewBox="0 0 500 500" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="250,30 450,145 450,355 250,470 50,355 50,145" fill="none" stroke="white" strokeWidth="1"/>
+            <polygon points="250,80 410,170 410,330 250,420 90,330 90,170" fill="none" stroke="white" strokeWidth="1"/>
+            <polygon points="250,130 370,195 370,305 250,370 130,305 130,195" fill="none" stroke="white" strokeWidth="1"/>
+          </svg>
+        </div>
 
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative w-24 h-24 mb-3">
+        {/* Content */}
+        <div className="relative z-10 text-center max-w-sm">
+          <div className="relative w-28 h-28 mx-auto mb-8">
             <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
           </div>
-          <div className="text-white/40 text-[10px] tracking-widest uppercase font-medium">Internal Platform</div>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          {resetSent ? (
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-teal/10 flex items-center justify-center mx-auto">
-                <svg className="w-6 h-6 text-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">Check your email</h2>
-              <p className="text-sm text-gray-500">We sent a password reset link to {email}</p>
-              <button onClick={() => { setMode("login"); setResetSent(false) }} className="text-sm text-teal hover:underline">
-                Back to sign in
-              </button>
+          <h1 className="text-white text-3xl font-light tracking-wide mb-3">GPS Recruitment</h1>
+          <p className="text-white/40 text-sm tracking-widest uppercase font-medium mb-12">Your Trusted HR Partner</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-white/30 text-sm">
+              <div className="w-1 h-1 rounded-full bg-white/20" />
+              <span>AI-powered talent matching</span>
             </div>
-          ) : mode === "login" ? (
-            <>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Sign in</h2>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-              <form onSubmit={login} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal pr-10"
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-                <button type="submit" disabled={loading}
-                  className="w-full py-2.5 rounded-lg text-white text-sm font-semibold transition-opacity disabled:opacity-70"
-                  style={{ background: "#028090" }}>
-                  {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Sign in"}
-                </button>
-              </form>
-              <button onClick={() => setMode("reset")} className="mt-4 w-full text-center text-sm text-gray-400 hover:text-gray-600">
-                Forgot password?
-              </button>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Reset password</h2>
-              <p className="text-sm text-gray-500 mb-6">Enter your email and we'll send you a reset link.</p>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-              <form onSubmit={sendReset} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
-                  />
-                </div>
-                <button type="submit" disabled={loading}
-                  className="w-full py-2.5 rounded-lg text-white text-sm font-semibold transition-opacity disabled:opacity-70"
-                  style={{ background: "#028090" }}>
-                  {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Send reset link"}
-                </button>
-              </form>
-              <button onClick={() => setMode("login")} className="mt-4 w-full text-center text-sm text-gray-400 hover:text-gray-600">
-                Back to sign in
-              </button>
-            </>
-          )}
+            <div className="flex items-center gap-3 text-white/30 text-sm">
+              <div className="w-1 h-1 rounded-full bg-white/20" />
+              <span>Executive search & placement</span>
+            </div>
+            <div className="flex items-center gap-3 text-white/30 text-sm">
+              <div className="w-1 h-1 rounded-full bg-white/20" />
+              <span>MENA market specialists</span>
+            </div>
+          </div>
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-6">GPS Recruitment Platform · Internal Access Only</p>
+        <p className="absolute bottom-8 text-white/15 text-xs">
+          © {new Date().getFullYear()} GPS Recruitment · Internal Access Only
+        </p>
+      </div>
+
+      {/* Right login panel */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8"
+        style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(0px)" }}>
+        <div className="w-full max-w-sm">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden flex flex-col items-center mb-10">
+            <div className="relative w-20 h-20 mb-4">
+              <Image src="/gps-logo.png" alt="GPS Recruitment" fill className="object-contain" />
+            </div>
+            <p className="text-white/35 text-[10px] tracking-widest uppercase font-medium">Internal Platform</p>
+          </div>
+
+          {/* Card */}
+          <div
+            className="rounded-2xl p-8"
+            style={{
+              background: "rgba(255,255,255,0.97)",
+              boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)",
+            }}
+          >
+            {resetSent ? (
+              <div className="text-center space-y-4 py-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
+                  style={{ background: "rgba(2,128,144,0.1)" }}>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="#028090">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Check your email</h2>
+                <p className="text-sm text-gray-500">We sent a password reset link to<br /><span className="font-medium text-gray-700">{email}</span></p>
+                <button onClick={() => { setMode("login"); setResetSent(false) }}
+                  className="text-sm font-medium hover:underline mt-2"
+                  style={{ color: "#028090" }}>
+                  Back to sign in
+                </button>
+              </div>
+            ) : mode === "login" ? (
+              <>
+                <div className="mb-7">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-1">Welcome back</h2>
+                  <p className="text-sm text-gray-400">Sign in to the GPS internal platform</p>
+                </div>
+
+                {error && (
+                  <div className="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={login} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-11"
+                        style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={loading}
+                    className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all disabled:opacity-60 hover:opacity-90 active:scale-[0.99] mt-2"
+                    style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
+                    {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Sign in"}
+                  </button>
+                </form>
+
+                <button onClick={() => setMode("reset")}
+                  className="mt-5 w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                  Forgot your password?
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="mb-7">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-1">Reset password</h2>
+                  <p className="text-sm text-gray-400">We'll send a reset link to your email.</p>
+                </div>
+
+                {error && (
+                  <div className="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={sendReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                      style={{ "--tw-ring-color": "rgba(2,128,144,0.25)" } as React.CSSProperties}
+                    />
+                  </div>
+                  <button type="submit" disabled={loading}
+                    className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all disabled:opacity-60 hover:opacity-90 mt-2"
+                    style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
+                    {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Send reset link"}
+                  </button>
+                </form>
+
+                <button onClick={() => setMode("login")}
+                  className="mt-5 w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                  Back to sign in
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
