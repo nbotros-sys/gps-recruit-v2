@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll(incoming) {
+        setAll(incoming: { name: string; value: string; options?: any }[]) {
           // Collect cookies to set on both the store and the redirect response
           incoming.forEach(({ name, value, options }) => {
             try { cookieStore.set(name, value, options) } catch {}
