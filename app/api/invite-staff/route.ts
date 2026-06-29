@@ -46,12 +46,36 @@ export async function POST(req: NextRequest) {
     })
 
     if (inviteError) {
-      // If user already exists in auth, that is fine — we still add to staff_users
       const msg = inviteError.message || JSON.stringify(inviteError)
-      if (!msg.includes("already") && !msg.includes("registered") && !msg.includes("exists")) {
-        console.error("inviteUserByEmail error:", msg)
-        // Don't block — still add to staff table and send our own email
+      const isExisting = msg.includes("already") || msg.includes("registered") || msg.includes("exists")
+      if (isExisting) {
+        // User already exists in Auth — send a password reset link so they can set their password
+        // First check if already in staff_users
+        const { data: alreadyStaff } = await supabase.from("staff_users").select("id").ilike("email", emailNorm).maybeSingle()
+        if (!alreadyStaff) {
+          await supabase.from("staff_users").insert([{ email: emailNorm, full_name, role: "recruiter", is_active: true }])
+        }
+        // Send password reset so they can get in
+        try {
+          const resend = new Resend(process.env.RESEND_API_KEY!)
+          const resetLink = `${BASE_URL}/auth/update-password`
+          await supabase.auth.admin.generateLink({
+            type: "recovery",
+            email: emailNorm,
+            options: { redirectTo: BASE_URL + "/auth/callback?type=recovery" }
+          })
+          await resend.emails.send({
+            from: FROM,
+            to: emailNorm,
+            subject: "Set your password — GPS Recruitment Platform",
+            html: buildInviteEmail(full_name, BASE_URL),
+          })
+        } catch (e: any) {
+          console.error("Reset email failed:", e?.message)
+        }
+        return NextResponse.json({ success: true })
       }
+      console.error("inviteUserByEmail error:", msg)
     }
 
     // Add to staff_users table
