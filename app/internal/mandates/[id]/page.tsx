@@ -249,7 +249,7 @@ export default function MandateDetail() {
         const res = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
         const data = await res.json()
         if (data.progress_message) setScanProgress(data.progress_message)
-        if (data.status === "complete" && data.result) {
+        if ((data.status === "complete" || data.status === "no_new_candidates") && data.result) {
           setInsightData(data.result)
           setInsightCachedAt(data.scanned_at)
           setScanPolling(false)
@@ -376,7 +376,7 @@ export default function MandateDetail() {
       try {
         const res = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
         const scan = await res.json()
-        if (scan.status === "complete" && scan.result) {
+        if ((scan.status === "complete" || scan.status === "no_new_candidates") && scan.result) {
           setInsightData(scan.result)
           setInsightCachedAt(scan.scanned_at)
           return
