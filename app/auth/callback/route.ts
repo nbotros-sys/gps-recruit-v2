@@ -26,28 +26,45 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  // token_hash flow — used by generateLink (invite & recovery)
   if (token_hash) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash,
       type: type || "invite",
     })
     if (!error) {
-      if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
-      return NextResponse.redirect(`${origin}/auth/accept-invite`)
+      const dest = type === "recovery" ? "/auth/update-password" : "/auth/accept-invite"
+      // Use an HTML redirect so the browser sends the session cookies on the next request
+      return new NextResponse(
+        `<!DOCTYPE html><html><head>
+          <meta charset="utf-8">
+          <script>window.location.href = "${origin}${dest}";</script>
+        </head><body></body></html>`,
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }
+      )
     }
-    console.error("verifyOtp error:", error)
+    console.error("verifyOtp error:", error?.message)
     return NextResponse.redirect(`${origin}/internal/login?error=invite_expired`)
   }
 
-  // PKCE code flow
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      if (type === "recovery") return NextResponse.redirect(`${origin}/auth/update-password`)
-      return NextResponse.redirect(`${origin}/auth/accept-invite`)
+      const dest = type === "recovery" ? "/auth/update-password" : "/auth/accept-invite"
+      return new NextResponse(
+        `<!DOCTYPE html><html><head>
+          <meta charset="utf-8">
+          <script>window.location.href = "${origin}${dest}";</script>
+        </head><body></body></html>`,
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }
+      )
     }
-    console.error("exchangeCode error:", error)
+    console.error("exchangeCode error:", error?.message)
     return NextResponse.redirect(`${origin}/internal/login?error=invite_expired`)
   }
 
