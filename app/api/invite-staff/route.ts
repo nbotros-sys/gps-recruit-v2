@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       type: "invite",
       email: emailNorm,
       options: {
-        redirectTo: BASE_URL + "/auth/accept-invite",
+        redirectTo: BASE_URL + "/auth/callback?type=invite",
         data: { full_name },
       },
     })
