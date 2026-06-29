@@ -44,11 +44,17 @@ export default function MandatesPage() {
   async function createMandate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from("mandates").insert([form])
+    const { data: newMandate, error } = await supabase.from("mandates").insert([form]).select().single()
     if (!error) {
       setShowCreate(false)
       setForm({ title: "", client_name: "", location: "", salary_range: "", job_description: "", status: "active" })
       load()
+      // Fire notification
+      fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "mandate_created", title: "New mandate created",
+          message: `${form.title}${form.client_name ? " · " + form.client_name : ""}`,
+          link: newMandate?.id ? "/internal/mandates/" + newMandate.id : "/internal/mandates" }) })
+        .catch(() => {})
     }
     setSaving(false)
   }
