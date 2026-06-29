@@ -38,10 +38,12 @@ export default function InternalLogin() {
     e.preventDefault()
     setLoading(true)
     setError("")
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    const res = await fetch("/api/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     })
-    if (error) {
+    if (!res.ok) {
       setError("Could not send reset email. Please check the address.")
     } else {
       setResetSent(true)
