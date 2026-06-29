@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(incoming: { name: string; value: string; options?: any }[]) {
-          // Collect cookies to set on both the store and the redirect response
           incoming.forEach(({ name, value, options }) => {
             try { cookieStore.set(name, value, options) } catch {}
             cookiesToSet.push({ name, value, options })
@@ -34,10 +33,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
     if (!error) {
       const response = NextResponse.redirect(`${origin}${dest}`)
-      // Manually copy session cookies onto the redirect response
-      cookiesToSet.forEach(({ name, value, options }) => {
-        response.cookies.set(name, value, options || {})
-      })
+      cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options || {}))
       return response
     }
     console.error("verifyOtp error:", error?.message)
@@ -46,10 +42,9 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const response = NextResponse.redirect(`${origin}${dest}`)
-      cookiesToSet.forEach(({ name, value, options }) => {
-        response.cookies.set(name, value, options || {})
-      })
+      // code flow always goes to accept-invite (invites use code flow)
+      const response = NextResponse.redirect(`${origin}/auth/accept-invite`)
+      cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options || {}))
       return response
     }
     console.error("exchangeCode error:", error?.message)
