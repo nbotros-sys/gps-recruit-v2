@@ -1,6 +1,8 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import SettingsClient from "./SettingsClient"
 
+export const dynamic = "force-dynamic"
+
 async function getStaff() {
   try {
     const supabase = createAdminClient(
