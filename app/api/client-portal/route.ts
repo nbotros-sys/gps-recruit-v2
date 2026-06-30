@@ -81,63 +81,103 @@ export async function GET(req: NextRequest) {
 
 // POST — submit feedback or interview request
 export async function POST(req: NextRequest) {
-  const sc = createServerSupabaseClient()
-  const { data: { user } } = await sc.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  try {
+    const sc = createServerSupabaseClient()
+    const { data: { user } } = await sc.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
 
-  const admin = getAdmin()
-  const body = await req.json()
-  const { action, application_id, mandate_id, client_user_id } = body
+    const admin = getAdmin()
+    const body = await req.json()
+    const { action, application_id, mandate_id, client_user_id } = body
 
-  // Shared context for notification copy
-  const [{ data: mandateRow }, { data: appRow }] = await Promise.all([
-    admin.from("mandates").select("title").eq("id", mandate_id).maybeSingle(),
-    admin.from("applications").select("candidate:candidates(name)").eq("id", application_id).maybeSingle(),
-  ])
-  const mandateTitle = mandateRow?.title || "a mandate"
-  const candidateName = (appRow as any)?.candidate?.name || "A candidate"
+    if (action === "feedback") {
+      const { rating, comment } = body
+      const { error } = await admin.from("client_feedback").insert([{
+        mandate_id, application_id, client_user_id, rating, comment
+      }])
+      if (error) {
+        console.error("client_feedback insert error:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
 
-  if (action === "feedback") {
-    const { rating, comment } = body
-    const { error } = await admin.from("client_feedback").insert([{
-      mandate_id, application_id, client_user_id, rating, comment
-    }])
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      // Best-effort notification — never lets a failure here undo the save above
+      notifyBestEffort(admin, async () => {
+        const candidateName = await getCandidateName(admin, application_id)
+        const mandateTitle = await getMandateTitle(admin, mandate_id)
+        await admin.from("notifications").insert([{
+          type: "client_feedback",
+          title: "Client feedback received",
+          message: `Feedback on ${candidateName} — ${mandateTitle}`,
+          link: `/internal/mandates/${mandate_id}`,
+        }])
+      })
 
-    await admin.from("notifications").insert([{
-      type: "client_feedback",
-      title: "Client feedback received",
-      message: `Feedback on ${candidateName} — ${mandateTitle}`,
-      link: `/internal/mandates/${mandate_id}`,
-    }])
+      return NextResponse.json({ success: true })
+    }
 
-    return NextResponse.json({ success: true })
+    if (action === "interview_request") {
+      const { preferred_dates, notes } = body
+      const { error } = await admin.from("client_interview_requests").insert([{
+        mandate_id, application_id, client_user_id, preferred_dates, notes, status: "pending"
+      }])
+      if (error) {
+        console.error("client_interview_requests insert error:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      // Best-effort notification + task — never lets a failure here undo the save above
+      notifyBestEffort(admin, async () => {
+        const candidateName = await getCandidateName(admin, application_id)
+        const mandateTitle = await getMandateTitle(admin, mandate_id)
+        await admin.from("notifications").insert([{
+          type: "interview_requested",
+          title: "Interview requested",
+          message: `${candidateName} — ${mandateTitle}`,
+          link: `/internal/mandates/${mandate_id}`,
+        }])
+        await admin.from("tasks").insert([{
+          title: `Schedule interview: ${candidateName}`,
+          description: preferred_dates ? `Client preferred dates: ${preferred_dates}` : null,
+          link: `/internal/mandates/${mandate_id}`,
+          link_label: mandateTitle,
+          auto_generated: true,
+        }])
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 })
+  } catch (err: any) {
+    console.error("client-portal POST error:", err)
+    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 })
   }
+}
 
-  if (action === "interview_request") {
-    const { preferred_dates, notes } = body
-    const { error } = await admin.from("client_interview_requests").insert([{
-      mandate_id, application_id, client_user_id, preferred_dates, notes, status: "pending"
-    }])
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    await admin.from("notifications").insert([{
-      type: "interview_requested",
-      title: "Interview requested",
-      message: `${candidateName} — ${mandateTitle}`,
-      link: `/internal/mandates/${mandate_id}`,
-    }])
-
-    await admin.from("tasks").insert([{
-      title: `Schedule interview: ${candidateName}`,
-      description: preferred_dates ? `Client preferred dates: ${preferred_dates}` : null,
-      link: `/internal/mandates/${mandate_id}`,
-      link_label: mandateTitle,
-      auto_generated: true,
-    }])
-
-    return NextResponse.json({ success: true })
+async function getCandidateName(admin: ReturnType<typeof getAdmin>, applicationId: string) {
+  try {
+    const { data } = await admin
+      .from("applications")
+      .select("candidate:candidates(name)")
+      .eq("id", applicationId)
+      .maybeSingle()
+    return (data as any)?.candidate?.name || "A candidate"
+  } catch {
+    return "A candidate"
   }
+}
 
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 })
+async function getMandateTitle(admin: ReturnType<typeof getAdmin>, mandateId: string) {
+  try {
+    const { data } = await admin.from("mandates").select("title").eq("id", mandateId).maybeSingle()
+    return (data as any)?.title || "a mandate"
+  } catch {
+    return "a mandate"
+  }
+}
+
+// Fires the given async function without ever letting it reject the caller —
+// notification/task creation is a nice-to-have, never a reason to fail the request.
+function notifyBestEffort(admin: ReturnType<typeof getAdmin>, fn: () => Promise<void>) {
+  fn().catch(err => console.error("client-portal notification side-effect failed:", err))
 }
