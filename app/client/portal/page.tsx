@@ -28,6 +28,24 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   )
 }
 
+// Score tier color — gives the badge real meaning (strength at a glance), not just decoration
+function scoreColor(score: number) {
+  if (score >= 80) return "#028090"
+  if (score >= 60) return "#0a1f24"
+  return "#5c6663"
+}
+
+// Hexagon score badge — the one place this design borrows GPS's brand mark geometry
+function HexScoreBadge({ score, size = 46 }: { score: number; size?: number }) {
+  const fontSize = size >= 40 ? 26 : 22
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ flexShrink: 0 }}>
+      <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill={scoreColor(score)} />
+      <text x="50" y={size >= 40 ? 58 : 60} textAnchor="middle" fontFamily="var(--font-plex-mono)" fontWeight="600" fontSize={fontSize} fill="#fff">{score}</text>
+    </svg>
+  )
+}
+
 export default function ClientPortal() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -179,52 +197,67 @@ export default function ClientPortal() {
   const { mandate, applications, commentary, feedback, interviews, clientUser } = data
   const existingFeedback = (appId: string) => feedback.find((f: any) => f.application_id === appId)
   const existingInterview = (appId: string) => interviews.find((i: any) => i.application_id === appId)
-  const avgScore = applications.length ? Math.round(applications.filter((a: any) => a.ai_score).reduce((s: number, a: any) => s + a.ai_score, 0) / applications.filter((a: any) => a.ai_score).length) : null
+  const scoredApps = applications.filter((a: any) => a.ai_score)
+  const topApp = scoredApps.length ? scoredApps.reduce((best: any, a: any) => a.ai_score > best.ai_score ? a : best) : null
 
   return (
-    <div className="min-h-screen" style={{ background: "#f8faf9" }}>
+    <div className="min-h-screen" style={{ background: "#FAFAF8", fontFamily: "var(--font-manrope)" }}>
 
       {/* Header */}
-      <header style={{ background: "#0a1f24" }} className="px-7 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative w-7 h-7 flex-shrink-0">
-            <Image src="/gps-logo.png" alt="GPS" fill className="object-contain" />
+      <header style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0f2b30 60%, #0a2326 100%)", position: "relative", overflow: "hidden" }} className="px-7 py-6">
+        <svg style={{ position: "absolute", top: -40, right: -60, opacity: 0.06 }} width="320" height="320" viewBox="0 0 320 320">
+          <polygon points="160,20 280,90 280,230 160,300 40,230 40,90" fill="none" stroke="#5fb3a8" strokeWidth="2" />
+          <polygon points="160,60 240,105 240,215 160,260 80,215 80,105" fill="none" stroke="#5fb3a8" strokeWidth="1.5" />
+        </svg>
+        <div className="flex items-center justify-between relative">
+          <div className="flex items-center gap-4">
+            <div className="relative w-9 h-9 flex-shrink-0">
+              <Image src="/gps-logo.png" alt="GPS" fill className="object-contain" />
+            </div>
+            <div className="w-px h-7 bg-white/10" />
+            <div>
+              <div className="text-white text-base font-semibold leading-tight" style={{ letterSpacing: "-0.01em" }}>{clientUser.company_name}</div>
+              <div className="text-white/40 text-xs mt-0.5" style={{ letterSpacing: "0.02em" }}>{mandate?.title}{mandate?.location ? ` · ${mandate.location}` : ""}</div>
+            </div>
           </div>
-          <div className="w-px h-5 bg-white/10" />
-          <div>
-            <div className="text-white text-sm font-semibold leading-tight">{clientUser.company_name}</div>
-            <div className="text-white/40 text-[11px] mt-0.5">{mandate?.title}{mandate?.location ? ` · ${mandate.location}` : ""}</div>
+          <div className="flex items-center gap-5">
+            <div className="text-right hidden sm:block">
+              <div className="text-white/32 text-[10px] uppercase" style={{ letterSpacing: "0.12em" }}>Managed by</div>
+              <div className="text-white/75 text-xs font-medium mt-0.5">GPS Recruitment</div>
+            </div>
+            <button onClick={signOut} className="flex items-center gap-1.5 text-white/35 hover:text-white/60 text-xs transition-colors">
+              <LogOut size={13} /> Sign out
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-5">
-          <div className="text-right hidden sm:block">
-            <div className="text-white/35 text-[10px] uppercase tracking-wider">Managed by</div>
-            <div className="text-white/70 text-xs font-medium">GPS Recruitment</div>
-          </div>
-          <button onClick={signOut} className="flex items-center gap-1.5 text-white/35 hover:text-white/60 text-xs transition-colors">
-            <LogOut size={13} /> Sign out
-          </button>
         </div>
       </header>
 
-      {/* Teal accent bar */}
-      <div style={{ height: 3, background: "linear-gradient(90deg, #028090, #5fa8a0, transparent)" }} />
-
       <div className="max-w-5xl mx-auto px-6 py-7">
 
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-3 mb-7">
-          {[
-            { label: "Candidates", value: applications.length, color: "#0a1f24" },
-            { label: "Avg. GPS Score", value: avgScore ?? "—", color: "#028090" },
-            { label: "Feedback given", value: feedback.length, color: "#0a1f24" },
-            { label: "Interviews", value: interviews.length, color: "#0a1f24" },
-          ].map(s => (
-            <div key={s.label} className="bg-white border border-gray-100 rounded-xl px-5 py-4">
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{s.label}</div>
-              <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
+        {/* Hero metric + supporting stats */}
+        <div className="bg-white border border-gray-100 rounded-2xl px-9 py-7 mb-7 flex items-end gap-10 flex-wrap" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div>
+            <div className="text-[11px] uppercase font-semibold text-gray-400 mb-1.5" style={{ letterSpacing: "0.12em" }}>Top GPS Score</div>
+            <div className="flex items-baseline gap-1.5">
+              <span style={{ fontFamily: "var(--font-plex-mono)", fontSize: 44, fontWeight: 600, color: "#A9802F", letterSpacing: "-0.02em" }}>{topApp?.ai_score ?? "—"}</span>
+              <span className="text-sm text-gray-400">/ 100</span>
             </div>
-          ))}
+            {topApp && (
+              <div className="text-xs text-gray-400 mt-1">{topApp.candidate.name} · {topApp.candidate.current_title}</div>
+            )}
+          </div>
+          <div className="flex gap-8 pb-2 flex-wrap">
+            {[
+              { label: "Candidates", value: applications.length },
+              { label: "Feedback given", value: feedback.length },
+              { label: "Interviews", value: interviews.length },
+            ].map(s => (
+              <div key={s.label}>
+                <div className="text-[10px] uppercase text-gray-400 mb-1" style={{ letterSpacing: "0.1em" }}>{s.label}</div>
+                <div className="text-xl font-semibold text-gray-900">{s.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {submitSuccess && (
@@ -235,17 +268,17 @@ export default function ClientPortal() {
         )}
 
         {/* Tabs */}
-        <div className="flex items-center border-b border-gray-200 mb-5">
+        <div className="flex items-center border-b border-gray-100 mb-5">
           {[
             { key: "candidates", label: "Candidates", count: applications.length },
             { key: "commentary", label: "Market commentary", count: commentary.length },
             { key: "interviews", label: "Interview requests", count: interviews.length },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as any)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${tab === t.key ? "border-teal text-teal" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+              className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${tab === t.key ? "border-teal text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
               {t.label}
               {t.count > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-500"}`}>{t.count}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-teal/10 text-teal" : "bg-gray-100 text-gray-400"}`}>{t.count}</span>
               )}
             </button>
           ))}
@@ -272,16 +305,13 @@ export default function ClientPortal() {
                 const hasFeedback = existingFeedback(app.id)
                 return (
                   <div key={app.id} onClick={() => setSelectedApp(isSelected ? null : app)}
-                    className={`bg-white border rounded-xl p-3.5 flex items-center gap-3 cursor-pointer transition-all ${isSelected ? "border-teal shadow-sm" : "border-gray-100 hover:border-gray-200 hover:shadow-sm"}`}>
-                    <Avatar name={c.name} size={40} />
+                    className={`bg-white border rounded-xl p-3.5 flex items-center gap-3.5 cursor-pointer transition-all ${isSelected ? "border-teal shadow-sm" : "border-gray-100 hover:border-gray-200 hover:shadow-sm"}`}>
+                    {app.ai_score ? <HexScoreBadge score={app.ai_score} size={42} /> : <Avatar name={c.name} size={40} />}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{c.current_title}{c.current_company ? ` · ${c.current_company}` : ""}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {app.ai_score && (
-                        <span className="text-sm font-bold text-teal">{app.ai_score}</span>
-                      )}
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${stageInfo.color}`}>{stageInfo.label}</span>
                       {hasFeedback && <MessageSquare size={11} className="text-teal" />}
                       <ChevronRight size={13} className={`text-gray-300 transition-transform ${isSelected ? "rotate-90" : ""}`} />
@@ -297,20 +327,13 @@ export default function ClientPortal() {
                 {/* Panel header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3">
-                    <Avatar name={selectedApp.candidate.name} size={36} />
+                    {selectedApp.ai_score ? <HexScoreBadge score={selectedApp.ai_score} size={40} /> : <Avatar name={selectedApp.candidate.name} size={36} />}
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{selectedApp.candidate.name}</p>
                       <p className="text-xs text-gray-400">{selectedApp.candidate.current_title}{selectedApp.candidate.current_company ? ` · ${selectedApp.candidate.current_company}` : ""}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {selectedApp.ai_score && (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(2,128,144,0.08)" }}>
-                        <Star size={12} fill="#028090" stroke="none" />
-                        <span className="text-sm font-bold text-teal">{selectedApp.ai_score}</span>
-                        <span className="text-xs text-teal/60">/100</span>
-                      </div>
-                    )}
                     <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${STAGE_LABELS[selectedApp.stage]?.color || "bg-gray-100 text-gray-500"}`}>
                       {STAGE_LABELS[selectedApp.stage]?.label || selectedApp.stage}
                     </span>
