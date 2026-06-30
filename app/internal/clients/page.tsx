@@ -29,14 +29,6 @@ function getSentimentBadge(s: string): string {
   return "bg-gray-100 text-gray-500"
 }
 
-function ratingToSentiment(rating: string | null | undefined): string {
-  if (!rating) return "neutral"
-  const r = rating.toLowerCase()
-  if (r.includes("strong yes") || r === "yes") return "positive"
-  if (r === "no") return "negative"
-  return "neutral"
-}
-
 function getStatusBadge(s: string): { label: string; cls: string } {
   if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
   if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
@@ -441,7 +433,7 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                     <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">General feedback</div>
                     {generalFeedback.map(fb => (
                       <div key={fb.id} className="py-3 border-b border-gray-50 last:border-0">
-                        <p className="text-sm text-gray-700 leading-relaxed">{fb.comment}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{fb.feedback_text}</p>
                         <div className="text-xs text-gray-400 mt-1">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
                       </div>
                     ))}
@@ -452,26 +444,23 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                   {candidateFeedback.length === 0 ? (
                     <p className="text-xs text-gray-400 py-2">No candidate feedback yet</p>
                   ) : (
-                    candidateFeedback.map(fb => {
-                      const sentiment = ratingToSentiment(fb.rating)
-                      return (
+                    candidateFeedback.map(fb => (
                       <div
                         key={fb.id}
                         onClick={() => setFbPopup(fb)}
                         className="flex items-start gap-3 py-3 cursor-pointer hover:bg-gray-50 rounded-xl -mx-2 px-2 transition-colors border-b border-gray-50 last:border-0"
                       >
-                        <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(sentiment)}</div>
+                        <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(fb.sentiment)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
-                            {fb.rating && <span className={"badge text-xs " + getSentimentBadge(sentiment)}>{fb.rating}</span>}
+                            <span className={"badge text-xs " + getSentimentBadge(fb.sentiment || "neutral")}>{fb.sentiment || "neutral"}</span>
                           </div>
-                          <p className="text-xs text-gray-500 line-clamp-2">{fb.comment}</p>
+                          <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
                         </div>
                         <span className="text-xs text-gray-300 flex-shrink-0">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                       </div>
-                      )
-                    })
+                    ))
                   )}
                 </div>
               </div>
@@ -502,11 +491,11 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                 <div className="text-xs text-gray-400 mt-1">{new Date(fbPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                {fbPopup.rating && <span className={"badge text-xs " + getSentimentBadge(ratingToSentiment(fbPopup.rating))}>{fbPopup.rating}</span>}
+                <span className={"badge text-xs " + getSentimentBadge(fbPopup.sentiment || "neutral")}>{fbPopup.sentiment || "neutral"}</span>
                 <button onClick={() => setFbPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
               </div>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-5">{fbPopup.comment}</p>
+            <p className="text-sm text-gray-700 leading-relaxed mb-5">{fbPopup.feedback_text}</p>
             <div className="flex gap-3">
               {fbPopup.application?.candidate?.id && (
                 <a href={"/internal/candidates/" + fbPopup.application.candidate.id} className="btn-primary text-sm">Open candidate profile</a>
@@ -971,23 +960,20 @@ export default function ClientsPage() {
                       </div>
                     ) : (
                       <div className="card divide-y divide-gray-50">
-                        {detailFeedback.map(fb => {
-                          const sentiment = ratingToSentiment(fb.rating)
-                          return (
+                        {detailFeedback.map(fb => (
                           <div key={fb.id} className="flex items-start gap-3 p-4">
-                            <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(sentiment)}</div>
+                            <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(fb.sentiment)}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "General"}</span>
-                                {fb.rating && <span className={"badge text-xs " + getSentimentBadge(sentiment)}>{fb.rating}</span>}
+                                <span className={"badge text-xs " + getSentimentBadge(fb.sentiment || "neutral")}>{fb.sentiment || "neutral"}</span>
                                 {fb.mandate?.title && <span className="text-xs text-gray-400">{fb.mandate.title}</span>}
                               </div>
-                              <p className="text-xs text-gray-500">{fb.comment}</p>
+                              <p className="text-xs text-gray-500">{fb.feedback_text}</p>
                             </div>
                             <span className="text-xs text-gray-300 flex-shrink-0">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                           </div>
-                          )
-                        })}
+                        ))}
                       </div>
                     )}
                   </div>
