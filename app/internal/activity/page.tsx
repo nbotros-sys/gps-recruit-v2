@@ -276,7 +276,7 @@ export default function ActivityPage() {
                     className={`bg-white border rounded-xl p-3.5 flex items-start gap-2.5 group transition-all ${due?.border || ""} ${due?.cardBorder || "border-gray-100"}`}
                     style={{ borderRadius: due?.border ? "0 12px 12px 0" : "12px" }}>
                     <button onClick={() => toggleTask(task)} disabled={completing === task.id}
-                      className="mt-0.5 w-[18px] h-[18px] rounded-[4px] border-2 border-gray-300 hover:border-teal flex items-center justify-center flex-shrink-0 transition-colors">
+                      className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-gray-300 hover:border-teal flex items-center justify-center flex-shrink-0 transition-colors">
                       {completing === task.id && <Loader2 size={10} className="animate-spin text-gray-400" />}
                     </button>
                     <div className="flex-1 min-w-0">
@@ -322,7 +322,7 @@ export default function ActivityPage() {
               {doneTasks.map(task => (
                 <div key={task.id} className="bg-white border border-gray-100 rounded-xl p-3.5 flex items-start gap-2.5 opacity-50">
                   <button onClick={() => toggleTask(task)} disabled={completing === task.id}
-                    className="mt-0.5 w-[18px] h-[18px] rounded-[4px] border-2 border-green-400 bg-green-400 flex items-center justify-center flex-shrink-0">
+                    className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-green-400 bg-green-400 flex items-center justify-center flex-shrink-0">
                     {completing === task.id
                       ? <Loader2 size={10} className="animate-spin text-white" />
                       : <Check size={10} className="text-white" />}
