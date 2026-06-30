@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     if (action === "interview_request") {
       const { preferred_dates, notes } = body
       const { error } = await admin.from("client_interview_requests").insert([{
-        mandate_id, application_id, client_user_id, preferred_dates, notes, status: "pending"
+        mandate_id, application_id, client_user_id, preferred_dates, notes, status: "new"
       }])
       if (error) {
         console.error("client_interview_requests insert error:", error)
