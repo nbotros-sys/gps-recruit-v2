@@ -687,7 +687,7 @@ export default function MandateDetail() {
             </div>
             <div className="text-xs text-gray-400 mt-0.5">{clientUser.email}</div>
           </div>
-          <a href={`/client/${clientUser.mandate_id}`} target="_blank" rel="noopener noreferrer"
+          <a href="/client/portal" target="_blank" rel="noopener noreferrer"
             className="btn-ghost text-xs flex items-center gap-1 flex-shrink-0">
             <ExternalLink size={11} /> View portal
           </a>
