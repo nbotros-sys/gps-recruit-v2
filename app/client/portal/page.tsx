@@ -36,6 +36,7 @@ export default function ClientPortal() {
   const [selectedApp, setSelectedApp] = useState<any>(null)
   const [feedbackApp, setFeedbackApp] = useState<any>(null)
   const [interviewApp, setInterviewApp] = useState<any>(null)
+  const [rejectApp, setRejectApp] = useState<any>(null)
   const [feedbackRating, setFeedbackRating] = useState("")
   const [feedbackComment, setFeedbackComment] = useState("")
   const [interviewDates, setInterviewDates] = useState("")
@@ -95,7 +96,38 @@ export default function ClientPortal() {
     setSubmitting(false)
   }
 
-  async function submitInterview(e: React.FormEvent) {
+  async function submitReject(app: any) {
+    setSubmitting(true)
+    setSubmitError("")
+    try {
+      const res = await fetch("/api/client-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject",
+          application_id: app.id,
+          mandate_id: data.mandate.id,
+          client_user_id: data.clientUser.id,
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setSubmitError(result?.error || "Something went wrong — please try again.")
+        setSubmitting(false)
+        return
+      }
+      setRejectApp(null)
+      setSelectedApp(null)
+      setSubmitSuccess("Candidate removed from your shortlist.")
+      load()
+      setTimeout(() => setSubmitSuccess(""), 4000)
+    } catch {
+      setSubmitError("Couldn't reach the server — please try again.")
+    }
+    setSubmitting(false)
+  }
+
+
     e.preventDefault()
     setSubmitting(true)
     setSubmitError("")
@@ -393,10 +425,28 @@ export default function ClientPortal() {
                   {/* Interview request */}
                   {existingInterview(selectedApp.id) ? (
                     <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1.5">
-                        <Calendar size={12} /> Interview requested
-                      </p>
-                      <p className="text-xs text-blue-600">{existingInterview(selectedApp.id).preferred_dates}</p>
+                      {existingInterview(selectedApp.id).confirmed_date ? (
+                        <>
+                          <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1.5">
+                            <Calendar size={12} /> Interview confirmed
+                          </p>
+                          <p className="text-sm text-blue-800 font-medium">
+                            {new Date(existingInterview(selectedApp.id).confirmed_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                            {existingInterview(selectedApp.id).confirmed_time && ` · ${existingInterview(selectedApp.id).confirmed_time}`}
+                            {existingInterview(selectedApp.id).format && ` · ${existingInterview(selectedApp.id).format}`}
+                          </p>
+                          {existingInterview(selectedApp.id).interviewer && (
+                            <p className="text-xs text-blue-600 mt-1">With {existingInterview(selectedApp.id).interviewer}</p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1.5">
+                            <Calendar size={12} /> Interview requested
+                          </p>
+                          <p className="text-xs text-blue-600">{existingInterview(selectedApp.id).preferred_dates}</p>
+                        </>
+                      )}
                       <span className={`text-[10px] font-semibold mt-2 inline-block px-2 py-0.5 rounded-full ${(INTERVIEW_STATUS_LABELS[existingInterview(selectedApp.id).status]?.color) || "bg-blue-100 text-blue-700"}`}>
                         {INTERVIEW_STATUS_LABELS[existingInterview(selectedApp.id).status]?.label || existingInterview(selectedApp.id).status}
                       </span>
@@ -422,8 +472,24 @@ export default function ClientPortal() {
                   ) : null}
                 </div>
 
+                {/* Reject confirm */}
+                {rejectApp?.id === selectedApp.id && (
+                  <div className="px-5 py-4 border-t border-gray-100 bg-red-50">
+                    <p className="text-sm text-red-700 font-medium mb-1">Remove {selectedApp.candidate.name.split(" ")[0]} from your shortlist?</p>
+                    <p className="text-xs text-red-500 mb-3">GPS will be notified. This can't be undone from your side.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => submitReject(selectedApp)} disabled={submitting}
+                        className="flex items-center gap-1.5 text-sm text-white px-4 py-2 rounded-lg font-semibold"
+                        style={{ background: "#dc2626" }}>
+                        {submitting ? <Loader2 size={12} className="animate-spin" /> : null} Confirm reject
+                      </button>
+                      <button onClick={() => setRejectApp(null)} className="text-sm text-gray-400 hover:text-gray-600 px-3">Cancel</button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Action buttons */}
-                {!feedbackApp && !interviewApp && (
+                {!feedbackApp && !interviewApp && !rejectApp && (
                   <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
                     {!existingFeedback(selectedApp.id) && (
                       <button onClick={() => setFeedbackApp(selectedApp)}
@@ -438,6 +504,10 @@ export default function ClientPortal() {
                         <Calendar size={14} /> Request interview
                       </button>
                     )}
+                    <button onClick={() => setRejectApp(selectedApp)}
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-200 rounded-xl text-sm text-red-500 hover:border-red-200 hover:bg-red-50 transition-all">
+                      <X size={14} /> Reject
+                    </button>
                   </div>
                 )}
               </div>
