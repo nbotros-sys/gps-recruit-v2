@@ -1,14 +1,14 @@
 "use client"
 import CandidateAvatar from "@/components/CandidateAvatar"
 import { useState, useEffect, useRef } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft, MapPin, DollarSign, Brain, Upload,
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2 } from "lucide-react"
+  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -68,9 +68,13 @@ type BulkResult = {
 
 export default function MandateDetail() {
   const { id } = useParams()
+  const router = useRouter()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deletingMandate, setDeletingMandate] = useState(false)
   const [clientUser, setClientUser] = useState<any>(null)
   const [mandateClients, setMandateClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -616,6 +620,22 @@ export default function MandateDetail() {
     if (selectedApp?.id === appId) setSelectedApp(null)
   }
 
+  async function deleteMandate() {
+    setDeletingMandate(true)
+    // Best-effort cascade — wrapped individually so a missing table/column
+    // never blocks the rest of the cleanup or the final mandate delete.
+    await Promise.allSettled([
+      supabase.from("applications").delete().eq("mandate_id", id),
+      supabase.from("talent_pool_scans").delete().eq("mandate_id", id),
+      supabase.from("mandate_commentary").delete().eq("mandate_id", id),
+      supabase.from("client_interview_requests").delete().eq("mandate_id", id),
+      supabase.from("client_feedback").delete().eq("mandate_id", id),
+      supabase.from("client_users").delete().eq("mandate_id", id),
+    ])
+    await supabase.from("mandates").delete().eq("id", id)
+    router.push("/internal/mandates")
+  }
+
   const byStage = (stage: string) => applications.filter(a => a.stage === stage)
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
   const proceed = bulkResults.filter(r => r.recommendation === "Proceed").length
@@ -752,6 +772,24 @@ export default function MandateDetail() {
                 <option value="filled">Filled</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+            </div>
+          </div>
+
+          <div className="border border-red-200 bg-red-50 rounded-2xl p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-red-700 text-sm">Delete this mandate</h3>
+                <p className="text-xs text-red-500 mt-1 max-w-md">
+                  Permanently removes this mandate along with its pipeline candidates,
+                  talent pool scans, client commentary, and client portal access. This
+                  cannot be undone — consider setting status to Cancelled instead if you
+                  just want to close it.
+                </p>
+              </div>
+              <button onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 text-sm font-semibold text-red-600 border border-red-200 bg-white px-4 py-2.5 rounded-xl hover:bg-red-100 transition-all flex-shrink-0">
+                <Trash2 size={14} /> Delete mandate
+              </button>
             </div>
           </div>
         </div>
@@ -1741,6 +1779,41 @@ export default function MandateDetail() {
                 <p className="text-gray-400 text-sm">Paste a CV on the left and click Score</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete mandate confirmation modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <h3 className="font-bold text-gray-900 text-lg">Delete "{mandate.title}"?</h3>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              This permanently deletes the mandate and every candidate in its pipeline,
+              talent pool scan history, client commentary, and client portal access.
+              There's no undo. Type the mandate title to confirm.
+            </p>
+            <input
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder={mandate.title}
+              autoFocus
+              className="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+            />
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText("") }}
+                className="flex-1 text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5 rounded-xl border border-gray-200">
+                Cancel
+              </button>
+              <button
+                onClick={deleteMandate}
+                disabled={deleteConfirmText !== mandate.title || deletingMandate}
+                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: "#dc2626" }}>
+                {deletingMandate ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : <><Trash2 size={14} /> Delete permanently</>}
+              </button>
+            </div>
           </div>
         </div>
       )}
