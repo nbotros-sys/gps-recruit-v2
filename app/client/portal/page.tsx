@@ -128,6 +128,7 @@ export default function ClientPortal() {
   }
 
 
+  async function submitInterview(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     setSubmitError("")
