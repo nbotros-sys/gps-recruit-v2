@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   // Get interview requests
   const { data: interviews } = await admin
     .from("client_interview_requests")
-    .select("id, application_id, preferred_dates, notes, status, created_at, application:applications(candidate:candidates(name, current_title))")
+    .select("id, application_id, preferred_dates, notes, status, confirmed_date, confirmed_time, format, interviewer, created_at, application:applications(candidate:candidates(name, current_title))")
     .eq("mandate_id", mandateId)
     .eq("client_user_id", clientUser.id)
     .order("created_at", { ascending: false })
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
           type: "client_feedback",
           title: "Client feedback received",
           message: `Feedback on ${candidateName} — ${mandateTitle}`,
-          link: `/internal/mandates/${mandate_id}`,
+          link: `/internal/clients?client=${client_user_id}&tab=feedback`,
         }])
       })
 
@@ -133,14 +133,35 @@ export async function POST(req: NextRequest) {
           type: "interview_requested",
           title: "Interview requested",
           message: `${candidateName} — ${mandateTitle}`,
-          link: `/internal/mandates/${mandate_id}`,
+          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
         }])
         await admin.from("tasks").insert([{
           title: `Schedule interview: ${candidateName}`,
           description: preferred_dates ? `Client preferred dates: ${preferred_dates}` : null,
-          link: `/internal/mandates/${mandate_id}`,
+          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
           link_label: mandateTitle,
           auto_generated: true,
+        }])
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "reject") {
+      const { error } = await admin.from("applications").update({ stage: "rejected" }).eq("id", application_id)
+      if (error) {
+        console.error("application reject error:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      notifyBestEffort(admin, async () => {
+        const candidateName = await getCandidateName(admin, application_id)
+        const mandateTitle = await getMandateTitle(admin, mandate_id)
+        await admin.from("notifications").insert([{
+          type: "client_rejected",
+          title: "Client rejected candidate",
+          message: `${candidateName} — ${mandateTitle}`,
+          link: `/internal/mandates/${mandate_id}`,
         }])
       })
 
