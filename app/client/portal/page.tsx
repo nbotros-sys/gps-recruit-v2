@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
 import Image from "next/image"
-import { Loader2, LogOut, Star, MessageSquare, Calendar, X, FileText, ExternalLink, ChevronRight } from "lucide-react"
+import { Loader2, LogOut, Star, MessageSquare, Calendar, X, FileText, ExternalLink, ChevronRight, CheckCircle } from "lucide-react"
 
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   shortlisted: { label: "Shortlisted", color: "bg-blue-50 text-blue-700" },
@@ -256,6 +256,40 @@ export default function ClientPortal() {
                 </div>
 
                 <div className="flex-1 overflow-auto p-5 space-y-5">
+                  {/* GPS assessment */}
+                  {(selectedApp.ai_summary || selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) && (
+                    <div className="bg-teal/5 border border-teal/15 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-semibold text-teal uppercase tracking-wider">GPS assessment</p>
+                      {selectedApp.ai_summary && (
+                        <p className="text-sm text-gray-700 leading-relaxed">{selectedApp.ai_summary}</p>
+                      )}
+                      {selectedApp.ai_strengths?.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1"><CheckCircle size={11} /> Strengths</p>
+                          <ul className="space-y-1">
+                            {selectedApp.ai_strengths.map((s: string, i: number) => (
+                              <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                <span className="text-green-500 mt-0.5">•</span> {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {selectedApp.ai_concerns?.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-amber-700 mb-1.5">Considerations</p>
+                          <ul className="space-y-1">
+                            {selectedApp.ai_concerns.map((c: string, i: number) => (
+                              <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                <span className="text-amber-500 mt-0.5">•</span> {c}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* CV */}
                   {(selectedApp.candidate.cv_pdf_url || selectedApp.candidate.cv_file_url) ? (
                     <div>
