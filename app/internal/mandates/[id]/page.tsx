@@ -8,7 +8,7 @@ import {
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2 } from "lucide-react"
+  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2, Calendar } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -71,6 +71,7 @@ export default function MandateDetail() {
   const router = useRouter()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
+  const [confirmedInterviews, setConfirmedInterviews] = useState<Record<string, any>>({})
   const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingMandate, setDeletingMandate] = useState(false)
@@ -256,6 +257,15 @@ export default function MandateDetail() {
       .eq("mandate_id", id)
       .order("ai_score", { ascending: false })
     setApplications(apps || [])
+
+    const { data: confirmedIrs } = await supabase
+      .from("client_interview_requests")
+      .select("application_id, confirmed_date, confirmed_time, format")
+      .eq("mandate_id", id)
+      .not("confirmed_date", "is", null)
+    const irMap: Record<string, any> = {}
+    for (const ir of confirmedIrs || []) irMap[ir.application_id] = ir
+    setConfirmedInterviews(irMap)
 
       // Load linked client if any
       const { data: linkedClient } = await supabase
@@ -911,6 +921,13 @@ export default function MandateDetail() {
                             <div className="mt-2 flex items-center gap-1">
                               <Star size={10} className="text-amber-400 fill-amber-400" />
                               <span className="text-xs font-semibold" style={{ color: scoreColor(app.ai_score) }}>{app.ai_score}/100</span>
+                            </div>
+                          )}
+                          {confirmedInterviews[app.id] && (
+                            <div className="mt-1.5 flex items-center gap-1 text-[10px] font-medium text-teal bg-teal/5 border border-teal/15 rounded-md px-1.5 py-0.5 w-fit">
+                              <Calendar size={9} />
+                              {new Date(confirmedInterviews[app.id].confirmed_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                              {confirmedInterviews[app.id].confirmed_time && `, ${confirmedInterviews[app.id].confirmed_time}`}
                             </div>
                           )}
                         </div>
