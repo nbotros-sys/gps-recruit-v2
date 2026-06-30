@@ -29,10 +29,126 @@ function getSentimentBadge(s: string): string {
   return "bg-gray-100 text-gray-500"
 }
 
+function ratingToSentiment(rating: string | null | undefined): string {
+  if (!rating) return "neutral"
+  const r = rating.toLowerCase()
+  if (r.includes("strong yes") || r === "yes") return "positive"
+  if (r === "no") return "negative"
+  return "neutral"
+}
+
 function getStatusBadge(s: string): { label: string; cls: string } {
   if (s === "in_progress") return { label: "In progress", cls: "bg-amber-100 text-amber-700" }
   if (s === "done") return { label: "Done", cls: "bg-green-100 text-green-700" }
   return { label: "New", cls: "bg-blue-100 text-blue-700" }
+}
+
+function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDetails }: {
+  ir: any
+  showMandate?: boolean
+  onAssign: (id: string, name: string) => void
+  onStatus: (id: string, status: string) => void
+  onConfirmDetails: (id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) => Promise<void>
+}) {
+  const sc = getStatusBadge(ir.status)
+  const [editingDetails, setEditingDetails] = useState(false)
+  const [confirmedDate, setConfirmedDate] = useState(ir.confirmed_date || "")
+  const [confirmedTime, setConfirmedTime] = useState(ir.confirmed_time || "")
+  const [format, setFormat] = useState(ir.format || "Video call")
+  const [interviewer, setInterviewer] = useState(ir.interviewer || "")
+  const [saving, setSaving] = useState(false)
+  const hasConfirmed = !!ir.confirmed_date
+
+  async function save() {
+    setSaving(true)
+    await onConfirmDetails(ir.id, { confirmed_date: confirmedDate, confirmed_time: confirmedTime, format, interviewer })
+    setSaving(false)
+    setEditingDetails(false)
+  }
+
+  return (
+    <div className="py-3 border-b border-gray-50 last:border-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-semibold text-gray-900 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
+            <span className={"badge text-xs " + sc.cls}>{sc.label}</span>
+            {showMandate && ir.mandate?.title && <span className="text-xs text-gray-400">{ir.mandate.title}</span>}
+          </div>
+          {ir.preferred_dates && <p className="text-xs text-gray-400">Client preferred: {ir.preferred_dates}</p>}
+          {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mt-1.5">{ir.notes}</p>}
+          {hasConfirmed && (
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-teal bg-teal/5 border border-teal/15 rounded-lg px-2.5 py-1.5 w-fit">
+              <Calendar size={11} />
+              {new Date(ir.confirmed_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+              {ir.confirmed_time && ` · ${ir.confirmed_time}`}
+              {ir.format && ` · ${ir.format}`}
+              {ir.interviewer && ` · ${ir.interviewer}`}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 items-end flex-shrink-0">
+          <select
+            value={ir.assigned_to_name || ""}
+            onChange={e => onAssign(ir.id, e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+          >
+            <option value="">Assign to...</option>
+            {TEAM_MEMBERS.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+          {ir.status !== "done" && (
+            <div className="flex gap-1.5">
+              <button onClick={() => setEditingDetails(e => !e)}
+                className="text-xs px-2 py-1 rounded-lg border border-teal/30 text-teal hover:bg-teal/5 transition-colors">
+                {hasConfirmed ? "Edit details" : "Confirm details"}
+              </button>
+              {ir.status !== "in_progress" && !hasConfirmed && (
+                <button onClick={() => onStatus(ir.id, "in_progress")} className="text-xs px-2 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
+              )}
+              <button onClick={() => onStatus(ir.id, "done")} className="text-xs px-2 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {editingDetails && (
+        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2.5">
+          <div>
+            <label className="text-[11px] text-gray-400 block mb-1">Confirmed date</label>
+            <input type="date" value={confirmedDate} onChange={e => setConfirmedDate(e.target.value)}
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none" />
+          </div>
+          <div>
+            <label className="text-[11px] text-gray-400 block mb-1">Time</label>
+            <input type="time" value={confirmedTime} onChange={e => setConfirmedTime(e.target.value)}
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none" />
+          </div>
+          <div>
+            <label className="text-[11px] text-gray-400 block mb-1">Format</label>
+            <select value={format} onChange={e => setFormat(e.target.value)}
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none">
+              <option>Video call</option>
+              <option>In-person</option>
+              <option>Phone</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] text-gray-400 block mb-1">Interviewer</label>
+            <input type="text" value={interviewer} onChange={e => setInterviewer(e.target.value)}
+              placeholder="e.g. Sarah, Head of Sales"
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none" />
+          </div>
+          <div className="col-span-2">
+            <button onClick={save} disabled={saving || !confirmedDate}
+              className="text-xs text-white px-3 py-1.5 rounded-lg font-semibold disabled:opacity-40"
+              style={{ background: "#028090" }}>
+              {saving ? "Saving..." : "Save details"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 type RightTab = "mandates" | "feedback" | "interviews"
@@ -143,6 +259,21 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
   async function updateAssignee(id: string, name: string) {
     await supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id)
     setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
+  }
+
+  async function updateInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) {
+    const current = interviews.find(ir => ir.id === id)
+    const nextStatus = current?.status === "new" ? "in_progress" : current?.status
+    const payload = {
+      confirmed_date: details.confirmed_date || null,
+      confirmed_time: details.confirmed_time || null,
+      format: details.format || null,
+      interviewer: details.interviewer || null,
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    }
+    await supabase.from("client_interview_requests").update(payload).eq("id", id)
+    setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, ...payload } : ir))
   }
 
   function refreshCommentary() {
@@ -310,7 +441,7 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                     <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">General feedback</div>
                     {generalFeedback.map(fb => (
                       <div key={fb.id} className="py-3 border-b border-gray-50 last:border-0">
-                        <p className="text-sm text-gray-700 leading-relaxed">{fb.feedback_text}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{fb.comment}</p>
                         <div className="text-xs text-gray-400 mt-1">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
                       </div>
                     ))}
@@ -321,23 +452,26 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                   {candidateFeedback.length === 0 ? (
                     <p className="text-xs text-gray-400 py-2">No candidate feedback yet</p>
                   ) : (
-                    candidateFeedback.map(fb => (
+                    candidateFeedback.map(fb => {
+                      const sentiment = ratingToSentiment(fb.rating)
+                      return (
                       <div
                         key={fb.id}
                         onClick={() => setFbPopup(fb)}
                         className="flex items-start gap-3 py-3 cursor-pointer hover:bg-gray-50 rounded-xl -mx-2 px-2 transition-colors border-b border-gray-50 last:border-0"
                       >
-                        <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(fb.sentiment)}</div>
+                        <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(sentiment)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "Unknown"}</span>
-                            <span className={"badge text-xs " + getSentimentBadge(fb.sentiment || "neutral")}>{fb.sentiment || "neutral"}</span>
+                            {fb.rating && <span className={"badge text-xs " + getSentimentBadge(sentiment)}>{fb.rating}</span>}
                           </div>
-                          <p className="text-xs text-gray-500 line-clamp-2">{fb.feedback_text}</p>
+                          <p className="text-xs text-gray-500 line-clamp-2">{fb.comment}</p>
                         </div>
                         <span className="text-xs text-gray-300 flex-shrink-0">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                       </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               </div>
@@ -348,40 +482,10 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                 {interviews.length === 0 ? (
                   <p className="text-xs text-gray-400 py-2">No interview requests for this mandate</p>
                 ) : (
-                  interviews.map(ir => {
-                    const sc = getStatusBadge(ir.status)
-                    return (
-                      <div key={ir.id} className="py-3 border-b border-gray-50 last:border-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="font-semibold text-gray-900 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
-                              <span className={"badge text-xs " + sc.cls}>{sc.label}</span>
-                            </div>
-                            {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-2">{ir.notes}</p>}
-                          </div>
-                          <div className="flex flex-col gap-2 items-end flex-shrink-0">
-                            <select
-                              value={ir.assigned_to_name || ""}
-                              onChange={e => updateAssignee(ir.id, e.target.value)}
-                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none"
-                            >
-                              <option value="">Assign to...</option>
-                              {TEAM_MEMBERS.map(name => <option key={name} value={name}>{name}</option>)}
-                            </select>
-                            {ir.status !== "done" && (
-                              <div className="flex gap-1.5">
-                                {ir.status !== "in_progress" && (
-                                  <button onClick={() => updateStatus(ir.id, "in_progress")} className="text-xs px-2 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
-                                )}
-                                <button onClick={() => updateStatus(ir.id, "done")} className="text-xs px-2 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })
+                  interviews.map(ir => (
+                    <InterviewRequestCard key={ir.id} ir={ir}
+                      onAssign={updateAssignee} onStatus={updateStatus} onConfirmDetails={updateInterviewDetails} />
+                  ))
                 )}
               </div>
             )}
@@ -398,11 +502,11 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
                 <div className="text-xs text-gray-400 mt-1">{new Date(fbPopup.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={"badge text-xs " + getSentimentBadge(fbPopup.sentiment || "neutral")}>{fbPopup.sentiment || "neutral"}</span>
+                {fbPopup.rating && <span className={"badge text-xs " + getSentimentBadge(ratingToSentiment(fbPopup.rating))}>{fbPopup.rating}</span>}
                 <button onClick={() => setFbPopup(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
               </div>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-5">{fbPopup.feedback_text}</p>
+            <p className="text-sm text-gray-700 leading-relaxed mb-5">{fbPopup.comment}</p>
             <div className="flex gap-3">
               {fbPopup.application?.candidate?.id && (
                 <a href={"/internal/candidates/" + fbPopup.application.candidate.id} className="btn-primary text-sm">Open candidate profile</a>
@@ -452,7 +556,8 @@ export default function ClientsPage() {
   useEffect(() => {
     if (selected) {
       loadDetail(selected.id)
-      setRightTab("mandates")
+      const params = new URLSearchParams(window.location.search)
+      setRightTab((params.get("tab") as RightTab) || "mandates")
       setMandateView("active")
     }
   }, [selected])
@@ -461,7 +566,12 @@ export default function ClientsPage() {
     setLoadingClients(true)
     const { data } = await supabase.from("client_users").select("*").order("created_at", { ascending: false })
     setClients(data || [])
-    if (data && data.length > 0 && !selected) setSelected(data[0])
+    if (data && data.length > 0 && !selected) {
+      const params = new URLSearchParams(window.location.search)
+      const targetId = params.get("client")
+      const target = targetId ? data.find(c => c.id === targetId) : null
+      setSelected(target || data[0])
+    }
     setLoadingClients(false)
   }
 
@@ -482,6 +592,20 @@ export default function ClientsPage() {
     setDetailFeedback(fb || [])
     setDetailInterviews(ir || [])
     setLoadingDetail(false)
+  }
+
+  async function confirmInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) {
+    const current = detailInterviews.find(ir => ir.id === id)
+    const nextStatus = current?.status === "new" ? "in_progress" : current?.status
+    await supabase.from("client_interview_requests").update({
+      confirmed_date: details.confirmed_date || null,
+      confirmed_time: details.confirmed_time || null,
+      format: details.format || null,
+      interviewer: details.interviewer || null,
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    }).eq("id", id)
+    if (selected) loadDetail(selected.id)
   }
 
   function updateMandateRow(idx: number, field: string, value: string) {
@@ -847,20 +971,23 @@ export default function ClientsPage() {
                       </div>
                     ) : (
                       <div className="card divide-y divide-gray-50">
-                        {detailFeedback.map(fb => (
+                        {detailFeedback.map(fb => {
+                          const sentiment = ratingToSentiment(fb.rating)
+                          return (
                           <div key={fb.id} className="flex items-start gap-3 p-4">
-                            <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(fb.sentiment)}</div>
+                            <div className="mt-0.5 flex-shrink-0">{getSentimentIcon(sentiment)}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <span className="font-semibold text-gray-900 text-sm">{fb.application?.candidate?.name || "General"}</span>
-                                <span className={"badge text-xs " + getSentimentBadge(fb.sentiment || "neutral")}>{fb.sentiment || "neutral"}</span>
+                                {fb.rating && <span className={"badge text-xs " + getSentimentBadge(sentiment)}>{fb.rating}</span>}
                                 {fb.mandate?.title && <span className="text-xs text-gray-400">{fb.mandate.title}</span>}
                               </div>
-                              <p className="text-xs text-gray-500">{fb.feedback_text}</p>
+                              <p className="text-xs text-gray-500">{fb.comment}</p>
                             </div>
                             <span className="text-xs text-gray-300 flex-shrink-0">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -876,39 +1003,12 @@ export default function ClientsPage() {
                       </div>
                     ) : (
                       <div className="card divide-y divide-gray-50">
-                        {detailInterviews.map(ir => {
-                          const sc = getStatusBadge(ir.status)
-                          return (
-                            <div key={ir.id} className="p-4">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <span className="font-semibold text-gray-900 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
-                                    <span className={"badge text-xs " + sc.cls}>{sc.label}</span>
-                                    {ir.mandate?.title && <span className="text-xs text-gray-400">{ir.mandate.title}</span>}
-                                  </div>
-                                  {ir.notes && <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">{ir.notes}</p>}
-                                </div>
-                                <div className="flex flex-col gap-2 items-end flex-shrink-0">
-                                  <select value={ir.assigned_to_name || ""} onChange={e => {
-                                    supabase.from("client_interview_requests").update({ assigned_to_name: e.target.value }).eq("id", ir.id).then(() => loadDetail(selected.id))
-                                  }} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none">
-                                    <option value="">Assign to...</option>
-                                    {TEAM_MEMBERS.map(name => <option key={name} value={name}>{name}</option>)}
-                                  </select>
-                                  {ir.status !== "done" && (
-                                    <div className="flex gap-1.5">
-                                      {ir.status !== "in_progress" && (
-                                        <button onClick={() => supabase.from("client_interview_requests").update({ status: "in_progress" }).eq("id", ir.id).then(() => loadDetail(selected.id))} className="text-xs px-2 py-1 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors">In progress</button>
-                                      )}
-                                      <button onClick={() => supabase.from("client_interview_requests").update({ status: "done" }).eq("id", ir.id).then(() => loadDetail(selected.id))} className="text-xs px-2 py-1 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">Done</button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
+                        {detailInterviews.map(ir => (
+                          <InterviewRequestCard key={ir.id} ir={ir} showMandate
+                            onAssign={(id, name) => supabase.from("client_interview_requests").update({ assigned_to_name: name }).eq("id", id).then(() => loadDetail(selected.id))}
+                            onStatus={(id, status) => supabase.from("client_interview_requests").update({ status }).eq("id", id).then(() => loadDetail(selected.id))}
+                            onConfirmDetails={confirmInterviewDetails} />
+                        ))}
                       </div>
                     )}
                   </div>
