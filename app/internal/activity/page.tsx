@@ -42,7 +42,7 @@ function NotifIcon({ type }: { type: string }) {
     bell: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   }
   return (
-    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
+    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
       {svgs[c.icon]}
     </div>
   )
@@ -196,14 +196,14 @@ export default function ActivityPage() {
         </button>
       </div>
 
-      <div className="flex gap-5 items-start">
+      <div className="grid grid-cols-2 gap-5 items-start">
 
         {/* ── LEFT: Tasks ── */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <CheckSquare size={14} className="text-gray-800" />
-              <span className="text-xs font-semibold text-gray-900 tracking-wide uppercase">Tasks</span>
+              <span className="text-xs font-semibold text-gray-900">Tasks</span>
               {pendingTasks.length > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{ background: "#fff3e8", color: "#c25d00" }}>
@@ -342,11 +342,11 @@ export default function ActivityPage() {
         </div>
 
         {/* ── RIGHT: Activity feed ── */}
-        <div className="w-72 flex-shrink-0">
+        <div className="min-w-0">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Bell size={14} className="text-gray-800" />
-              <span className="text-xs font-semibold text-gray-900 tracking-wide uppercase">Activity feed</span>
+              <span className="text-xs font-semibold text-gray-900">Recent activity</span>
               {unreadCount > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{ background: "#fef2f2", color: "#dc2626" }}>
