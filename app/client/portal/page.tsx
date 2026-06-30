@@ -393,10 +393,7 @@ export default function ClientPortal() {
                       <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1.5">
                         <MessageSquare size={12} /> Your feedback
                       </p>
-                      {existingFeedback(selectedApp.id).rating && (
-                        <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full mb-2 inline-block">{existingFeedback(selectedApp.id).rating}</span>
-                      )}
-                      <p className="text-xs text-green-700 leading-relaxed">{existingFeedback(selectedApp.id).comment}</p>
+                      <p className="text-xs text-green-700 leading-relaxed">{existingFeedback(selectedApp.id).feedback_text}</p>
                     </div>
                   ) : feedbackApp?.id === selectedApp.id ? (
                     <form onSubmit={submitFeedback} className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
