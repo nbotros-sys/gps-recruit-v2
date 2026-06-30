@@ -11,6 +11,12 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   placed:      { label: "Placed",      color: "bg-green-50 text-green-700" },
 }
 
+const INTERVIEW_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  new:         { label: "Pending",   color: "bg-blue-100 text-blue-700" },
+  in_progress: { label: "Scheduling", color: "bg-amber-100 text-amber-700" },
+  done:        { label: "Completed", color: "bg-green-100 text-green-700" },
+}
+
 function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
   const colors = ["#028090","#5f6b7a","#7c3aed","#0369a1","#065f46","#92400e"]
@@ -391,8 +397,8 @@ export default function ClientPortal() {
                         <Calendar size={12} /> Interview requested
                       </p>
                       <p className="text-xs text-blue-600">{existingInterview(selectedApp.id).preferred_dates}</p>
-                      <span className={`text-[10px] font-semibold mt-2 inline-block px-2 py-0.5 rounded-full ${existingInterview(selectedApp.id).status === "confirmed" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
-                        {existingInterview(selectedApp.id).status}
+                      <span className={`text-[10px] font-semibold mt-2 inline-block px-2 py-0.5 rounded-full ${(INTERVIEW_STATUS_LABELS[existingInterview(selectedApp.id).status]?.color) || "bg-blue-100 text-blue-700"}`}>
+                        {INTERVIEW_STATUS_LABELS[existingInterview(selectedApp.id).status]?.label || existingInterview(selectedApp.id).status}
                       </span>
                     </div>
                   ) : interviewApp?.id === selectedApp.id ? (
@@ -495,8 +501,8 @@ export default function ClientPortal() {
                   {i.notes && <p className="text-xs text-gray-400 mt-1">{i.notes}</p>}
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${i.status === "confirmed" ? "bg-green-100 text-green-700" : i.status === "declined" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-700"}`}>
-                    {i.status}
+                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${(INTERVIEW_STATUS_LABELS[i.status]?.color) || "bg-blue-100 text-blue-700"}`}>
+                    {INTERVIEW_STATUS_LABELS[i.status]?.label || i.status}
                   </span>
                   <p className="text-[10px] text-gray-400 mt-1.5">
                     {new Date(i.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
