@@ -47,7 +47,7 @@ function NotifIcon({ type }: { type: string }) {
     bell: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   }
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
       {svgs[c.icon]}
     </div>
   )
@@ -229,7 +229,7 @@ export default function ActivityPage() {
         </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl transition-all hover:opacity-90"
-          style={{ background: "#028090" }}>
+          style={{ background: "#0a1f24" }}>
           <Plus size={14} /> New task
         </button>
       </div>
@@ -312,7 +312,7 @@ export default function ActivityPage() {
                 return (
                   <div key={task.id}
                     onClick={() => openTask(task)}
-                    className={`bg-white border rounded-xl p-3.5 flex items-start gap-2.5 group transition-all cursor-pointer hover:border-teal/40 ${due?.border || ""} ${due?.cardBorder || "border-gray-100"}`}
+                    className={`bg-white border rounded-xl p-3.5 flex items-start gap-2.5 group transition-all cursor-pointer hover:border-teal/40 shadow-sm ${due?.border || ""} ${due?.cardBorder || "border-gray-100"}`}
                     style={{ borderRadius: due?.border ? "0 12px 12px 0" : "12px" }}>
                     <button onClick={(e) => { e.stopPropagation(); toggleTask(task) }} disabled={completing === task.id}
                       className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-gray-300 hover:border-teal flex items-center justify-center flex-shrink-0 transition-colors">
@@ -405,7 +405,7 @@ export default function ActivityPage() {
             )}
           </div>
 
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50 shadow-sm">
             {loadingNotifs ? (
               <div className="flex items-center justify-center py-10">
                 <Loader2 size={16} className="animate-spin text-gray-200" />
@@ -426,7 +426,7 @@ export default function ActivityPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
                         <p className="text-xs font-semibold text-gray-800 leading-snug">{n.title}</p>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0 mt-0.5">{timeAgo(n.created_at)}</span>
+                        <span className="text-[10px] text-gray-300 flex-shrink-0 mt-0.5" style={{ fontFamily: "ui-monospace, 'SF Mono', monospace" }}>{timeAgo(n.created_at)}</span>
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed truncate">{n.message}</p>
                       {n.link && (
