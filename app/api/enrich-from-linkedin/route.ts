@@ -79,12 +79,15 @@ function mapToCandidate(data: any, linkedinUrl: string) {
     .filter(Boolean)
     .slice(0, 20)
 
+  const personalEmails: string[] = (data.personal_emails || []).filter(Boolean)
+  const personalNumbers: string[] = (data.personal_numbers || []).filter(Boolean)
+
   const cv_text = buildCvText(data)
 
   return {
     name,
-    email: null,
-    phone: null,
+    email: personalEmails[0] || null,
+    phone: personalNumbers[0] || null,
     current_title: data.headline || current.title || null,
     current_company: current.company || null,
     location,
@@ -122,6 +125,8 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams({
       profile_url: cleanUrl,
       skills: "include",
+      personal_email: "include",
+      personal_contact_number: "include",
       use_cache: "if-present",
       fallback_to_cache: "on-error",
     })
@@ -225,7 +230,7 @@ export async function POST(req: NextRequest) {
         .from("candidates")
         .insert([{
           ...upsertData,
-          email: `linkedin.${Date.now()}@pending.com`,
+          email: candidateRow.email || `linkedin.${Date.now()}@pending.com`,
         }])
         .select("id")
         .single()
@@ -262,6 +267,8 @@ export async function POST(req: NextRequest) {
         location: candidateRow.location,
         avatar_url: candidateRow.avatar_url,
         tags: candidateRow.tags,
+        email: candidateRow.email,
+        phone: candidateRow.phone,
         cv_text_length: candidateRow.cv_text.length,
       },
     })
