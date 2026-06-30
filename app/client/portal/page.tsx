@@ -62,6 +62,7 @@ export default function ClientPortal() {
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState("")
   const [submitError, setSubmitError] = useState("")
+  const [animatedScore, setAnimatedScore] = useState(0)
   const supabase = createClient()
 
   useEffect(() => { load() }, [])
@@ -74,6 +75,23 @@ export default function ClientPortal() {
     if (d.error) { setError(d.error); setLoading(false); return }
     setData(d)
     setLoading(false)
+    animateTopScore(d.applications || [])
+  }
+
+  // Counts the hero score up from 0 to its real value, like a readout settling into place
+  function animateTopScore(applications: any[]) {
+    const scored = applications.filter((a: any) => a.ai_score)
+    if (!scored.length) { setAnimatedScore(0); return }
+    const target = scored.reduce((best: any, a: any) => a.ai_score > best.ai_score ? a : best).ai_score
+    const duration = 650
+    const start = performance.now()
+    function tick(now: number) {
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setAnimatedScore(Math.round(eased * target))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
   }
 
   async function signOut() {
@@ -205,7 +223,7 @@ export default function ClientPortal() {
 
       {/* Header */}
       <header style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0f2b30 60%, #0a2326 100%)", position: "relative", overflow: "hidden" }} className="px-7 py-6">
-        <svg style={{ position: "absolute", top: -40, right: -60, opacity: 0.06 }} width="320" height="320" viewBox="0 0 320 320">
+        <svg className="ambient-drift" style={{ position: "absolute", top: -40, right: -60 }} width="320" height="320" viewBox="0 0 320 320">
           <polygon points="160,20 280,90 280,230 160,300 40,230 40,90" fill="none" stroke="#5fb3a8" strokeWidth="2" />
           <polygon points="160,60 240,105 240,215 160,260 80,215 80,105" fill="none" stroke="#5fb3a8" strokeWidth="1.5" />
         </svg>
@@ -235,11 +253,11 @@ export default function ClientPortal() {
       <div className="max-w-5xl mx-auto px-6 py-7">
 
         {/* Hero metric + supporting stats */}
-        <div className="bg-white border border-gray-100 rounded-2xl px-9 py-7 mb-7 flex items-end gap-10 flex-wrap" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div className="bg-white border border-gray-100 rounded-2xl px-9 py-7 mb-7 flex items-end gap-10 flex-wrap fade-slide-up" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div>
             <div className="text-[11px] uppercase font-semibold text-gray-400 mb-1.5" style={{ letterSpacing: "0.12em" }}>Top GPS Score</div>
             <div className="flex items-baseline gap-1.5">
-              <span style={{ fontFamily: "var(--font-plex-mono)", fontSize: 44, fontWeight: 600, color: "#A9802F", letterSpacing: "-0.02em" }}>{topApp?.ai_score ?? "—"}</span>
+              <span style={{ fontFamily: "var(--font-plex-mono)", fontSize: 44, fontWeight: 600, color: "#A9802F", letterSpacing: "-0.02em" }}>{topApp ? animatedScore : "—"}</span>
               <span className="text-sm text-gray-400">/ 100</span>
             </div>
             {topApp && (
@@ -298,14 +316,15 @@ export default function ClientPortal() {
                   <p className="text-sm font-medium text-gray-500">No candidates shortlisted yet</p>
                   <p className="text-xs mt-1 text-gray-400">GPS will notify you when candidates are ready for review.</p>
                 </div>
-              ) : applications.map((app: any) => {
+              ) : applications.map((app: any, idx: number) => {
                 const c = app.candidate
                 const stageInfo = STAGE_LABELS[app.stage] || { label: app.stage, color: "bg-gray-100 text-gray-500" }
                 const isSelected = selectedApp?.id === app.id
                 const hasFeedback = existingFeedback(app.id)
                 return (
                   <div key={app.id} onClick={() => setSelectedApp(isSelected ? null : app)}
-                    className={`bg-white border rounded-xl p-3.5 flex items-center gap-3.5 cursor-pointer transition-all ${isSelected ? "border-teal shadow-sm" : "border-gray-100 hover:border-gray-200 hover:shadow-sm"}`}>
+                    className={`bg-white border rounded-xl p-3.5 flex items-center gap-3.5 cursor-pointer transition-all fade-slide-up hover:-translate-y-0.5 ${isSelected ? "border-teal shadow-sm" : "border-gray-100 hover:border-gray-200 hover:shadow-md"}`}
+                    style={{ animationDelay: `${idx * 70}ms` }}>
                     {app.ai_score ? <HexScoreBadge score={app.ai_score} size={42} /> : <Avatar name={c.name} size={40} />}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
