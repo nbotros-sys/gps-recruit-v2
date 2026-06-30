@@ -359,7 +359,7 @@ export default function ActivityPage() {
               {doneTasks.map(task => (
                 <div key={task.id}
                   onClick={() => openTask(task)}
-                  className="bg-white border border-gray-100 rounded-xl p-3.5 flex items-start gap-2.5 opacity-50 hover:opacity-80 cursor-pointer transition-opacity">
+                  className="bg-white border border-gray-100 rounded-xl p-3.5 flex items-start gap-2.5 opacity-50 hover:opacity-90 cursor-pointer transition-opacity group">
                   <button onClick={(e) => { e.stopPropagation(); toggleTask(task) }} disabled={completing === task.id}
                     title="Click to mark as not done"
                     className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-green-400 bg-green-400 hover:bg-white flex items-center justify-center flex-shrink-0 group/check">
@@ -375,6 +375,10 @@ export default function ActivityPage() {
                       </p>
                     )}
                   </div>
+                  <button onClick={(e) => { e.stopPropagation(); toggleTask(task) }} disabled={completing === task.id}
+                    className="opacity-0 group-hover:opacity-100 text-xs text-teal hover:underline flex-shrink-0 transition-all px-1">
+                    Undo
+                  </button>
                 </div>
               ))}
             </div>
