@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
 import Link from "next/link"
-import { Plus, Check, Trash2, Loader2, ArrowUpRight, Bell, Calendar, User, CheckSquare } from "lucide-react"
+import { Plus, Check, Trash2, Loader2, ArrowUpRight, Bell, Calendar, User, CheckSquare, X, Send } from "lucide-react"
 
 const STAFF = ["Nader", "Mona", "Juana"]
 
@@ -98,6 +98,11 @@ export default function ActivityPage() {
   const [newAssignee, setNewAssignee] = useState("")
   const [newDue, setNewDue] = useState("")
   const [saving, setSaving] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [taskNotes, setTaskNotes] = useState<any[]>([])
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [newNote, setNewNote] = useState("")
+  const [savingNote, setSavingNote] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -161,6 +166,34 @@ export default function ActivityPage() {
       body: JSON.stringify({ id }) })
     setTasks(prev => prev.filter(t => t.id !== id))
     setDeleting(null)
+  }
+
+  async function openTask(task: any) {
+    setSelectedTask(task)
+    setLoadingNotes(true)
+    const res = await fetch(`/api/task-notes?task_id=${task.id}`)
+    const data = await res.json()
+    setTaskNotes(data.notes || [])
+    setLoadingNotes(false)
+  }
+
+  async function addNote() {
+    if (!newNote.trim() || !selectedTask) return
+    setSavingNote(true)
+    const res = await fetch("/api/task-notes", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        task_id: selectedTask.id,
+        note_text: newNote,
+        author_email: currentUser?.email || "",
+        author_name: currentUser?.name || "Someone",
+      }) })
+    const data = await res.json()
+    if (data.note) {
+      setTaskNotes(prev => [...prev, data.note])
+      setNewNote("")
+    }
+    setSavingNote(false)
   }
 
   async function createTask(e: React.FormEvent) {
@@ -276,9 +309,10 @@ export default function ActivityPage() {
                 const due = getDueInfo(task.due_date)
                 return (
                   <div key={task.id}
-                    className={`bg-white border rounded-xl p-3.5 flex items-start gap-2.5 group transition-all ${due?.border || ""} ${due?.cardBorder || "border-gray-100"}`}
+                    onClick={() => openTask(task)}
+                    className={`bg-white border rounded-xl p-3.5 flex items-start gap-2.5 group transition-all cursor-pointer hover:border-teal/40 ${due?.border || ""} ${due?.cardBorder || "border-gray-100"}`}
                     style={{ borderRadius: due?.border ? "0 12px 12px 0" : "12px" }}>
-                    <button onClick={() => toggleTask(task)} disabled={completing === task.id}
+                    <button onClick={(e) => { e.stopPropagation(); toggleTask(task) }} disabled={completing === task.id}
                       className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-gray-300 hover:border-teal flex items-center justify-center flex-shrink-0 transition-colors">
                       {completing === task.id && <Loader2 size={10} className="animate-spin text-gray-400" />}
                     </button>
@@ -303,13 +337,13 @@ export default function ActivityPage() {
                             style={{ background: "#f3e8ff", color: "#7c3aed" }}>auto</span>
                         )}
                         {task.link && (
-                          <Link href={task.link} className="flex items-center gap-0.5 text-xs text-teal hover:underline">
+                          <Link href={task.link} onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5 text-xs text-teal hover:underline">
                             <ArrowUpRight size={10} /> {task.link_label || "View"}
                           </Link>
                         )}
                       </div>
                     </div>
-                    <button onClick={() => deleteTask(task.id)} disabled={deleting === task.id}
+                    <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }} disabled={deleting === task.id}
                       className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all p-0.5 flex-shrink-0">
                       {deleting === task.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                     </button>
@@ -323,12 +357,15 @@ export default function ActivityPage() {
           {showDone && doneTasks.length > 0 && (
             <div className="space-y-2 mt-3 pt-3 border-t border-gray-100">
               {doneTasks.map(task => (
-                <div key={task.id} className="bg-white border border-gray-100 rounded-xl p-3.5 flex items-start gap-2.5 opacity-50">
-                  <button onClick={() => toggleTask(task)} disabled={completing === task.id}
-                    className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-green-400 bg-green-400 flex items-center justify-center flex-shrink-0">
+                <div key={task.id}
+                  onClick={() => openTask(task)}
+                  className="bg-white border border-gray-100 rounded-xl p-3.5 flex items-start gap-2.5 opacity-50 hover:opacity-80 cursor-pointer transition-opacity">
+                  <button onClick={(e) => { e.stopPropagation(); toggleTask(task) }} disabled={completing === task.id}
+                    title="Click to mark as not done"
+                    className="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-green-400 bg-green-400 hover:bg-white flex items-center justify-center flex-shrink-0 group/check">
                     {completing === task.id
                       ? <Loader2 size={10} className="animate-spin text-white" />
-                      : <Check size={10} className="text-white" />}
+                      : <Check size={10} className="text-white group-hover/check:hidden" />}
                   </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-400 line-through leading-snug">{task.title}</p>
@@ -400,6 +437,88 @@ export default function ActivityPage() {
         </div>
 
       </div>
+
+      {/* ── Task detail modal ── */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedTask(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col"
+            onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold text-gray-900 leading-snug ${selectedTask.done ? "line-through text-gray-400" : ""}`}>
+                  {selectedTask.title}
+                </p>
+                {selectedTask.description && (
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">{selectedTask.description}</p>
+                )}
+                <div className="flex items-center gap-2.5 mt-2 flex-wrap">
+                  {selectedTask.assigned_to && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <User size={10} /> {selectedTask.assigned_to}
+                    </span>
+                  )}
+                  {selectedTask.due_date && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Calendar size={10} /> {new Date(selectedTask.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                  {selectedTask.link && (
+                    <Link href={selectedTask.link} className="flex items-center gap-0.5 text-xs text-teal hover:underline">
+                      <ArrowUpRight size={10} /> {selectedTask.link_label || "View"}
+                    </Link>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => setSelectedTask(null)} className="text-gray-300 hover:text-gray-500 flex-shrink-0 mt-0.5">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 flex-1 overflow-auto">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</p>
+                <button
+                  onClick={() => { toggleTask(selectedTask); setSelectedTask({ ...selectedTask, done: !selectedTask.done }) }}
+                  className="text-xs text-teal hover:underline">
+                  {selectedTask.done ? "Mark as not done" : "Mark as done"}
+                </button>
+              </div>
+              {loadingNotes ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={14} className="animate-spin text-gray-300" />
+                </div>
+              ) : taskNotes.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">No notes yet — log availability, delegation, or anything useful for whoever picks this up next.</p>
+              ) : (
+                <div className="space-y-3">
+                  {taskNotes.map(note => (
+                    <div key={note.id} className="bg-gray-50 rounded-xl px-3.5 py-2.5">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs font-semibold text-gray-700">{note.author_name || "Someone"}</span>
+                        <span className="text-[10px] text-gray-400">{timeAgo(note.created_at)}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{note.note_text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3.5 border-t border-gray-100 flex items-end gap-2">
+              <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
+                placeholder="Add a note for the team..." rows={2}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNote() } }}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
+              <button onClick={addNote} disabled={!newNote.trim() || savingNote}
+                className="flex items-center justify-center w-9 h-9 rounded-lg text-white flex-shrink-0 disabled:opacity-40"
+                style={{ background: "#028090" }}>
+                {savingNote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
