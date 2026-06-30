@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   // Get feedback this client has left
   const { data: feedback } = await admin
     .from("client_feedback")
-    .select("id, application_id, rating, comment, created_at")
+    .select("id, application_id, feedback_text, sentiment, created_at")
     .eq("mandate_id", mandateId)
     .eq("client_user_id", clientUser.id)
 
@@ -92,8 +92,13 @@ export async function POST(req: NextRequest) {
 
     if (action === "feedback") {
       const { rating, comment } = body
+      const sentiment = !rating ? "neutral"
+        : /strong yes|^yes$/i.test(rating) ? "positive"
+        : /^no$/i.test(rating) ? "negative"
+        : "neutral"
+      const feedback_text = rating ? `${rating}: ${comment}` : comment
       const { error } = await admin.from("client_feedback").insert([{
-        mandate_id, application_id, client_user_id, rating, comment
+        mandate_id, application_id, client_user_id, feedback_text, sentiment
       }])
       if (error) {
         console.error("client_feedback insert error:", error)
