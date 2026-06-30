@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const VISIBLE_STAGES = ["shortlisted", "interview", "offered", "placed"]
   const { data: applications } = await admin
     .from("applications")
-    .select("id, stage, ai_score, candidate:candidates(id, name, current_title, current_company, email, phone, cv_pdf_url, cv_file_url, cv_file_type, location)")
+    .select("id, stage, ai_score, ai_summary, ai_strengths, ai_concerns, candidate:candidates(id, name, current_title, current_company, email, phone, cv_pdf_url, cv_file_url, cv_file_type, location)")
     .eq("mandate_id", mandateId)
     .in("stage", VISIBLE_STAGES)
     .order("ai_score", { ascending: false, nullsFirst: false })
@@ -89,12 +89,28 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { action, application_id, mandate_id, client_user_id } = body
 
+  // Shared context for notification copy
+  const [{ data: mandateRow }, { data: appRow }] = await Promise.all([
+    admin.from("mandates").select("title").eq("id", mandate_id).maybeSingle(),
+    admin.from("applications").select("candidate:candidates(name)").eq("id", application_id).maybeSingle(),
+  ])
+  const mandateTitle = mandateRow?.title || "a mandate"
+  const candidateName = (appRow as any)?.candidate?.name || "A candidate"
+
   if (action === "feedback") {
     const { rating, comment } = body
     const { error } = await admin.from("client_feedback").insert([{
       mandate_id, application_id, client_user_id, rating, comment
     }])
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await admin.from("notifications").insert([{
+      type: "client_feedback",
+      title: "Client feedback received",
+      message: `Feedback on ${candidateName} — ${mandateTitle}`,
+      link: `/internal/mandates/${mandate_id}`,
+    }])
+
     return NextResponse.json({ success: true })
   }
 
@@ -104,6 +120,22 @@ export async function POST(req: NextRequest) {
       mandate_id, application_id, client_user_id, preferred_dates, notes, status: "pending"
     }])
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await admin.from("notifications").insert([{
+      type: "interview_requested",
+      title: "Interview requested",
+      message: `${candidateName} — ${mandateTitle}`,
+      link: `/internal/mandates/${mandate_id}`,
+    }])
+
+    await admin.from("tasks").insert([{
+      title: `Schedule interview: ${candidateName}`,
+      description: preferred_dates ? `Client preferred dates: ${preferred_dates}` : null,
+      link: `/internal/mandates/${mandate_id}`,
+      link_label: mandateTitle,
+      auto_generated: true,
+    }])
+
     return NextResponse.json({ success: true })
   }
 
