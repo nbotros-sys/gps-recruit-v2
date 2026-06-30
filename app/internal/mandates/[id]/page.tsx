@@ -132,8 +132,45 @@ export default function MandateDetail() {
     setCandidateRoles(data || [])
   }
 
-  async function scoreSelectedCandidate() {
+  async function generateStrengthsConcerns() {
     if (!selectedApp || !mandate?.job_description) return
+    setScoringCandidate(true)
+    try {
+      const cvText = selectedApp.candidate?.cv_text || ""
+      const scoreRes = await fetch("/api/score-cv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cv_text: cvText,
+          job_description: mandate.job_description,
+          mandate_title: mandate.title,
+        })
+      })
+      const data = await scoreRes.json()
+      if (data.strengths || data.concerns) {
+        // Score-safe: writes insight only, never touches ai_score
+        await supabase.from("applications").update({
+          ai_strengths: data.strengths || [],
+          ai_concerns: data.concerns || [],
+          ai_summary: data.summary || selectedApp.ai_summary,
+        }).eq("id", selectedApp.id)
+        setSelectedApp((prev: any) => ({
+          ...prev,
+          ai_strengths: data.strengths || [],
+          ai_concerns: data.concerns || [],
+          ai_summary: data.summary || prev.ai_summary,
+        }))
+      }
+    } catch {}
+    setScoringCandidate(false)
+  }
+
+  async function rescoreCandidate() {
+    if (!selectedApp || !mandate?.job_description) return
+    const confirmed = window.confirm(
+      `This will recalculate ${selectedApp.candidate?.name || "this candidate"}'s score for ${mandate.title}, replacing the current score of ${selectedApp.ai_score ?? "—"}. The new score may differ from before — this can affect how they rank against other candidates on this mandate. Continue?`
+    )
+    if (!confirmed) return
     setScoringCandidate(true)
     try {
       const cvText = selectedApp.candidate?.cv_text || ""
@@ -1040,14 +1077,14 @@ export default function MandateDetail() {
                         </div>
                       )}
                       <div className="col-span-2 flex justify-end">
-                        <button onClick={scoreSelectedCandidate} disabled={scoringCandidate}
+                        <button onClick={rescoreCandidate} disabled={scoringCandidate}
                           className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
-                          {scoringCandidate ? <><Loader2 size={11} className="animate-spin" /> Regenerating…</> : "↺ Regenerate for this JD"}
+                          {scoringCandidate ? <><Loader2 size={11} className="animate-spin" /> Regenerating…</> : "↺ Re-score for this JD"}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <button onClick={scoreSelectedCandidate} disabled={scoringCandidate}
+                    <button onClick={generateStrengthsConcerns} disabled={scoringCandidate}
                       className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-teal hover:text-teal transition-all">
                       {scoringCandidate
                         ? <><Loader2 size={12} className="animate-spin" /> Analysing against this JD…</>
