@@ -36,6 +36,7 @@ export default function ClientPortal() {
   const [interviewNotes, setInterviewNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState("")
+  const [submitError, setSubmitError] = useState("")
   const supabase = createClient()
 
   useEffect(() => { load() }, [])
@@ -58,45 +59,67 @@ export default function ClientPortal() {
   async function submitFeedback(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
-    await fetch("/api/client-portal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "feedback",
-        application_id: feedbackApp.id,
-        mandate_id: data.mandate.id,
-        client_user_id: data.clientUser.id,
-        rating: feedbackRating,
-        comment: feedbackComment,
-      }),
-    })
-    setFeedbackApp(null); setFeedbackRating(""); setFeedbackComment("")
-    setSubmitSuccess("Feedback submitted — thank you!")
+    setSubmitError("")
+    try {
+      const res = await fetch("/api/client-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "feedback",
+          application_id: feedbackApp.id,
+          mandate_id: data.mandate.id,
+          client_user_id: data.clientUser.id,
+          rating: feedbackRating,
+          comment: feedbackComment,
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setSubmitError(result?.error || "Something went wrong — please try again.")
+        setSubmitting(false)
+        return
+      }
+      setFeedbackApp(null); setFeedbackRating(""); setFeedbackComment("")
+      setSubmitSuccess("Feedback submitted — thank you!")
+      load()
+      setTimeout(() => setSubmitSuccess(""), 4000)
+    } catch {
+      setSubmitError("Couldn't reach the server — please try again.")
+    }
     setSubmitting(false)
-    load()
-    setTimeout(() => setSubmitSuccess(""), 4000)
   }
 
   async function submitInterview(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
-    await fetch("/api/client-portal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "interview_request",
-        application_id: interviewApp.id,
-        mandate_id: data.mandate.id,
-        client_user_id: data.clientUser.id,
-        preferred_dates: interviewDates,
-        notes: interviewNotes,
-      }),
-    })
-    setInterviewApp(null); setInterviewDates(""); setInterviewNotes("")
-    setSubmitSuccess("Interview request sent to GPS!")
+    setSubmitError("")
+    try {
+      const res = await fetch("/api/client-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "interview_request",
+          application_id: interviewApp.id,
+          mandate_id: data.mandate.id,
+          client_user_id: data.clientUser.id,
+          preferred_dates: interviewDates,
+          notes: interviewNotes,
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setSubmitError(result?.error || "Something went wrong — please try again.")
+        setSubmitting(false)
+        return
+      }
+      setInterviewApp(null); setInterviewDates(""); setInterviewNotes("")
+      setSubmitSuccess("Interview request sent to GPS!")
+      load()
+      setTimeout(() => setSubmitSuccess(""), 4000)
+    } catch {
+      setSubmitError("Couldn't reach the server — please try again.")
+    }
     setSubmitting(false)
-    load()
-    setTimeout(() => setSubmitSuccess(""), 4000)
   }
 
   if (loading) return (
@@ -167,6 +190,9 @@ export default function ClientPortal() {
 
         {submitSuccess && (
           <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-xl text-sm text-green-700">{submitSuccess}</div>
+        )}
+        {submitError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{submitError}</div>
         )}
 
         {/* Tabs */}
