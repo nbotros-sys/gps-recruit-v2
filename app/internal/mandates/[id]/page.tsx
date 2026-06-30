@@ -73,7 +73,6 @@ export default function MandateDetail() {
   const [applications, setApplications] = useState<Application[]>([])
   const [tab, setTab] = useState<"details" | "jd" | "pipeline" | "bulk" | "ai" | "insight" | "source">("pipeline")
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deletingMandate, setDeletingMandate] = useState(false)
   const [clientUser, setClientUser] = useState<any>(null)
   const [mandateClients, setMandateClients] = useState<any[]>([])
@@ -1791,24 +1790,17 @@ export default function MandateDetail() {
             <p className="text-sm text-gray-500 mt-2 leading-relaxed">
               This permanently deletes the mandate and every candidate in its pipeline,
               talent pool scan history, client commentary, and client portal access.
-              There's no undo. Type the mandate title to confirm.
+              There's no undo.
             </p>
-            <input
-              value={deleteConfirmText}
-              onChange={e => setDeleteConfirmText(e.target.value)}
-              placeholder={mandate.title}
-              autoFocus
-              className="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
-            />
             <div className="flex gap-2 mt-5">
               <button
-                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText("") }}
+                onClick={() => setShowDeleteModal(false)}
                 className="flex-1 text-sm text-gray-500 hover:text-gray-700 px-4 py-2.5 rounded-xl border border-gray-200">
                 Cancel
               </button>
               <button
                 onClick={deleteMandate}
-                disabled={deleteConfirmText !== mandate.title || deletingMandate}
+                disabled={deletingMandate}
                 className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "#dc2626" }}>
                 {deletingMandate ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : <><Trash2 size={14} /> Delete permanently</>}
