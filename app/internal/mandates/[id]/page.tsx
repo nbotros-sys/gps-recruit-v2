@@ -8,7 +8,8 @@ import {
   X, Star, AlertCircle, CheckCircle, Loader2,
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
-  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2, Calendar } from "lucide-react"
+  Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2, Calendar,
+  ThumbsUp, ThumbsDown, Minus, ChevronDown } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -113,6 +114,18 @@ export default function MandateDetail() {
 
   const [roleFeedback, setRoleFeedback] = useState<Record<string, any[]>>({})
   const [roleFeedbackExpanded, setRoleFeedbackExpanded] = useState<Record<string, boolean>>({})
+
+  function feedbackSentimentIcon(s: string) {
+    if (s === "positive") return <ThumbsUp size={11} className="text-teal" />
+    if (s === "negative") return <ThumbsDown size={11} className="text-amber-500" />
+    return <Minus size={11} className="text-gray-400" />
+  }
+
+  function feedbackSentimentBadge(s: string): string {
+    if (s === "positive") return "bg-teal/10 text-teal"
+    if (s === "negative") return "bg-amber-100 text-amber-700"
+    return "bg-gray-100 text-gray-500"
+  }
 
   async function loadRoleFeedback(applicationId: string) {
     if (roleFeedback[applicationId]) return
@@ -280,6 +293,11 @@ export default function MandateDetail() {
   }
 
   useEffect(() => { loadData() }, [id])
+
+  // Fetch client feedback for every role once the candidate's role history loads
+  useEffect(() => {
+    candidateRoles.forEach(app => loadRoleFeedback(app.id))
+  }, [candidateRoles])
 
   // Auto-load talent pool from cache when switching to insight tab
   // Depends on [tab, mandate] — waits for mandate to be fully loaded before firing
@@ -907,7 +925,7 @@ export default function MandateDetail() {
                         <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
                         <div className="min-w-0 flex-1">
                           <button
-                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview"); setCandidateRoles([]); loadCandidateRoles((app as any).candidate?.id) }}
+                            onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview"); setCandidateRoles([]); loadCandidateRoles((app as any).candidate?.id); loadRoleFeedback(app.id) }}
                             className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
                             {(app as any).candidate?.name || "Unknown"}
                           </button>
@@ -1214,6 +1232,37 @@ export default function MandateDetail() {
                               )
                             })}
                           </div>
+
+                          {/* Client feedback indicator */}
+                          {roleFeedback[app.id]?.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <button onClick={() => setRoleFeedbackExpanded(prev => ({ ...prev, [app.id]: !prev[app.id] }))}
+                                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                                <MessageSquare size={11} />
+                                {roleFeedback[app.id].length} client feedback {roleFeedback[app.id].length === 1 ? "entry" : "entries"}
+                                <ChevronDown size={11} className={`transition-transform ${roleFeedbackExpanded[app.id] ? "rotate-180" : ""}`} />
+                              </button>
+                              {roleFeedbackExpanded[app.id] && (
+                                <div className="mt-2 space-y-2">
+                                  {roleFeedback[app.id].map((fb: any) => (
+                                    <div key={fb.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <span className="flex items-center gap-1.5">
+                                          {feedbackSentimentIcon(fb.sentiment)}
+                                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${feedbackSentimentBadge(fb.sentiment)}`}>{fb.sentiment || "neutral"}</span>
+                                        </span>
+                                        <span className="text-[10px] text-gray-400">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                                      </div>
+                                      <p className="text-xs text-gray-600 leading-relaxed">{fb.feedback_text}</p>
+                                      {fb.client_user?.full_name && (
+                                        <p className="text-[10px] text-gray-400 mt-1">— {fb.client_user.full_name}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })
@@ -1234,6 +1283,32 @@ export default function MandateDetail() {
                       <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4">
                         {selectedApp.candidate.notes}
                       </p>
+                    </div>
+                  )}
+                  {/* Client feedback — for this mandate */}
+                  {roleFeedback[selectedApp.id]?.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Client feedback</span>
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">From {mandate?.client_name || "client"}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {roleFeedback[selectedApp.id].map((fb: any) => (
+                          <div key={fb.id} className="bg-gray-50 rounded-xl p-4">
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="flex items-center gap-1.5">
+                                {feedbackSentimentIcon(fb.sentiment)}
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${feedbackSentimentBadge(fb.sentiment)}`}>{fb.sentiment || "neutral"}</span>
+                              </span>
+                              <span className="text-xs text-gray-400">{new Date(fb.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{fb.feedback_text}</p>
+                            {fb.client_user?.full_name && (
+                              <p className="text-xs text-gray-400 mt-1.5">— {fb.client_user.full_name}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {/* Manual notes */}
