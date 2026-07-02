@@ -53,8 +53,23 @@ export default function InternalLayout({ children }: { children: React.ReactNode
       } catch {}
     }
     fetchCounts()
-    const interval = setInterval(fetchCounts, 60000)
-    return () => clearInterval(interval)
+    // Realtime keeps the badges instant; a slow poll remains as a safety net
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(fetchCounts, 500)
+    }
+    const channel = supabase
+      .channel("internal-layout-badges")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, queueRefresh)
+      .subscribe()
+    const interval = setInterval(fetchCounts, 300000)
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
   }, [])
 
   async function signOut() {
