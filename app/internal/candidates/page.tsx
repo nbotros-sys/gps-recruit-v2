@@ -398,17 +398,35 @@ export default function CandidatesPage() {
   })
   const supabase = createClient()
 
-  async function load() {
-    setLoading(true)
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
     const { data } = await supabase
       .from("candidates")
       .select("*, avatar_url, internal_notes, cv_file_url, cv_file_type, cv_source, cv_pdf_url, applications(id, stage, ai_score, created_at, mandate:mandates(id, title, client_name))")
       .order("created_at", { ascending: false })
     setCandidates(data || [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   useEffect(() => { load() }, [])
+
+  // Realtime: new candidates (CV Builder signups, bulk uploads, colleagues' additions) appear live
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => { load(true) }, 800)
+    }
+    const channel = supabase
+      .channel("candidates-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "candidates" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   async function addCandidate(e: React.FormEvent) {
     e.preventDefault()
