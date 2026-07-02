@@ -29,17 +29,33 @@ export default function MandatesPage() {
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
 
-  async function load() {
-    setLoading(true)
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
     const { data } = await supabase
       .from("mandates")
       .select("*, applications(stage)")
       .order("created_at", { ascending: false })
     setMandates(data || [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   useEffect(() => { load() }, [])
+
+  // Realtime: mandates created or updated by colleagues appear without a refresh
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const channel = supabase
+      .channel("mandates-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "mandates" }, () => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => { load(true) }, 500)
+      })
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   async function createMandate(e: React.FormEvent) {
     e.preventDefault()
