@@ -46,6 +46,25 @@ export default function Dashboard() {
       }
     }
     load()
+
+    // Realtime: dashboard stats stay current as work happens across the team.
+    // Longer debounce — the stats refresh runs several queries at once.
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(load, 1200)
+    }
+    const channel = supabase
+      .channel("internal-dashboard")
+      .on("postgres_changes", { event: "*", schema: "public", table: "mandates" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "candidates" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_users" }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const statCards = [
