@@ -33,7 +33,7 @@ export default function JobsPage() {
         .order("created_at", { ascending: false })
       setMandates(mandateData || [])
       if (u) {
-        const { data: cand } = await supabase.from("candidates").select("*").eq("email", u.email).single()
+        const { data: cand } = await supabase.from("candidates").select("*").eq("email", u.email).maybeSingle()
         if (cand) {
           setCandidate(cand)
           const { data: apps } = await supabase
@@ -57,6 +57,29 @@ export default function JobsPage() {
       }
     }
     load()
+  }, [])
+
+  // Realtime: newly published roles appear (and closed roles disappear) without a refresh
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const channel = supabase
+      .channel("public-jobs-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "mandates" }, () => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(async () => {
+          const { data: mandateData } = await supabase
+            .from("mandates")
+            .select("id, title, client_name, location, salary_range, status, created_at")
+            .eq("status", "active")
+            .order("created_at", { ascending: false })
+          setMandates(mandateData || [])
+        }, 800)
+      })
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // Show skeleton shell while auth + data loads — prevents layout shift and looks fast
