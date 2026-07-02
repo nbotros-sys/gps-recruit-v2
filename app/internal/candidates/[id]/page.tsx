@@ -189,7 +189,7 @@ export default function CandidateProfile() {
 
   useEffect(() => {
     async function load() {
-      const { data: c } = await supabase.from("candidates").select("*").eq("id", id).single()
+      const { data: c } = await supabase.from("candidates").select("*").eq("id", id).maybeSingle()
       if (c) {
         setCandidate(c)
         setForm(c)
@@ -204,6 +204,29 @@ export default function CandidateProfile() {
       setLoading(false)
     }
     load()
+
+    // Realtime: keep this candidate's pipeline roles live. Deliberately does NOT
+    // refresh the profile fields — that would overwrite a colleague's in-progress edits.
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(async () => {
+        const { data: apps } = await supabase
+          .from("applications")
+          .select("*, mandate:mandates(id, title, client_name, status)")
+          .eq("candidate_id", id)
+          .order("created_at", { ascending: false })
+        setApplications(apps || [])
+      }, 500)
+    }
+    const channel = supabase
+      .channel(`candidate-detail-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `candidate_id=eq.${id}` }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [id])
 
   async function saveProfile() {
