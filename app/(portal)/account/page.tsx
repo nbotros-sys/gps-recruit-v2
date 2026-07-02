@@ -49,7 +49,7 @@ export default function AccountPage() {
         .from("candidates")
         .select("*")
         .eq("email", user.email)
-        .single()
+        .maybeSingle()
       if (cand) {
         setCandidate(cand)
         const { data: apps } = await supabase
@@ -63,6 +63,33 @@ export default function AccountPage() {
     }
     load()
   }, [])
+
+  // Realtime: when a consultant moves this candidate through the pipeline,
+  // their progress tracker updates live — no refresh needed
+  useEffect(() => {
+    const candidateId = candidate?.id
+    if (!candidateId) return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(async () => {
+        const { data: apps } = await supabase
+          .from("applications")
+          .select("*, mandate:mandates(id, title, location, client_name)")
+          .eq("candidate_id", candidateId)
+          .order("created_at", { ascending: false })
+        setApplications(apps || [])
+      }, 500)
+    }
+    const channel = supabase
+      .channel(`account-apps-${candidateId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `candidate_id=eq.${candidateId}` }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [candidate?.id])
 
   async function logout() {
     await supabase.auth.signOut()
