@@ -197,7 +197,7 @@ function CommentaryComposer({ mandateId, onSend }: { mandateId: string; onSend: 
   )
 }
 
-function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clientId: string; onStatusChange: (mandateId: string, status: string) => void }) {
+function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate: any; clientId: string; onStatusChange: (mandateId: string, status: string) => void; liveTick?: number }) {
   const supabase = createClient()
   const [open, setOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<MandateTabId>("overview")
@@ -213,10 +213,7 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
     setLoadedTabs(prev => prev.includes(tab) ? prev : [...prev, tab])
   }
 
-  async function switchTab(tab: MandateTabId) {
-    setActiveTab(tab)
-    if (loadedTabs.includes(tab)) return
-    markLoaded(tab)
+  async function loadTab(tab: MandateTabId) {
     if (tab === "feedback") {
       const { data } = await supabase
         .from("client_feedback")
@@ -242,6 +239,19 @@ function MandateCard({ mandate, clientId, onStatusChange }: { mandate: any; clie
       setCommentary(data || [])
     }
   }
+
+  async function switchTab(tab: MandateTabId) {
+    setActiveTab(tab)
+    if (loadedTabs.includes(tab)) return
+    markLoaded(tab)
+    loadTab(tab)
+  }
+
+  // Realtime: when the page signals a change, silently re-fetch any tabs this card has already loaded
+  useEffect(() => {
+    if (!liveTick) return
+    loadedTabs.forEach(t => { loadTab(t as MandateTabId) })
+  }, [liveTick])
 
   async function updateStatus(id: string, status: string) {
     await supabase.from("client_interview_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
@@ -542,6 +552,33 @@ export default function ClientsPage() {
 
   useEffect(() => { loadClients() }, [])
 
+  // Realtime: silently refresh the CRM when feedback, interview requests, clients, or mandates change.
+  // A debounced tick also nudges open MandateCards to re-fetch their loaded tabs.
+  const [liveTick, setLiveTick] = useState(0)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const selectedId = selected?.id || null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        loadClients(true)
+        if (selectedId) loadDetail(selectedId, true)
+        setLiveTick(t => t + 1)
+      }, 600)
+    }
+    const channel = supabase
+      .channel("internal-clients-crm")
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_users" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_feedback" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_interview_requests" }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mandates" }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [selected?.id])
+
   useEffect(() => {
     if (selected) {
       loadDetail(selected.id)
@@ -551,8 +588,8 @@ export default function ClientsPage() {
     }
   }, [selected])
 
-  async function loadClients() {
-    setLoadingClients(true)
+  async function loadClients(silent = false) {
+    if (!silent) setLoadingClients(true)
     const { data } = await supabase.from("client_users").select("*").order("created_at", { ascending: false })
     setClients(data || [])
     if (data && data.length > 0 && !selected) {
@@ -561,11 +598,11 @@ export default function ClientsPage() {
       const target = targetId ? data.find(c => c.id === targetId) : null
       setSelected(target || data[0])
     }
-    setLoadingClients(false)
+    if (!silent) setLoadingClients(false)
   }
 
-  async function loadDetail(clientId: string) {
-    setLoadingDetail(true)
+  async function loadDetail(clientId: string, silent = false) {
+    if (!silent) setLoadingDetail(true)
     const [{ data: mandates }, { data: fb }, { data: ir }] = await Promise.all([
       supabase.from("mandates").select("id, title, location, salary_range, status").eq("client_user_id", clientId).order("created_at", { ascending: false }),
       supabase.from("client_feedback")
@@ -580,7 +617,7 @@ export default function ClientsPage() {
     setDetailMandates(mandates || [])
     setDetailFeedback(fb || [])
     setDetailInterviews(ir || [])
-    setLoadingDetail(false)
+    if (!silent) setLoadingDetail(false)
   }
 
   async function confirmInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) {
@@ -924,7 +961,7 @@ export default function ClientsPage() {
                       ) : (
                         <div className="space-y-3">
                           {detailMandates.filter(m => m.status === "active" || m.status === "on_hold").map(m => (
-                            <MandateCard key={m.id} mandate={m} clientId={selected.id}
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id} liveTick={liveTick}
                             onStatusChange={(_mandateId, _status) => {
                               if (selected) loadDetail(selected.id)
                             }} />
@@ -939,7 +976,7 @@ export default function ClientsPage() {
                       ) : (
                         <div className="space-y-3 opacity-70">
                           {detailMandates.filter(m => m.status === "filled" || m.status === "cancelled").map(m => (
-                            <MandateCard key={m.id} mandate={m} clientId={selected.id}
+                            <MandateCard key={m.id} mandate={m} clientId={selected.id} liveTick={liveTick}
                             onStatusChange={(_mandateId, _status) => {
                               if (selected) loadDetail(selected.id)
                             }} />
