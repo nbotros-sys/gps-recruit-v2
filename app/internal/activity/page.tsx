@@ -121,20 +121,43 @@ export default function ActivityPage() {
     loadTasks()
   }, [])
 
-  async function loadNotifications() {
-    setLoadingNotifs(true)
+  // Realtime: refresh the feed and task panel as events land — new notifications appear live,
+  // and tasks completed by a colleague update for everyone. Data still flows through the API routes.
+  useEffect(() => {
+    let notifTimer: ReturnType<typeof setTimeout> | null = null
+    let taskTimer: ReturnType<typeof setTimeout> | null = null
+    const channel = supabase
+      .channel("internal-activity")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+        if (notifTimer) clearTimeout(notifTimer)
+        notifTimer = setTimeout(() => { loadNotifications(true) }, 500)
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
+        if (taskTimer) clearTimeout(taskTimer)
+        taskTimer = setTimeout(() => { loadTasks(true) }, 500)
+      })
+      .subscribe()
+    return () => {
+      if (notifTimer) clearTimeout(notifTimer)
+      if (taskTimer) clearTimeout(taskTimer)
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  async function loadNotifications(silent = false) {
+    if (!silent) setLoadingNotifs(true)
     const res = await fetch("/api/notifications")
     const data = await res.json()
     setNotifications(data.notifications || [])
-    setLoadingNotifs(false)
+    if (!silent) setLoadingNotifs(false)
   }
 
-  async function loadTasks() {
-    setLoadingTasks(true)
+  async function loadTasks(silent = false) {
+    if (!silent) setLoadingTasks(true)
     const res = await fetch("/api/tasks")
     const data = await res.json()
     setTasks(data.tasks || [])
-    setLoadingTasks(false)
+    if (!silent) setLoadingTasks(false)
   }
 
   async function markAllRead() {
