@@ -726,18 +726,28 @@ export default function MandateDetail() {
 
   async function deleteMandate() {
     setDeletingMandate(true)
-    // Best-effort cascade — wrapped individually so a missing table/column
-    // never blocks the rest of the cleanup or the final mandate delete.
-    await Promise.allSettled([
-      supabase.from("applications").delete().eq("mandate_id", id),
-      supabase.from("talent_pool_scans").delete().eq("mandate_id", id),
-      supabase.from("mandate_commentary").delete().eq("mandate_id", id),
-      supabase.from("client_interview_requests").delete().eq("mandate_id", id),
-      supabase.from("client_feedback").delete().eq("mandate_id", id),
-      supabase.from("client_users").delete().eq("mandate_id", id),
-    ])
-    await supabase.from("mandates").delete().eq("id", id)
-    router.push("/internal/mandates")
+    // Cascade delete is done server-side (service-role) so it works under RLS
+    // and actually confirms every child table was cleaned before removing the
+    // mandate. If anything fails, we surface it instead of silently orphaning.
+    try {
+      const res = await fetch("/api/delete-mandate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandate_id: id }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error("Mandate delete failed:", body)
+        alert("Could not delete this mandate. Please try again.")
+        setDeletingMandate(false)
+        return
+      }
+      router.push("/internal/mandates")
+    } catch (err) {
+      console.error("Mandate delete error:", err)
+      alert("Could not delete this mandate. Please try again.")
+      setDeletingMandate(false)
+    }
   }
 
   const byStage = (stage: string) => applications.filter(a => a.stage === stage)
