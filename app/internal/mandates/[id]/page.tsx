@@ -294,6 +294,46 @@ export default function MandateDetail() {
 
   useEffect(() => { loadData() }, [id])
 
+  // Realtime: keep the pipeline in sync when other users add, move, or remove candidates
+  useEffect(() => {
+    if (!id) return
+    const channel = supabase
+      .channel(`applications-mandate-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "applications", filter: `mandate_id=eq.${id}` },
+        async (payload: any) => {
+          // Realtime payloads carry the raw row only — fetch with the candidate join
+          const { data } = await supabase
+            .from("applications")
+            .select("*, candidate:candidates(*)")
+            .eq("id", payload.new.id)
+            .maybeSingle()
+          if (data) {
+            setApplications(prev => prev.some(a => a.id === data.id) ? prev : [...prev, data])
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "applications", filter: `mandate_id=eq.${id}` },
+        (payload: any) => {
+          // Merge changed columns; spread keeps the joined candidate object intact
+          setApplications(prev => prev.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a))
+        }
+      )
+      .on(
+        "postgres_changes",
+        // DELETE payloads only carry the primary key, so no mandate filter — matching by id is a safe no-op for other mandates
+        { event: "DELETE", schema: "public", table: "applications" },
+        (payload: any) => {
+          setApplications(prev => prev.filter(a => a.id !== payload.old.id))
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [id])
+
   // Fetch client feedback for every role once the candidate's role history loads
   useEffect(() => {
     candidateRoles.forEach(app => loadRoleFeedback(app.id))
