@@ -67,15 +67,49 @@ export default function ClientPortal() {
 
   useEffect(() => { load() }, [])
 
-  async function load() {
-    setLoading(true)
+  // Realtime: when the pipeline, interviews, or commentary change for this mandate, quietly re-fetch.
+  // Events are only a signal — all data still flows through /api/client-portal, so the access
+  // rules (shortlisted+ only, own mandate only) stay enforced in exactly one place.
+  useEffect(() => {
+    const mandateId = data?.mandate?.id
+    if (!mandateId) return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const queueRefresh = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => { load(true) }, 600)
+    }
+    const channel = supabase
+      .channel(`client-portal-${mandateId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `mandate_id=eq.${mandateId}` }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_interview_requests", filter: `mandate_id=eq.${mandateId}` }, queueRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mandate_commentary", filter: `mandate_id=eq.${mandateId}` }, queueRefresh)
+      .subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [data?.mandate?.id])
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
     const res = await fetch("/api/client-portal")
     if (res.status === 401) { window.location.href = "/client/login"; return }
     const d = await res.json()
-    if (d.error) { setError(d.error); setLoading(false); return }
+    if (d.error) { if (!silent) { setError(d.error); setLoading(false) } return }
     setData(d)
-    setLoading(false)
-    animateTopScore(d.applications || [])
+    if (!silent) {
+      setLoading(false)
+      animateTopScore(d.applications || [])
+    } else {
+      // Background refresh: settle the score directly, no count-up replay
+      const scored = (d.applications || []).filter((a: any) => a.ai_score)
+      if (scored.length) {
+        const target = scored.reduce((best: any, a: any) => a.ai_score > best.ai_score ? a : best).ai_score
+        setAnimatedScore(target)
+      } else {
+        setAnimatedScore(0)
+      }
+    }
   }
 
   // Counts the hero score up from 0 to its real value, like a readout settling into place
