@@ -21,7 +21,7 @@ export default function JobDetailPage() {
   useEffect(() => {
     async function load() {
       // Load mandate
-      const { data: m } = await supabase.from("mandates").select("*").eq("id", id).eq("status", "active").single()
+      const { data: m } = await supabase.from("mandates").select("*").eq("id", id).eq("status", "active").maybeSingle()
       setMandate(m)
 
       // Check if user is logged in and has a candidate profile
