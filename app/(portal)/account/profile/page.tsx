@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase"
+import { getSignedFileUrl, parseStorageUrl } from "@/lib/secure-file"
 import { Save, Loader2, CheckCircle, ArrowLeft, Camera } from "lucide-react"
 
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","Other"]
@@ -57,6 +58,18 @@ function getMissing(form: any) {
 export default function ProfilePage() {
   const [candidate, setCandidate] = useState<any>(null)
   const [form, setForm] = useState<any>({})
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    const u = form?.avatar_url
+    if (!u) { setAvatarSignedUrl(null); return }
+    if (parseStorageUrl(u)) {
+      getSignedFileUrl(u).then(s => { if (active) setAvatarSignedUrl(s) })
+    } else {
+      setAvatarSignedUrl(u)
+    }
+    return () => { active = false }
+  }, [form?.avatar_url])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -133,7 +146,7 @@ export default function ProfilePage() {
         {/* Avatar */}
         <div style={{ position: "relative", flexShrink: 0 }}>
           {form.avatar_url ? (
-            <img src={form.avatar_url} alt={form.name} style={{ width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover", objectPosition: "center top", border: "2px solid #e8e8e8" }} />
+            <img src={avatarSignedUrl || form.avatar_url} alt={form.name} style={{ width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover", objectPosition: "center top", border: "2px solid #e8e8e8" }} />
           ) : (
             <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "26px", fontWeight: 700 }}>
               {initials}
