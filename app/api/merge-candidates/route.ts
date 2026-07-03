@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,11 @@ export async function POST(req: NextRequest) {
     const { keepId, discardId } = await req.json()
     if (!keepId || !discardId) return NextResponse.json({ error: "Missing IDs" }, { status: 400 })
 
-    const supabase = createClient()
+    const supabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
 
     const { data: keep } = await supabase.from("candidates").select("*").eq("id", keepId).single()
     const { data: discard } = await supabase.from("candidates").select("*").eq("id", discardId).single()
