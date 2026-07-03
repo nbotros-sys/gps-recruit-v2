@@ -1,5 +1,8 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { getSignedFileUrl, parseStorageUrl } from "@/lib/secure-file"
+
 const COLORS = [
   { bg: "#028090", text: "#ffffff" },
   { bg: "#3D5A4E", text: "#ffffff" },
@@ -17,7 +20,10 @@ function getColor(name: string) {
 }
 
 function getInitials(name: string) {
-  return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
 interface Props {
@@ -32,37 +38,30 @@ export default function CandidateAvatar({ name, avatarUrl, size = 40, className 
   const initials = name ? getInitials(name) : "?"
   const fontSize = size < 32 ? size * 0.35 : size * 0.38
 
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={name}
-        className={className}
-        style={{
-          width: size, height: size,
-          borderRadius: "50%",
-          objectFit: "cover",
-          objectPosition: "center top",
-          flexShrink: 0,
-          border: "2px solid rgba(255,255,255,0.15)",
-        }}
-        onError={e => {
-          // Fallback to monogram if image fails
-          const target = e.currentTarget
-          target.style.display = "none"
-          const parent = target.parentElement
-          if (parent) {
-            const mono = document.createElement("div")
-            mono.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${color.bg};display:flex;align-items:center;justify-content:center;color:${color.text};font-size:${fontSize}px;font-weight:700;flex-shrink:0;`
-            mono.textContent = initials
-            parent.appendChild(mono)
-          }
-        }}
-      />
-    )
-  }
+  // Buckets are private: resolve stored URLs to a fresh signed URL on demand.
+  // While resolving (or if it fails), we show the initials monogram — so avatars
+  // are never broken, just gracefully fall back.
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
 
-  return (
+  useEffect(() => {
+    let active = true
+    setResolvedUrl(null)
+    setFailed(false)
+    if (!avatarUrl) return
+    // If it's a storage URL (public or sign), get a signed one; otherwise use as-is
+    // (covers external avatars, e.g. LinkedIn, that aren't in our buckets).
+    if (parseStorageUrl(avatarUrl)) {
+      getSignedFileUrl(avatarUrl).then((u) => {
+        if (active) { if (u) setResolvedUrl(u); else setFailed(true) }
+      })
+    } else {
+      setResolvedUrl(avatarUrl)
+    }
+    return () => { active = false }
+  }, [avatarUrl])
+
+  const monogram = (
     <div
       className={className}
       style={{
@@ -73,7 +72,7 @@ export default function CandidateAvatar({ name, avatarUrl, size = 40, className 
         alignItems: "center",
         justifyContent: "center",
         color: color.text,
-        fontSize: fontSize,
+        fontSize,
         fontWeight: 700,
         flexShrink: 0,
         letterSpacing: "0.02em",
@@ -81,5 +80,26 @@ export default function CandidateAvatar({ name, avatarUrl, size = 40, className 
     >
       {initials}
     </div>
+  )
+
+  if (!avatarUrl || failed || !resolvedUrl) {
+    return monogram
+  }
+
+  return (
+    <img
+      src={resolvedUrl}
+      alt={name}
+      className={className}
+      style={{
+        width: size, height: size,
+        borderRadius: "50%",
+        objectFit: "cover",
+        objectPosition: "center top",
+        flexShrink: 0,
+        border: "2px solid rgba(255,255,255,0.15)",
+      }}
+      onError={() => setFailed(true)}
+    />
   )
 }
