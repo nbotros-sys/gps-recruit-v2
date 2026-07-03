@@ -26,6 +26,7 @@ import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Sta
   ExternalLink, CheckCircle, AlertCircle, MessageSquare, FileText, Save, Briefcase, Eye, Download } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase"
+import { openSecureFile } from "@/lib/secure-file"
 
 const SOURCE_COLORS: Record<string, string> = {
   direct: "bg-teal/10 text-teal",
@@ -252,14 +253,13 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
                   <div className="flex gap-2">
                     {/* Preview — PDF only */}
                     {(candidate.cv_pdf_url || candidate.cv_file_type === "pdf") && (
-                      <a href={candidate.cv_pdf_url || candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                      <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_pdf_url || candidate.cv_file_url) }}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal hover:text-teal transition-all">
                         <Eye size={12} /> Preview
                       </a>
                     )}
                     {/* Download */}
-                    <a href={candidate.cv_pdf_url || candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
-                      download={`${candidate.name || "CV"}.${candidate.cv_pdf_url ? "pdf" : candidate.cv_file_type || "pdf"}`}
+                    <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_pdf_url || candidate.cv_file_url) }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal text-white text-xs font-semibold hover:opacity-90 transition-all">
                       <Download size={12} /> Download
                     </a>
