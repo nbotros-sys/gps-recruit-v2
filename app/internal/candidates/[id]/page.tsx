@@ -8,6 +8,7 @@ import {
   CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2, Download, Eye
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import { openSecureFile } from "@/lib/secure-file"
 import CandidateAvatar from "@/components/CandidateAvatar"
 
 const STAGE_COLORS: Record<string, string> = {
@@ -374,13 +375,12 @@ export default function CandidateProfile() {
             {/* GPS Builder CV — formatted PDF */}
             {candidate.cv_pdf_url && (
               <>
-                <a href={candidate.cv_pdf_url} target="_blank" rel="noopener noreferrer"
+                <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_pdf_url) }}
                   className="btn-secondary flex items-center gap-1.5 text-sm">
                   <Eye size={14} /> Preview CV
                 </a>
-                <a href={candidate.cv_pdf_url} target="_blank" rel="noopener noreferrer"
-                  className="btn-primary flex items-center gap-1.5 text-sm"
-                  download={`${candidate.name || "CV"}.pdf`}>
+                <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_pdf_url) }}
+                  className="btn-primary flex items-center gap-1.5 text-sm">
                   <Download size={14} /> Download CV
                 </a>
               </>
@@ -390,14 +390,13 @@ export default function CandidateProfile() {
             {!candidate.cv_pdf_url && candidate.cv_file_url && (
               <>
                 {candidate.cv_file_type === "pdf" && (
-                  <a href={candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                  <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_file_url) }}
                     className="btn-secondary flex items-center gap-1.5 text-sm">
                     <Eye size={14} /> Preview CV
                   </a>
                 )}
-                <a href={candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
-                  className="btn-primary flex items-center gap-1.5 text-sm"
-                  download={`${candidate.name || "CV"}.${candidate.cv_file_type || "pdf"}`}>
+                <a href="#" onClick={(e) => { e.preventDefault(); openSecureFile(candidate.cv_file_url) }}
+                  className="btn-primary flex items-center gap-1.5 text-sm">
                   <Download size={14} /> Download CV {candidate.cv_file_type ? `(${candidate.cv_file_type.toUpperCase()})` : ""}
                 </a>
               </>
