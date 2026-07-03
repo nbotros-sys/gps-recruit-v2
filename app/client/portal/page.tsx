@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
+import { getSignedFileUrl } from "@/lib/secure-file"
 import Image from "next/image"
 import { Loader2, LogOut, Star, MessageSquare, Calendar, X, FileText, ExternalLink, ChevronRight, CheckCircle } from "lucide-react"
 
@@ -52,6 +53,16 @@ export default function ClientPortal() {
   const [error, setError] = useState("")
   const [tab, setTab] = useState<"candidates" | "commentary" | "interviews">("candidates")
   const [selectedApp, setSelectedApp] = useState<any>(null)
+  const [cvUrl, setCvUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    const stored = selectedApp?.candidate?.cv_pdf_url || selectedApp?.candidate?.cv_file_url
+    if (!stored) { setCvUrl(null); return }
+    setCvUrl(null)
+    getSignedFileUrl(stored).then((u) => { if (active) setCvUrl(u) })
+    return () => { active = false }
+  }, [selectedApp])
+
   const [feedbackApp, setFeedbackApp] = useState<any>(null)
   const [interviewApp, setInterviewApp] = useState<any>(null)
   const [rejectApp, setRejectApp] = useState<any>(null)
@@ -436,7 +447,7 @@ export default function ClientPortal() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CV</p>
-                        <a href={selectedApp.candidate.cv_pdf_url || selectedApp.candidate.cv_file_url}
+                        <a href={cvUrl || undefined}
                           target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1 text-xs text-teal hover:underline">
                           <ExternalLink size={11} /> Open full screen
@@ -444,11 +455,11 @@ export default function ClientPortal() {
                       </div>
                       <div className="border border-gray-200 rounded-xl overflow-hidden">
                         {selectedApp.candidate.cv_pdf_url ? (
-                          <iframe src={selectedApp.candidate.cv_pdf_url} className="w-full" style={{ height: 420 }} title="CV Preview" />
+                          <iframe src={cvUrl || undefined} className="w-full" style={{ height: 420 }} title="CV Preview" />
                         ) : (
                           <div className="bg-gray-50 p-8 text-center">
                             <FileText size={24} className="mx-auto mb-2 text-gray-300" />
-                            <a href={selectedApp.candidate.cv_file_url} target="_blank" rel="noopener noreferrer"
+                            <a href={cvUrl || undefined} target="_blank" rel="noopener noreferrer"
                               className="text-sm text-teal hover:underline flex items-center justify-center gap-1.5">
                               <ExternalLink size={13} /> View CV
                             </a>
