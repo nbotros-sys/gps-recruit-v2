@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { setSentryUser, withSpan, captureError } from "@/lib/sentry"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
@@ -109,8 +108,12 @@ export async function POST(req: NextRequest) {
     const { mandate_id, job_description, mandate_title, deeper_search } = await req.json()
     if (!job_description) return NextResponse.json({ error: "No JD" }, { status: 400 })
 
-    const supabase = createClient()
-    const adminSupabase = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const supabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const adminSupabase = supabase
 
     const { data: existing } = await supabase.from("applications").select("candidate_id").eq("mandate_id", mandate_id)
     const existingIds = (existing || []).map((a: any) => a.candidate_id)
