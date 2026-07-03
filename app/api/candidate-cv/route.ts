@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 
 export async function GET(req: NextRequest) {
@@ -11,7 +11,11 @@ export async function GET(req: NextRequest) {
   const ids = req.nextUrl.searchParams.get("ids")
   if (!ids) return NextResponse.json({})
 
-  const supabase = createClient()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
   const idList = ids.split(",").filter(Boolean)
 
   const { data } = await supabase
