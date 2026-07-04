@@ -9,7 +9,7 @@ import {
   LayoutGrid, FileText, Zap, UserPlus, Users, GripVertical,
   Mail, Phone, ExternalLink, Edit3, Save, MessageSquare,
   Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2, Calendar,
-  ThumbsUp, ThumbsDown, Minus, ChevronDown } from "lucide-react"
+  ThumbsUp, ThumbsDown, Minus, ChevronDown, Linkedin } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import type { Mandate, Application } from "@/lib/types"
 
@@ -985,6 +985,19 @@ export default function MandateDetail() {
                           {(app as any).candidate?.current_company && (
                             <div className="text-xs text-gray-300 truncate">{(app as any).candidate.current_company}</div>
                           )}
+                          {(app as any).candidate?.source === "linkedin" && (app as any).candidate?.linkedin_url && (
+                            <a
+                              href={(app as any).candidate.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              draggable={false}
+                              onMouseDown={e => e.stopPropagation()}
+                              onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors w-fit"
+                              title="View LinkedIn profile">
+                              <Linkedin size={10} /> LinkedIn
+                            </a>
+                          )}
                           {app.ai_score && (
                             <div className="mt-2 flex items-center gap-1">
                               <Star size={10} className="text-amber-400 fill-amber-400" />
@@ -1061,6 +1074,12 @@ export default function MandateDetail() {
                     )}
                     {selectedApp.candidate?.location && (
                       <span className="flex items-center gap-1 text-xs text-gray-400"><MapPin size={11} /> {selectedApp.candidate.location}</span>
+                    )}
+                    {selectedApp.candidate?.linkedin_url && (
+                      <a href={selectedApp.candidate.linkedin_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors">
+                        <Linkedin size={11} /> LinkedIn
+                      </a>
                     )}
                   </div>
                 </div>
