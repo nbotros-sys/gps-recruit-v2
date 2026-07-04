@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 // Normalise phone — strip all non-digits, then strip leading country codes
 // so +20 100 123 4567, 00201001234567, 01001234567 all become 1001234567
@@ -18,9 +19,8 @@ function normalisePhone(phone: string | null | undefined): string {
 
 export async function GET(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
-  const _authClient = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await _authClient.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
