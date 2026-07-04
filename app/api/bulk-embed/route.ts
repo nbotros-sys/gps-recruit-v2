@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 // Build a rich semantic paragraph describing what the candidate actually does.
 // This is what gets embedded — not raw fields. Makes semantic search understand
@@ -67,9 +68,8 @@ ${(candidate.cv_text || "").slice(0, 6000)}`
 
 export async function POST(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
-  const _authClient = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await _authClient.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
