@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 // Allow up to 5 minutes for the scan to complete
 export const maxDuration = 300
@@ -346,9 +347,8 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
 // POST /api/talent-pool-scan — run scan synchronously, return result directly
 export async function POST(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
-  const _authClient = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await _authClient.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   try {
     const { mandate_id, job_description, mandate_title, incremental } = await req.json()
