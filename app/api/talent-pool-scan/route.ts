@@ -1,6 +1,5 @@
 import { createNotification } from "@/lib/activity"
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
@@ -73,12 +72,14 @@ function analyseGaps(structured: any, hard: any, soft: any) {
 }
 
 async function runScan(scanId: string, mandateId: string, jobDescription: string, mandateTitle: string, lastScanAt: string | null) {
-  const supabase = createClient()
   const adminSupabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+  // Reads run server-side inside a staff-gated route (POST enforces requireStaff),
+  // so use the service-role client. The anon client returns nothing under RLS.
+  const supabase = adminSupabase
 
   async function updateProgress(msg: string) {
     await adminSupabase.from("talent_pool_scans").update({ progress_message: msg }).eq("id", scanId)
