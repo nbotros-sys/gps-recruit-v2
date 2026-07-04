@@ -429,6 +429,10 @@ export async function POST(req: NextRequest) {
 
 // GET /api/talent-pool-scan?mandate_id=xxx — get latest scan status/result
 export async function GET(req: NextRequest) {
+  // Auth guard — scan results are staff-only (belt-and-braces; middleware is primary)
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
+
   const mandate_id = req.nextUrl.searchParams.get("mandate_id")
   if (!mandate_id) return NextResponse.json({ error: "Missing mandate_id" }, { status: 400 })
 
