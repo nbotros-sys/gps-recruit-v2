@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 export async function POST(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
-  const _authClient = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await _authClient.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   try {
     const { keepId, discardId } = await req.json()
