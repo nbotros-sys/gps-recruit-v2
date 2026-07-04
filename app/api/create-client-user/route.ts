@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 function getAdmin() {
   return createClient(
@@ -18,9 +19,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://gps-recruit-v2.verc
 
 export async function POST(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
-  const _authClient = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await _authClient.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   try {
     const { email, full_name, phone, company_name, mandate_id, mandate_name, temp_password } = await req.json()
