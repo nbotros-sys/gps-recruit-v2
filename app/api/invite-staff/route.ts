@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 import { Resend } from "resend"
 
 function getAdmin() {
@@ -15,9 +16,8 @@ const FROM = process.env.FROM_EMAIL || "GPS Recruitment <no-reply@gps4hr.com>"
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 export async function POST(req: NextRequest) {
-  const serverSupabase = createServerSupabaseClient()
-  const { data: { user: _authUser } } = await serverSupabase.auth.getUser()
-  if (!_authUser) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   try {
     const { email, full_name } = await req.json()
