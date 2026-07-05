@@ -16,10 +16,16 @@ export async function POST(req: NextRequest) {
     if (fileName.endsWith(".txt")) {
       text = buffer.toString("utf-8")
 
-    } else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
+    } else if (fileName.endsWith(".docx")) {
       const mammoth = require("mammoth")
       const result = await mammoth.extractRawText({ buffer })
       text = result.value || ""
+
+    } else if (fileName.endsWith(".doc")) {
+      const WordExtractor = require("word-extractor")
+      const extractor = new WordExtractor()
+      const doc = await extractor.extract(buffer)
+      text = doc.getBody() || ""
 
     } else if (fileName.endsWith(".pdf")) {
       const base64 = buffer.toString("base64")
