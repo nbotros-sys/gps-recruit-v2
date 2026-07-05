@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, Brain, Loader2, User, MapPin, Star, ChevronRight } from "lucide-react"
 import Link from "next/link"
 
@@ -9,6 +9,27 @@ export default function DatabaseSearchPage() {
   const [results, setResults] = useState<any[]>([])
   const [explanation, setExplanation] = useState("")
   const [searched, setSearched] = useState(false)
+
+  // Restore the last AI search (query + results) when returning to this page
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("gps:ai-search")
+      if (saved) {
+        const prev = JSON.parse(saved)
+        if (prev.query) setQuery(prev.query)
+        if (Array.isArray(prev.results)) setResults(prev.results)
+        if (typeof prev.explanation === "string") setExplanation(prev.explanation)
+        if (prev.searched) setSearched(true)
+      }
+    } catch {}
+  }, [])
+
+  // Persist the current AI search so it survives opening a candidate and coming back
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("gps:ai-search", JSON.stringify({ query, results, explanation, searched }))
+    } catch {}
+  }, [query, results, explanation, searched])
 
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
 
@@ -106,7 +127,7 @@ export default function DatabaseSearchPage() {
                 <span className="text-xs text-gray-400">ranked by relevance</span>
               </div>
               {results.map((c, i) => (
-                <Link key={c.id} href={`/internal/candidates/${c.id}`}
+                <Link key={c.id} href={`/internal/candidates/${c.id}?from=search`}
                   className="card flex items-center gap-4 hover:shadow-md transition-all group">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                     style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>

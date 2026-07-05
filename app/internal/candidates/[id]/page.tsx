@@ -154,6 +154,12 @@ function RoleCard({ app, candidateId }: { app: any; candidateId: string }) {
 export default function CandidateProfile() {
   const { id } = useParams()
   const router = useRouter()
+  const [fromSearch, setFromSearch] = useState(false)
+  useEffect(() => {
+    try {
+      setFromSearch(new URLSearchParams(window.location.search).get("from") === "search")
+    } catch {}
+  }, [])
   const [candidate, setCandidate] = useState<any>(null)
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -266,9 +272,15 @@ export default function CandidateProfile() {
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Back */}
-      <Link href="/internal/candidates" className="text-gray-400 hover:text-teal text-sm flex items-center gap-1 w-fit">
-        <ArrowLeft size={14} /> Back to Candidates
-      </Link>
+      {fromSearch ? (
+        <Link href="/internal/search" className="text-gray-400 hover:text-teal text-sm flex items-center gap-1 w-fit">
+          <ArrowLeft size={14} /> Back to search
+        </Link>
+      ) : (
+        <Link href="/internal/candidates" className="text-gray-400 hover:text-teal text-sm flex items-center gap-1 w-fit">
+          <ArrowLeft size={14} /> Back to Candidates
+        </Link>
+      )}
 
       {/* Hero card */}
       <div className="card">
