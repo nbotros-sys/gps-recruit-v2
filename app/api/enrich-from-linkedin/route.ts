@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
+import { cleanCvText } from "@/lib/clean-cv"
 
 function normalisePhone(phone: string | null | undefined): string {
   if (!phone) return ""
@@ -18,7 +19,7 @@ function buildCvText(data: any): string {
   const name = [data.first_name, data.last_name].filter(Boolean).join(" ")
   if (name) lines.push(name)
   if (data.headline) lines.push(data.headline)
-  if (data.summary) lines.push("\n" + data.summary)
+  if (data.summary) lines.push("\n" + cleanCvText(data.summary))
 
   if (data.experiences?.length) {
     lines.push("\nEXPERIENCE")
@@ -27,7 +28,7 @@ function buildCvText(data: any): string {
       const start = exp.starts_at ? `${exp.starts_at.month || ""}/${exp.starts_at.year || ""}` : null
       const end = exp.ends_at ? `${exp.ends_at.month || ""}/${exp.ends_at.year || ""}` : "Present"
       lines.push(`${title}${start ? " | " + start + " – " + end : ""}`)
-      if (exp.description) lines.push(exp.description)
+      if (exp.description) lines.push(cleanCvText(exp.description))
     }
   }
 

@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase"
+import { cleanCvText } from "@/lib/clean-cv"
 import { Upload, X, Loader2, CheckCircle, ArrowLeft, FileText } from "lucide-react"
 
 export default function CVPage() {
@@ -130,7 +131,7 @@ export default function CVPage() {
                   This is the text GPS extracted from your CV. It is used by our AI to match you to roles.
                 </p>
                 <pre style={{ fontSize: "13px", color: "#444", whiteSpace: "pre-wrap", fontFamily: "inherit", lineHeight: 1.8, margin: 0, maxHeight: "500px", overflowY: "auto" }}>
-                  {candidate.cv_text}
+                  {cleanCvText(candidate.cv_text)}
                 </pre>
               </div>
             </details>

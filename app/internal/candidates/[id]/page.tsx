@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { ageFromDob } from "@/lib/age"
+import { cleanCvText } from "@/lib/clean-cv"
 import { openSecureFile } from "@/lib/secure-file"
 import CandidateAvatar from "@/components/CandidateAvatar"
 
@@ -564,7 +565,7 @@ export default function CandidateProfile() {
           </div>
           {candidate.cv_text ? (
             <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5 max-h-[600px] overflow-y-auto">
-              {candidate.cv_text}
+              {cleanCvText(candidate.cv_text)}
             </pre>
           ) : (
             <div className="text-center py-12">

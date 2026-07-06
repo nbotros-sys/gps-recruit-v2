@@ -27,6 +27,7 @@ import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Sta
 import Link from "next/link"
 import { createClient } from "@/lib/supabase"
 import { ageFromDob } from "@/lib/age"
+import { cleanCvText } from "@/lib/clean-cv"
 import { openSecureFile } from "@/lib/secure-file"
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -271,7 +272,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
               {/* CV text below */}
               {candidate.cv_text ? (
                 <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5">
-                  {candidate.cv_text}
+                  {cleanCvText(candidate.cv_text)}
                 </pre>
               ) : (
                 <div className="text-center py-12">
