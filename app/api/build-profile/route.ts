@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
 
+function cleanFilename(filename?: string): string {
+  return (filename || "")
+    .replace(/\.[^.]+$/, "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_\-]+/g, " ")
+    .replace(/\b(cv|scv|resume|final|updated|copy|beginner|new|draft|doc|docx|pdf)\b/gi, " ")
+    .replace(/\d+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function toArray(val: any): string[] {
   if (Array.isArray(val)) return val
   if (typeof val === "string" && val.trim()) return val.split(",").map((s: string) => s.trim()).filter(Boolean)
@@ -31,7 +42,7 @@ GOOD tags: "Egyptian Labour Law", "Multi-entity Payroll", "SAP SuccessFactors", 
 
 Respond ONLY with valid JSON (no markdown, no backticks):
 {
-  "name": "<full name>",
+  "name": "<the CANDIDATE's own full name exactly as it appears as the subject of this CV. IMPORTANT: this text may contain document metadata recovered from an old file — do NOT use a name that comes from file/author properties, template or 'last saved by' fields, company names, 'Microsoft Office Word', smarttags, or similar. Only return a name you are confident is the candidate's. If the text is garbled or no clear candidate name is present, return null>",
   "email": "<email or null>",
   "phone": "<phone or null>",
   "current_title": "<actual current or most recent job title — be precise>",
@@ -74,7 +85,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     const parsed = JSON.parse(clean)
 
     const profile = {
-      name: parsed.name || filename?.replace(/\.[^.]+$/, "") || "Unknown",
+      name: parsed.name || cleanFilename(filename) || "Unknown",
       email: parsed.email || null,
       phone: parsed.phone || null,
       current_title: parsed.current_title || null,
