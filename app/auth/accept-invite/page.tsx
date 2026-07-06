@@ -42,16 +42,15 @@ function AcceptInvitePage() {
     }
 
     async function init() {
-      // 1) If a session already exists, use it.
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) { applySession(session); return }
-
-      // 2) Otherwise verify the one-time token from the invite link here, in the
-      //    browser. Email scanners that pre-open the link don't run JS, so they
-      //    can no longer consume the token before the real user arrives.
       const params = new URLSearchParams(window.location.search)
       const token_hash = params.get("token_hash")
       const type = (params.get("type") || "invite") as any
+
+      // 1) If the link carries an invite/recovery token, verify it FIRST. This signs
+      //    in as the INVITED user and overrides any other session that may already
+      //    exist in this browser (e.g. a colleague still logged in). Without this,
+      //    the invitee could wrongly land in — and set a password on — someone
+      //    else's account. Email scanners don't run JS, so they can't consume it.
       if (token_hash) {
         const { data, error } = await supabase.auth.verifyOtp({ token_hash, type })
         if (cancelled) return
@@ -61,7 +60,11 @@ function AcceptInvitePage() {
         return
       }
 
-      // 3) No session and no token.
+      // 2) No token in the URL — fall back to an existing session if there is one.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) { applySession(session); return }
+
+      // 3) Nothing to do.
       setChecking(false)
     }
 
