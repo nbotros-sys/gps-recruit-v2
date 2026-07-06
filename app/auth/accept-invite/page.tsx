@@ -28,49 +28,63 @@ function AcceptInvitePage() {
   const [email, setEmail] = useState("")
   const [sessionReady, setSessionReady] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [pendingToken, setPendingToken] = useState<{ hash: string; type: string } | null>(null)
   const supabase = createClient()
+
+  function applySession(session: any) {
+    if (!session?.user) return
+    setEmail(session.user.email || "")
+    setName(session.user.user_metadata?.full_name || "")
+    setSessionReady(true)
+    setChecking(false)
+  }
+
+  // Verify the token ONLY when the human clicks Continue. Corporate email security
+  // scanners (Microsoft Safe Links etc.) pre-open links — some in headless browsers
+  // that run JS — and would consume the single-use token on page load, making every
+  // link look "expired". Scanners don't click buttons, so gating on a click keeps the
+  // token intact until the real person arrives.
+  async function verifyToken() {
+    if (!pendingToken) return
+    setChecking(true)
+    setError("")
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: pendingToken.hash,
+      type: pendingToken.type as any,
+    })
+    if (!error && data?.session?.user) {
+      setPendingToken(null)
+      applySession(data.session)
+    } else {
+      setPendingToken(null)
+      setError("This invitation link is invalid or has expired. Please ask your admin to send you a new invite.")
+      setChecking(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
 
-    function applySession(session: any) {
-      if (cancelled || !session?.user) return
-      setEmail(session.user.email || "")
-      setName(session.user.user_metadata?.full_name || "")
-      setSessionReady(true)
-      setChecking(false)
-    }
-
     async function init() {
       const params = new URLSearchParams(window.location.search)
       const token_hash = params.get("token_hash")
-      const type = (params.get("type") || "invite") as any
+      const type = params.get("type") || "invite"
 
-      // 1) If the link carries an invite/recovery token, verify it FIRST. This signs
-      //    in as the INVITED user and overrides any other session that may already
-      //    exist in this browser (e.g. a colleague still logged in). Without this,
-      //    the invitee could wrongly land in — and set a password on — someone
-      //    else's account. Email scanners don't run JS, so they can't consume it.
+      // If the link carries a token, stash it and wait for a click (see verifyToken).
       if (token_hash) {
-        const { data, error } = await supabase.auth.verifyOtp({ token_hash, type })
-        if (cancelled) return
-        if (!error && data?.session?.user) { applySession(data.session); return }
-        setError("This invitation link is invalid or has expired. Please ask your admin to send you a new invite.")
-        setChecking(false)
+        if (!cancelled) { setPendingToken({ hash: token_hash, type }); setChecking(false) }
         return
       }
 
-      // 2) No token in the URL — fall back to an existing session if there is one.
+      // No token — fall back to an existing session if there is one.
       const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled) return
       if (session?.user) { applySession(session); return }
-
-      // 3) Nothing to do.
       setChecking(false)
     }
 
     init()
 
-    // Also react if a session arrives via another path.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
         applySession(session)
@@ -170,6 +184,22 @@ function AcceptInvitePage() {
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={22} className="animate-spin text-teal" />
                 <p className="text-sm text-gray-400">Verifying your invite...</p>
+              </div>
+
+            ) : pendingToken ? (
+              <div className="text-center py-4 space-y-5">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-1">You've been invited</h2>
+                  <p className="text-sm text-gray-400">Click below to set up your GPS account.</p>
+                </div>
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{error}</div>
+                )}
+                <button onClick={verifyToken}
+                  className="w-full py-3 rounded-xl text-white text-sm font-semibold tracking-wide transition-all hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
+                  Continue
+                </button>
               </div>
 
             ) : !sessionReady ? (
