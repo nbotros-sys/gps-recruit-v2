@@ -6,8 +6,9 @@ import CandidateAvatar from "@/components/CandidateAvatar"
 
 type ImportResult = {
   filename: string
-  status: "pending" | "processing" | "done" | "error"
+  status: "pending" | "processing" | "done" | "error" | "held" | "rejected"
   name?: string
+  candidateId?: string
   title?: string
   summary?: string
   tags?: string[]
@@ -58,6 +59,21 @@ export default function DatabaseImportPage() {
 
   function updateResult(idx: number, update: Partial<ImportResult>) {
     setResults(prev => prev.map((r, i) => i === idx ? { ...r, ...update } : r))
+  }
+
+  async function rejectImport(idx: number) {
+    const r = results[idx]
+    if (!r) return
+    if (r.candidateId) {
+      try {
+        await fetch("/api/delete-candidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: r.candidateId }),
+        })
+      } catch { /* leave as-is on failure */ }
+    }
+    updateResult(idx, { status: "rejected", error: undefined })
   }
 
   // ── LinkedIn enrichment handler ────────────────────────────────────────────
@@ -141,6 +157,12 @@ export default function DatabaseImportPage() {
       const profile = await profileRes.json()
       if (profile.error) { updateResult(idx, { status: "error", error: profile.error }); return }
 
+      // Readability gate — don't add garbled/corrupt/unidentifiable CVs to the database.
+      if (profile.is_cv === false) {
+        updateResult(idx, { status: "held", error: "Not imported — couldn't read a reliable CV (looks garbled or corrupt). Re-save as PDF/.docx and retry." })
+        return
+      }
+
       let existingId: string | null = null
       if (profile.email && !profile.email.includes("@pending.com")) {
         const { data: existing } = await supabase
@@ -210,6 +232,7 @@ export default function DatabaseImportPage() {
 
       updateResult(idx, {
         status: "done",
+        candidateId: savedId || undefined,
         name: profile.name,
         title: profile.current_title,
         summary: profile.summary,
@@ -483,12 +506,15 @@ export default function DatabaseImportPage() {
                 <div key={i} className={`bg-white rounded-2xl border p-4 transition-all
                   ${r.status === "done" ? "border-gray-100 shadow-sm" :
                     r.status === "error" ? "border-red-200 bg-red-50" :
+                    r.status === "held" ? "border-amber-200 bg-amber-50" :
+                    r.status === "rejected" ? "border-gray-100 opacity-50" :
                     r.status === "processing" ? "border-teal/20 bg-teal/[0.02]" :
                     "border-gray-100 opacity-40"}`}>
                   <div className="flex items-center gap-3">
                     {r.status === "done"
                       ? <CandidateAvatar name={r.name || r.filename} avatarUrl={r.avatar_url} size={36} />
                       : r.status === "error" ? <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
+                      : r.status === "held" ? <AlertCircle size={18} className="text-amber-500 flex-shrink-0" />
                       : r.status === "processing" ? <Loader2 size={15} className="animate-spin text-teal flex-shrink-0" />
                       : <div className="w-4 h-4 rounded-full border-2 border-gray-200 flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
@@ -500,11 +526,13 @@ export default function DatabaseImportPage() {
                       <div className="mt-0.5 text-xs">
                         {r.status === "done" && <span className="text-green-600">✓ Saved — {r.name}{r.title ? ` · ${r.title}` : ""}</span>}
                         {r.status === "error" && <span className="text-red-500 font-medium">Failed: {r.error}</span>}
+                        {r.status === "held" && <span className="text-amber-600 font-medium">{r.error}</span>}
+                        {r.status === "rejected" && <span className="text-gray-400">Not imported (rejected)</span>}
                         {r.status === "processing" && <span className="text-teal">Processing...</span>}
                         {r.status === "pending" && <span className="text-gray-300">Waiting...</span>}
                       </div>
                     </div>
-                    {r.status === "error" && !running && (
+                    {(r.status === "error" || r.status === "held") && !running && (
                       <button
                         onClick={() => {
                           const failedFile = files[i]
@@ -515,6 +543,14 @@ export default function DatabaseImportPage() {
                         }}
                         className="flex-shrink-0 text-xs font-semibold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
                         Retry
+                      </button>
+                    )}
+                    {r.status === "done" && !running && (
+                      <button
+                        onClick={() => rejectImport(i)}
+                        title="Remove this candidate from the database"
+                        className="flex-shrink-0 text-xs font-semibold text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
+                        Don't import
                       </button>
                     )}
                   </div>

@@ -62,7 +62,8 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   ],
   "function": "<primary function: Finance | HR | Sales | Marketing | Operations | Technology | Legal | Supply Chain | General Management | Other>",
   "seniority": "<Junior | Mid | Senior | Manager | Director | VP | C-Level>",
-  "industry": "<primary industry they have worked in>"
+  "industry": "<primary industry they have worked in>",
+  "is_cv": <true if this text is a genuine, readable CV/resume that clearly belongs to an identifiable real person; false if the text is garbled, corrupted, mostly software/document metadata (e.g. font names, XML, 'Microsoft Office Word'), or you cannot tell whose CV it is>
 }`
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -98,6 +99,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       function: parsed.function || null,
       seniority: parsed.seniority || null,
       industry: parsed.industry || null,
+      is_cv: parsed.is_cv !== false,
     }
 
     return NextResponse.json(profile)
