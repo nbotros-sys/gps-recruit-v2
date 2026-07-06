@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
-import { Loader2, Database, Zap, Sparkles, Users, Plus, Trash2, Mail, CheckCircle } from "lucide-react"
+import { Loader2, Database, Zap, Sparkles, Users, Plus, Trash2, Mail, CheckCircle, KeyRound } from "lucide-react"
+import { createClient } from "@/lib/supabase"
 
 interface StaffMember {
   id: string
@@ -11,7 +12,8 @@ interface StaffMember {
   created_at: string
 }
 
-export default function SettingsClient({ initialStaff }: { initialStaff: StaffMember[] }) {
+export default function SettingsClient({ initialStaff, isAdmin, currentEmail }: { initialStaff: StaffMember[]; isAdmin: boolean; currentEmail: string }) {
+  const supabase = createClient()
   const [embedding, setEmbedding] = useState(false)
   const [embedResult, setEmbedResult] = useState<any>(null)
   const [extractingStructured, setExtractingStructured] = useState(false)
@@ -24,6 +26,52 @@ export default function SettingsClient({ initialStaff }: { initialStaff: StaffMe
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState("")
   const [inviteSuccess, setInviteSuccess] = useState("")
+
+  // Change own password
+  const [myPw, setMyPw] = useState("")
+  const [myPw2, setMyPw2] = useState("")
+  const [myPwBusy, setMyPwBusy] = useState(false)
+  const [myPwMsg, setMyPwMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Admin: set another member's password
+  const [pwForId, setPwForId] = useState<string | null>(null)
+  const [pwValue, setPwValue] = useState("")
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwMsg, setPwMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null)
+
+  async function changeMyPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setMyPwMsg(null)
+    if (myPw.length < 8) { setMyPwMsg({ ok: false, text: "Password must be at least 8 characters." }); return }
+    if (myPw !== myPw2) { setMyPwMsg({ ok: false, text: "Passwords don't match." }); return }
+    setMyPwBusy(true)
+    const { error } = await supabase.auth.updateUser({ password: myPw })
+    setMyPwBusy(false)
+    if (error) { setMyPwMsg({ ok: false, text: error.message }); return }
+    setMyPw(""); setMyPw2("")
+    setMyPwMsg({ ok: true, text: "Your password has been updated." })
+  }
+
+  async function setMemberPassword(member: StaffMember) {
+    setPwMsg(null)
+    if (pwValue.length < 8) { setPwMsg({ id: member.id, ok: false, text: "Password must be at least 8 characters." }); return }
+    setPwBusy(true)
+    try {
+      const res = await fetch("/api/set-staff-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: member.email, password: pwValue }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setPwBusy(false)
+      if (!res.ok) { setPwMsg({ id: member.id, ok: false, text: data.error || "Failed to set password." }); return }
+      setPwValue(""); setPwForId(null)
+      setPwMsg({ id: member.id, ok: true, text: `Password set for ${member.full_name}. Share it with them to log in.` })
+    } catch {
+      setPwBusy(false)
+      setPwMsg({ id: member.id, ok: false, text: "Something went wrong." })
+    }
+  }
 
   async function refreshStaff() {
     const res = await fetch("/api/invite-staff")
@@ -161,26 +209,79 @@ export default function SettingsClient({ initialStaff }: { initialStaff: StaffMe
 
         <div className="space-y-2">
           {staff.filter(s => s.is_active).map(member => (
-            <div key={member.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
-                  style={{ background: "#028090" }}>
-                  {member.full_name.charAt(0).toUpperCase()}
+            <div key={member.id} className="rounded-lg hover:bg-gray-50">
+              <div className="flex items-center justify-between py-2.5 px-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+                    style={{ background: "#028090" }}>
+                    {member.full_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{member.full_name}</p>
+                    <p className="text-xs text-gray-400">{member.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{member.full_name}</p>
-                  <p className="text-xs text-gray-400">{member.email}</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 capitalize">{member.role}</span>
+                  {isAdmin && (
+                    <button onClick={() => { setPwForId(pwForId === member.id ? null : member.id); setPwValue(""); setPwMsg(null) }}
+                      title="Set or reset this member's password"
+                      className="text-gray-300 hover:text-teal transition-colors p-1 rounded">
+                      <KeyRound size={13} />
+                    </button>
+                  )}
+                  <button onClick={() => removeStaff(member.id)}
+                    className="text-gray-300 hover:text-red-400 transition-colors p-1 rounded">
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-400 capitalize">{member.role}</span>
-                <button onClick={() => removeStaff(member.id)}
-                  className="text-gray-300 hover:text-red-400 transition-colors p-1 rounded">
-                  <Trash2 size={13} />
-                </button>
-              </div>
+              {isAdmin && pwForId === member.id && (
+                <div className="px-3 pb-3 flex items-center gap-2">
+                  <input type="password" value={pwValue} onChange={e => setPwValue(e.target.value)}
+                    placeholder="New password (min 8 characters)"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                  <button onClick={() => setMemberPassword(member)} disabled={pwBusy}
+                    className="px-3 py-2 rounded-lg text-white text-xs font-semibold disabled:opacity-50" style={{ background: "#028090" }}>
+                    {pwBusy ? "Setting..." : "Set"}
+                  </button>
+                  <button onClick={() => { setPwForId(null); setPwValue("") }}
+                    className="text-xs text-gray-400 hover:text-gray-600 px-2">Cancel</button>
+                </div>
+              )}
+              {pwMsg && pwMsg.id === member.id && (
+                <div className={`px-3 pb-2 text-xs ${pwMsg.ok ? "text-green-600" : "text-red-500"}`}>{pwMsg.text}</div>
+              )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Change my password */}
+      <div className="card p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center flex-shrink-0">
+            <KeyRound size={18} className="text-teal" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900 mb-1">Change my password</h3>
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+              Update the password for your own account{currentEmail ? ` (${currentEmail})` : ""}.
+            </p>
+            <form onSubmit={changeMyPassword} className="space-y-3 max-w-sm">
+              <input type="password" value={myPw} onChange={e => setMyPw(e.target.value)}
+                placeholder="New password (min 8 characters)"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              <input type="password" value={myPw2} onChange={e => setMyPw2(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+              {myPwMsg && <p className={`text-sm ${myPwMsg.ok ? "text-green-600" : "text-red-500"}`}>{myPwMsg.text}</p>}
+              <button type="submit" disabled={myPwBusy}
+                className="px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50" style={{ background: "#028090" }}>
+                {myPwBusy ? "Updating..." : "Update password"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
