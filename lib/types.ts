@@ -32,6 +32,7 @@ export interface Candidate {
   tags: string[]
   source: string
   linkedin_url?: string
+  dob?: string
   notes?: string
   created_at: string
   updated_at: string

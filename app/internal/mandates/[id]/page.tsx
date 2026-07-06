@@ -11,6 +11,7 @@ import {
   Settings2, Search, Eye, Download, Briefcase, RefreshCw, Link2, Trash2, Calendar,
   ThumbsUp, ThumbsDown, Minus, ChevronDown, Linkedin } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import { ageFromDob } from "@/lib/age"
 import type { Mandate, Application } from "@/lib/types"
 
 const STAGES = ["new", "screening", "interview", "shortlisted", "offered", "placed", "rejected"]
@@ -977,7 +978,7 @@ export default function MandateDetail() {
                           <button
                             onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview"); setCandidateRoles([]); loadCandidateRoles((app as any).candidate?.id); loadRoleFeedback(app.id) }}
                             className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
-                            {(app as any).candidate?.name || "Unknown"}
+                            {(app as any).candidate?.name || "Unknown"}{ageFromDob((app as any).candidate?.dob) != null && <span className="text-gray-400 font-normal"> · {ageFromDob((app as any).candidate?.dob)}</span>}
                           </button>
                           {(app as any).candidate?.current_title && (
                             <div className="text-xs text-gray-400 truncate mt-0.5">{(app as any).candidate.current_title}</div>
@@ -1058,7 +1059,7 @@ export default function MandateDetail() {
                   {selectedApp.candidate?.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">{selectedApp.candidate?.name}</h2>
+                  <h2 className="text-lg font-bold text-gray-900">{selectedApp.candidate?.name}{ageFromDob(selectedApp.candidate?.dob) != null && <span className="text-gray-400 font-normal text-base"> · {ageFromDob(selectedApp.candidate?.dob)}</span>}</h2>
                   <p className="text-sm text-gray-500 mt-0.5">
                     {selectedApp.candidate?.current_title}
                     {selectedApp.candidate?.current_company ? ` @ ${selectedApp.candidate.current_company}` : ""}

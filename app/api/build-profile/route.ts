@@ -38,6 +38,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "current_company": "<current or most recent employer>",
   "location": "<city, country>",
   "years_experience": <integer total years of professional experience>,
+  "dob": "<date of birth as YYYY-MM-DD ONLY if the CV explicitly states a date of birth, otherwise null>",
   "summary": "<3-4 sentences: what this person genuinely specialises in, their most notable achievements with specifics, what type and level of role they are suited for, and anything distinctive about their background>",
   "tags": [
     "<specific technical skill or tool they actually used e.g. SAP HR, Oracle Payroll, Dynamics 365>",
@@ -80,6 +81,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
       current_company: parsed.current_company || null,
       location: parsed.location || null,
       years_experience: parsed.years_experience || null,
+      dob: parsed.dob || null,
       summary: parsed.summary || "",
       tags: toArray(parsed.tags),
       function: parsed.function || null,

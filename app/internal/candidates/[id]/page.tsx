@@ -8,6 +8,7 @@ import {
   CheckCircle, AlertCircle, Linkedin, ExternalLink, User, Camera, Loader2, Download, Eye
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import { ageFromDob } from "@/lib/age"
 import { openSecureFile } from "@/lib/secure-file"
 import CandidateAvatar from "@/components/CandidateAvatar"
 
@@ -307,7 +308,7 @@ export default function CandidateProfile() {
                 <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                   className="text-2xl font-bold text-gray-900 border-b-2 border-teal outline-none bg-transparent w-80" />
               ) : (
-                <h1 className="text-2xl font-bold text-gray-900">{candidate.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{candidate.name}{ageFromDob(candidate.dob) != null && <span className="text-gray-400 font-normal text-xl"> · {ageFromDob(candidate.dob)}</span>}</h1>
               )}
               <div className="flex items-center gap-2 mt-1">
                 {editing ? (

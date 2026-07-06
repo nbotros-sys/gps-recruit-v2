@@ -155,6 +155,7 @@ export default function DatabaseImportPage() {
         current_title: profile.current_title,
         current_company: profile.current_company,
         location: profile.location,
+        dob: profile.dob || null,
         cv_text: cvText,
         tags: profile.tags || [],
         source: "direct",

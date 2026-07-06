@@ -26,6 +26,7 @@ import { Plus, Search, Users, MapPin, Mail, Phone, X, ChevronRight, Loader2, Sta
   ExternalLink, CheckCircle, AlertCircle, MessageSquare, FileText, Save, Briefcase, Eye, Download } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase"
+import { ageFromDob } from "@/lib/age"
 import { openSecureFile } from "@/lib/secure-file"
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -102,7 +103,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
               </label>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">{candidate.name}</h2>
+              <h2 className="text-lg font-bold text-gray-900">{candidate.name}{ageFromDob(candidate.dob) != null && <span className="text-gray-400 font-normal text-base"> · {ageFromDob(candidate.dob)}</span>}</h2>
               <p className="text-sm text-gray-500 mt-0.5">
                 {candidate.current_title}{candidate.current_company ? ` @ ${candidate.current_company}` : ""}
               </p>
@@ -534,7 +535,7 @@ export default function CandidatesPage() {
                     {c.name?.charAt(0)?.toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors">{c.name}</div>
+                    <div className="font-semibold text-gray-900 group-hover:text-teal transition-colors">{c.name}{ageFromDob(c.dob) != null && <span className="text-gray-400 font-normal"> · {ageFromDob(c.dob)}</span>}</div>
                     <div className="text-xs text-gray-500 mt-0.5">
                       {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
                     </div>
