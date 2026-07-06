@@ -63,7 +63,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   "function": "<primary function: Finance | HR | Sales | Marketing | Operations | Technology | Legal | Supply Chain | General Management | Other>",
   "seniority": "<Junior | Mid | Senior | Manager | Director | VP | C-Level>",
   "industry": "<primary industry they have worked in>",
-  "is_cv": <true if this text is a genuine, readable CV/resume that clearly belongs to an identifiable real person; false if the text is garbled, corrupted, mostly software/document metadata (e.g. font names, XML, 'Microsoft Office Word'), or you cannot tell whose CV it is>
+  "is_cv": <true ONLY if this is a usable professional CV from which real EMPLOYMENT or EDUCATION content can actually be read (e.g. work history, job roles/titles, education, or concrete professional skills). Return false if the text is garbled/corrupted, is mostly document metadata (font names, XML, 'Microsoft Office Word', smarttags), OR contains almost no professional/employment information even when a name is present (e.g. only personal details like marital status, nationality, or hobbies such as swimming/karate). When in doubt, prefer false.>
 }`
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
