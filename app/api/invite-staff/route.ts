@@ -28,128 +28,75 @@ export async function POST(req: NextRequest) {
     const supabase = getAdmin()
     const emailNorm = email.toLowerCase().trim()
 
-    // Check if already a staff member
-    const { data: existing } = await supabase
-      .from("staff_users")
-      .select("id")
-      .ilike("email", emailNorm)
-      .maybeSingle()
-
-    if (existing) {
-      // Already in the team table — they may simply not have finished setting a
-      // password yet. Re-send a set-password link instead of blocking the invite.
-      try {
-        const { data: recoveryData } = await supabase.auth.admin.generateLink({
-          type: "recovery",
-          email: emailNorm,
-          options: { redirectTo: BASE_URL + "/auth/accept-invite" },
-        })
-        const recActionLink = recoveryData?.properties?.action_link
-        let recoveryLink = recActionLink
-        if (recActionLink) {
-          const recToken = new URL(recActionLink).searchParams.get("token")
-          if (recToken) recoveryLink = `${BASE_URL}/auth/accept-invite?token_hash=${recToken}&type=recovery`
-        }
-        if (recoveryLink) {
-          const resend = new Resend(process.env.RESEND_API_KEY!)
-          await resend.emails.send({
-            from: FROM,
-            to: emailNorm,
-            subject: "Set your password — GPS Recruitment Platform",
-            html: buildInviteEmail(full_name, recoveryLink),
-          })
-        }
-        return NextResponse.json({ success: true, resent: true })
-      } catch (e: any) {
-        return NextResponse.json({ error: e?.message || "Could not re-send the invite" }, { status: 500 })
-      }
+    // Build a link to our accept-invite page (token verified in the browser, so
+    // email scanners that pre-open links can't consume it).
+    function buildAcceptLink(actionLink?: string | null, fallbackType = "invite"): string | null {
+      if (!actionLink) return null
+      const u = new URL(actionLink)
+      const token = u.searchParams.get("token")
+      const type = u.searchParams.get("type") || fallbackType
+      return token ? `${BASE_URL}/auth/accept-invite?token_hash=${token}&type=${type}` : actionLink
     }
 
-    // Try to invite via Supabase Auth
-    // Generate the invite link ourselves so we control where it goes
+    // 1) Try an INVITE link first. This creates the auth login if none exists yet —
+    //    covering brand-new people AND "orphans" who still have a team-table row but
+    //    whose login was deleted.
+    let setupLink: string | null = null
+    let subject = "You've been invited to GPS Recruitment Platform"
+
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: "invite",
       email: emailNorm,
-      options: {
-        redirectTo: BASE_URL + "/auth/callback?type=invite",
-        data: { full_name },
-      },
+      options: { redirectTo: BASE_URL + "/auth/callback?type=invite", data: { full_name } },
     })
 
-    if (linkError) {
+    if (!linkError) {
+      setupLink = buildAcceptLink(linkData?.properties?.action_link, "invite")
+    } else {
       const msg = linkError.message || JSON.stringify(linkError)
-      const isExisting = msg.includes("already") || msg.includes("registered") || msg.includes("exists")
-      if (isExisting) {
-        // Already exists — generate a recovery link instead
-        const { data: alreadyStaff } = await supabase.from("staff_users").select("id").ilike("email", emailNorm).maybeSingle()
-        if (!alreadyStaff) {
-          await supabase.from("staff_users").insert([{ email: emailNorm, full_name, role: "recruiter", is_active: true }])
-        }
-        try {
-          const { data: recoveryData } = await supabase.auth.admin.generateLink({
-            type: "recovery",
-            email: emailNorm,
-            options: { redirectTo: BASE_URL + "/auth/accept-invite" }
-          })
-          const recActionLink = recoveryData?.properties?.action_link
-          let recoveryLink = recActionLink
-          if (recActionLink) {
-            const recToken = new URL(recActionLink).searchParams.get("token")
-            if (recToken) recoveryLink = `${BASE_URL}/auth/accept-invite?token_hash=${recToken}&type=recovery`
-          }
-          if (recoveryLink) {
-            const resend = new Resend(process.env.RESEND_API_KEY!)
-            await resend.emails.send({
-              from: FROM,
-              to: emailNorm,
-              subject: "Set your password — GPS Recruitment Platform",
-              html: buildInviteEmail(full_name, recoveryLink),
-            })
-          }
-        } catch (e: any) {
-          console.error("Recovery email failed:", e?.message)
-        }
-        return NextResponse.json({ success: true })
+      const alreadyRegistered = msg.includes("already") || msg.includes("registered") || msg.includes("exists")
+      if (!alreadyRegistered) {
+        return NextResponse.json({ error: msg }, { status: 500 })
       }
-      return NextResponse.json({ error: msg }, { status: 500 })
+      // 2) The login already exists → send a set-password (recovery) link instead.
+      subject = "Set your password — GPS Recruitment Platform"
+      const { data: recoveryData, error: recError } = await supabase.auth.admin.generateLink({
+        type: "recovery",
+        email: emailNorm,
+        options: { redirectTo: BASE_URL + "/auth/accept-invite" },
+      })
+      if (recError) {
+        return NextResponse.json({ error: recError.message }, { status: 500 })
+      }
+      setupLink = buildAcceptLink(recoveryData?.properties?.action_link, "recovery")
     }
 
-    // Extract token_hash from the action_link and build our own callback URL
-    // action_link = https://xxx.supabase.co/auth/v1/verify?token=HASH&type=invite&redirect_to=...
-    const actionLink = linkData?.properties?.action_link
-    if (!actionLink) {
-      return NextResponse.json({ error: "Could not generate invite link" }, { status: 500 })
-    }
-    const actionUrl = new URL(actionLink)
-    const extractedToken = actionUrl.searchParams.get("token")
-    const extractedType = actionUrl.searchParams.get("type") || "invite"
-    // Build our own link to the accept-invite page, where the one-time token is
-    // verified in the browser (JS). Automated email scanners that pre-open links
-    // don't run JS, so they can no longer consume the token before the user clicks.
-    const inviteLink = extractedToken
-      ? `${BASE_URL}/auth/accept-invite?token_hash=${extractedToken}&type=${extractedType}`
-      : actionLink
-
-    // Add to staff_users table
-    const { error: staffError } = await supabase
-      .from("staff_users")
-      .insert([{ email: emailNorm, full_name, role: "recruiter", is_active: true }])
-
-    if (staffError) {
-      return NextResponse.json({ error: staffError.message }, { status: 500 })
+    if (!setupLink) {
+      return NextResponse.json({ error: "Could not generate a setup link" }, { status: 500 })
     }
 
-    // Send GPS-branded invite email with the real invite link
+    // 3) Ensure the team-table row exists (don't duplicate an existing one).
+    const { data: existingStaff } = await supabase
+      .from("staff_users").select("id").ilike("email", emailNorm).maybeSingle()
+    if (!existingStaff) {
+      const { error: staffError } = await supabase
+        .from("staff_users")
+        .insert([{ email: emailNorm, full_name, role: "recruiter", is_active: true }])
+      if (staffError) return NextResponse.json({ error: staffError.message }, { status: 500 })
+    }
+
+    // 4) Send the branded email with the setup link.
     try {
       const resend = new Resend(process.env.RESEND_API_KEY!)
       await resend.emails.send({
         from: FROM,
         to: emailNorm,
-        subject: "You've been invited to GPS Recruitment Platform",
-        html: buildInviteEmail(full_name, inviteLink),
+        subject,
+        html: buildInviteEmail(full_name, setupLink),
       })
     } catch (emailErr: any) {
       console.error("Invite email failed:", emailErr?.message)
+      return NextResponse.json({ error: "Account is ready, but the email failed to send. Please try again." }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
