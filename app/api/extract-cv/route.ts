@@ -1,5 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 
+// Fallback text recovery for older/odd .doc files that word-extractor can't parse.
+// Pulls readable printable runs out of the raw bytes and keeps only the runs that
+// are mostly letters/spaces (dropping binary noise). Only used when the normal
+// reader fails, so it can never affect .doc files that already read cleanly.
+function salvageDocText(buffer: Buffer): string {
+  const candidates: string[] = []
+  {
+    const s = buffer.toString("latin1")
+    const runs = s.match(/[\x20-\x7e]{6,}/g) || []
+    const kept = runs.filter(r => r.length >= 10 && (r.match(/[A-Za-z ]/g) || []).length / r.length >= 0.8)
+    candidates.push(kept.join(" ").replace(/\s+/g, " ").trim())
+  }
+  {
+    const s = buffer.toString("utf16le")
+    const runs = s.match(/[\x20-\x7e\u00a0-\u05ff]{6,}/g) || []
+    const kept = runs.filter(r => r.length >= 8 && (r.match(/[A-Za-z\u00a0-\u05ff ]/g) || []).length / r.length >= 0.75)
+    candidates.push(kept.join(" ").replace(/\s+/g, " ").trim())
+  }
+  candidates.sort((a, b) => (b.match(/[A-Za-z]{2,}/g) || []).length - (a.match(/[A-Za-z]{2,}/g) || []).length)
+  return candidates[0] || ""
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get("file") as File
@@ -24,8 +46,18 @@ export async function POST(req: NextRequest) {
     } else if (fileName.endsWith(".doc")) {
       const WordExtractor = require("word-extractor")
       const extractor = new WordExtractor()
-      const doc = await extractor.extract(buffer)
-      text = doc.getBody() || ""
+      try {
+        const doc = await extractor.extract(buffer)
+        text = doc.getBody() || ""
+      } catch {
+        text = ""
+      }
+      // Older/odd .doc files can make word-extractor throw or return nothing even
+      // when readable text is present — salvage it directly as a fallback.
+      if (!text || text.trim().length < 40) {
+        const salvaged = salvageDocText(buffer)
+        if (salvaged.length >= 80) text = salvaged
+      }
 
     } else if (fileName.endsWith(".pdf")) {
       const base64 = buffer.toString("base64")
