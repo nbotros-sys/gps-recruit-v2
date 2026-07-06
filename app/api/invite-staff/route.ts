@@ -65,7 +65,12 @@ export async function POST(req: NextRequest) {
             email: emailNorm,
             options: { redirectTo: BASE_URL + "/auth/accept-invite" }
           })
-          const recoveryLink = recoveryData?.properties?.action_link
+          const recActionLink = recoveryData?.properties?.action_link
+          let recoveryLink = recActionLink
+          if (recActionLink) {
+            const recToken = new URL(recActionLink).searchParams.get("token")
+            if (recToken) recoveryLink = `${BASE_URL}/auth/accept-invite?token_hash=${recToken}&type=recovery`
+          }
           if (recoveryLink) {
             const resend = new Resend(process.env.RESEND_API_KEY!)
             await resend.emails.send({
@@ -92,9 +97,11 @@ export async function POST(req: NextRequest) {
     const actionUrl = new URL(actionLink)
     const extractedToken = actionUrl.searchParams.get("token")
     const extractedType = actionUrl.searchParams.get("type") || "invite"
-    // Build our own link that goes directly to our callback with token_hash
+    // Build our own link to the accept-invite page, where the one-time token is
+    // verified in the browser (JS). Automated email scanners that pre-open links
+    // don't run JS, so they can no longer consume the token before the user clicks.
     const inviteLink = extractedToken
-      ? `${BASE_URL}/auth/callback?token_hash=${extractedToken}&type=${extractedType}`
+      ? `${BASE_URL}/auth/accept-invite?token_hash=${extractedToken}&type=${extractedType}`
       : actionLink
 
     // Add to staff_users table

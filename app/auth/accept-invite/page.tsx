@@ -31,38 +31,50 @@ function AcceptInvitePage() {
   const supabase = createClient()
 
   useEffect(() => {
-    // First try to get existing session (already set by callback)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setEmail(session.user.email || "")
-        setName(session.user.user_metadata?.full_name || "")
-        setSessionReady(true)
+    let cancelled = false
+
+    function applySession(session: any) {
+      if (cancelled || !session?.user) return
+      setEmail(session.user.email || "")
+      setName(session.user.user_metadata?.full_name || "")
+      setSessionReady(true)
+      setChecking(false)
+    }
+
+    async function init() {
+      // 1) If a session already exists, use it.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) { applySession(session); return }
+
+      // 2) Otherwise verify the one-time token from the invite link here, in the
+      //    browser. Email scanners that pre-open the link don't run JS, so they
+      //    can no longer consume the token before the real user arrives.
+      const params = new URLSearchParams(window.location.search)
+      const token_hash = params.get("token_hash")
+      const type = (params.get("type") || "invite") as any
+      if (token_hash) {
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash, type })
+        if (cancelled) return
+        if (!error && data?.session?.user) { applySession(data.session); return }
+        setError("This invitation link is invalid or has expired. Please ask your admin to send you a new invite.")
         setChecking(false)
         return
       }
-      // No session yet — listen for it to arrive
-      setChecking(true)
-    })
 
-    // Listen for auth state change — fires when session cookies are picked up
+      // 3) No session and no token.
+      setChecking(false)
+    }
+
+    init()
+
+    // Also react if a session arrives via another path.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
-        setEmail(session.user.email || "")
-        setName(session.user.user_metadata?.full_name || "")
-        setSessionReady(true)
-        setChecking(false)
+        applySession(session)
       }
     })
 
-    // Timeout after 8 seconds
-    const timeout = setTimeout(() => {
-      setChecking(false)
-    }, 8000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
-    }
+    return () => { cancelled = true; subscription.unsubscribe() }
   }, [])
 
   async function submit(e: React.FormEvent) {
