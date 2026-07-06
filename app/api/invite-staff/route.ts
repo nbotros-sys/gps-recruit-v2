@@ -36,7 +36,33 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (existing) {
-      return NextResponse.json({ error: "This email is already a team member" }, { status: 409 })
+      // Already in the team table — they may simply not have finished setting a
+      // password yet. Re-send a set-password link instead of blocking the invite.
+      try {
+        const { data: recoveryData } = await supabase.auth.admin.generateLink({
+          type: "recovery",
+          email: emailNorm,
+          options: { redirectTo: BASE_URL + "/auth/accept-invite" },
+        })
+        const recActionLink = recoveryData?.properties?.action_link
+        let recoveryLink = recActionLink
+        if (recActionLink) {
+          const recToken = new URL(recActionLink).searchParams.get("token")
+          if (recToken) recoveryLink = `${BASE_URL}/auth/accept-invite?token_hash=${recToken}&type=recovery`
+        }
+        if (recoveryLink) {
+          const resend = new Resend(process.env.RESEND_API_KEY!)
+          await resend.emails.send({
+            from: FROM,
+            to: emailNorm,
+            subject: "Set your password — GPS Recruitment Platform",
+            html: buildInviteEmail(full_name, recoveryLink),
+          })
+        }
+        return NextResponse.json({ success: true, resent: true })
+      } catch (e: any) {
+        return NextResponse.json({ error: e?.message || "Could not re-send the invite" }, { status: 500 })
+      }
     }
 
     // Try to invite via Supabase Auth
