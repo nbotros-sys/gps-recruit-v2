@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Build a link to our accept-invite page (token verified in the browser, so
     // email scanners that pre-open links can't consume it).
-    function buildAcceptLink(actionLink?: string | null, fallbackType = "invite"): string | null {
+    const buildAcceptLink = (actionLink?: string | null, fallbackType = "invite"): string | null => {
       if (!actionLink) return null
       const u = new URL(actionLink)
       const token = u.searchParams.get("token")
