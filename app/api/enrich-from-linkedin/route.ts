@@ -98,7 +98,7 @@ function mapToCandidate(data: any, linkedinUrl: string) {
     cv_text,
     tags: skillTags,
     source: "linkedin",
-    notes: data.summary || "",
+    notes: cleanCvText(data.summary),
   }
 }
 

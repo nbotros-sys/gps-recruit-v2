@@ -12,6 +12,7 @@ import {
   ThumbsUp, ThumbsDown, Minus, ChevronDown, Linkedin } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { ageFromDob } from "@/lib/age"
+import { cleanCvText } from "@/lib/clean-cv"
 import type { Mandate, Application } from "@/lib/types"
 
 const STAGES = ["new", "screening", "interview", "shortlisted", "offered", "placed", "rejected"]
@@ -1351,7 +1352,7 @@ export default function MandateDetail() {
                         <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
                       </div>
                       <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4">
-                        {selectedApp.candidate.notes}
+                        {cleanCvText(selectedApp.candidate.notes)}
                       </p>
                     </div>
                   )}

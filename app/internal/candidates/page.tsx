@@ -173,7 +173,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
                     <span className="text-xs font-bold text-teal uppercase tracking-wide">AI Summary</span>
                     <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">{candidate.notes}</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{cleanCvText(candidate.notes)}</p>
                 </div>
               )}
 
@@ -353,7 +353,7 @@ function CandidateModal({ candidate, onClose, onNoteSaved }: { candidate: any, o
                     <span className="text-xs bg-teal/10 text-teal px-2 py-0.5 rounded-full">Auto-generated</span>
                   </div>
                   <div className="text-sm text-gray-600 leading-relaxed bg-teal/5 border border-teal/10 rounded-xl p-4">
-                    {candidate.notes}
+                    {cleanCvText(candidate.notes)}
                   </div>
                 </div>
               )}
