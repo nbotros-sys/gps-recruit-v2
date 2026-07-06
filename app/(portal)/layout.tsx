@@ -15,20 +15,37 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const isLoggedInPage = pathname?.startsWith("/account")
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        const { data: cand } = await supabase
-          .from("candidates")
-          .select("name, current_title, avatar_url")
-          .eq("email", user.email)
-          .single()
-        setCandidate(cand)
-      }
-      setLoading(false)
+    let mounted = true
+
+    async function resolveCandidate(u: any) {
+      if (!u) { if (mounted) setCandidate(null); return }
+      const { data: cand } = await supabase
+        .from("candidates")
+        .select("name, current_title, avatar_url")
+        .eq("email", u.email)
+        .maybeSingle()
+      if (mounted) setCandidate(cand)
     }
-    load()
+
+    // Authoritative initial check (server-verified)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted) return
+      setUser(user)
+      setLoading(false)
+      resolveCandidate(user)
+    })
+
+    // Keep the header in sync with the real auth state, so it never shows
+    // "Sign in / Register" while a valid session actually exists.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      const u = session?.user ?? null
+      setUser(u)
+      setLoading(false)
+      setTimeout(() => { if (mounted) resolveCandidate(u) }, 0)
+    })
+
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [])
 
   async function signOut() {
