@@ -532,6 +532,7 @@ export default function ClientsPage() {
   const [contactEmail, setContactEmail] = useState("")
   const [contactPhone, setContactPhone] = useState("")
   const [companyName, setCompanyName] = useState("")
+  const [confidential, setConfidential] = useState(false)
   const [mandateRows, setMandateRows] = useState([{ title: "", location: "", salary_range: "", job_description: "" }])
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
@@ -657,7 +658,7 @@ export default function ClientsPage() {
       const createdIds: string[] = []
       for (const m of mandateRows) {
         const { data: mandate, error: mErr } = await supabase.from("mandates").insert([{
-          title: m.title, client_name: companyName,
+          title: m.title, client_name: confidential ? "Confidential" : companyName,
           location: m.location || null, salary_range: m.salary_range || null,
           job_description: m.job_description || null, status: "active",
         }]).select("id").single()
@@ -674,7 +675,7 @@ export default function ClientsPage() {
       const createdIds: string[] = []
       for (const m of mandateRows) {
         const { data: mandate, error: mErr } = await supabase.from("mandates").insert([{
-          title: m.title, client_name: companyName,
+          title: m.title, client_name: confidential ? "Confidential" : companyName,
           location: m.location || null, salary_range: m.salary_range || null,
           job_description: m.job_description || null, status: "active",
         }]).select("id").single()
@@ -684,7 +685,7 @@ export default function ClientsPage() {
       const res = await fetch("/api/create-client-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: contactName, email: contactEmail, phone: contactPhone || undefined, company_name: companyName, mandate_id: createdIds[0], mandate_name: mandateRows[0].title, temp_password: password }),
+        body: JSON.stringify({ full_name: contactName, email: contactEmail, phone: contactPhone || undefined, company_name: companyName, mandate_id: createdIds[0], mandate_name: mandateRows[0].title, temp_password: password, confidential }),
       })
       const data = await res.json()
       if (data.error) {
@@ -709,7 +710,7 @@ export default function ClientsPage() {
         await supabase.from("mandates").update({ client_user_id: data.client_user?.id }).eq("id", mid)
       }
       setCreatedInfo({ email: contactEmail, password })
-      setContactName(""); setContactEmail(""); setCompanyName("")
+      setContactName(""); setContactEmail(""); setCompanyName(""); setConfidential(false)
       setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
       setShowForm(false)
       await loadClients()
@@ -724,7 +725,7 @@ export default function ClientsPage() {
     }
     setDuplicateClient(null)
     setPendingMandates([])
-    setContactName(""); setContactEmail(""); setCompanyName("")
+    setContactName(""); setContactEmail(""); setCompanyName(""); setConfidential(false)
     setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
     setShowForm(false)
     await loadClients()
@@ -746,7 +747,7 @@ export default function ClientsPage() {
     if (!newMandate.title || !selected) return
     setAddingMandate(true)
     const { error } = await supabase.from("mandates").insert([{
-      title: newMandate.title, client_name: selected.company_name,
+      title: newMandate.title, client_name: selected.confidential ? "Confidential" : selected.company_name,
       location: newMandate.location || null, salary_range: newMandate.salary_range || null,
       job_description: newMandate.job_description || null, status: "active",
       client_user_id: selected.id,
@@ -794,7 +795,7 @@ export default function ClientsPage() {
                 setPendingMandates([])
                 setContactName("")
                 setContactEmail("")
-                setCompanyName("")
+                setCompanyName(""); setConfidential(false)
                 setMandateRows([{ title: "", location: "", salary_range: "", job_description: "" }])
               }} className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5">
               <Plus size={12} /> Add
@@ -830,7 +831,7 @@ export default function ClientsPage() {
                     {(c.full_name || "?").charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm truncate">{c.company_name || c.full_name}</div>
+                    <div className="font-semibold text-gray-900 text-sm truncate">{c.company_name || c.full_name}{c.confidential && <span className="ml-1.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full align-middle">Confidential</span>}</div>
                     <div className="text-xs text-gray-400 truncate">{c.full_name}</div>
                   </div>
                   <div className={"w-2 h-2 rounded-full flex-shrink-0 " + (c.is_active ? "bg-teal" : "bg-gray-300")} />
@@ -860,7 +861,7 @@ export default function ClientsPage() {
                       {(selected.full_name || "?").charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-bold text-gray-900">{selected.company_name || selected.full_name}</div>
+                      <div className="font-bold text-gray-900">{selected.company_name || selected.full_name}{selected.confidential && <span className="ml-2 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full align-middle">Confidential</span>}</div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         <span>{selected.full_name}</span>
                         <span className="text-teal">{selected.email}</span>
@@ -1094,6 +1095,11 @@ export default function ClientsPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">Company *</label>
                     <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="TechCorp Egypt" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                    <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
+                      <input type="checkbox" checked={confidential} onChange={e => setConfidential(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-teal" />
+                      <span className="text-xs font-medium text-gray-600">Confidential client</span>
+                      <span className="text-[11px] text-gray-400">— company name is hidden on mandates</span>
+                    </label>
                   </div>
                 </div>
               </div>

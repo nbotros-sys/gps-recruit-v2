@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!gate.ok) return gate.response
 
   try {
-    const { email, full_name, phone, company_name, mandate_id, mandate_name, temp_password } = await req.json()
+    const { email, full_name, phone, company_name, mandate_id, mandate_name, temp_password, confidential } = await req.json()
     if (!email || !full_name || !temp_password) {
       return NextResponse.json({ error: "email, full_name and temp_password are required" }, { status: 400 })
     }
@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           company_name: company_name || null,
           mandate_id: mandate_id || null,
           mandate_name: mandate_name || null,
+          confidential: confidential || false,
           is_active: true,
           updated_at: new Date().toISOString(),
         })
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
           company_name: company_name || null,
           mandate_id: mandate_id || null,
           mandate_name: mandate_name || null,
+          confidential: confidential || false,
           is_active: true,
         }])
         .select()
