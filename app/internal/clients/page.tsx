@@ -400,7 +400,7 @@ function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate:
                   <a href={"/internal/mandates/" + mandate.id} className="btn-ghost text-xs flex items-center gap-1">
                     <ExternalLink size={10} /> Open mandate
                   </a>
-                  <a href={"/client/" + mandate.id} target="_blank" rel="noopener noreferrer" className="btn-ghost text-xs flex items-center gap-1">
+                  <a href={"/client/portal?mandate=" + mandate.id} target="_blank" rel="noopener noreferrer" className="btn-ghost text-xs flex items-center gap-1">
                     <ExternalLink size={10} /> View portal
                   </a>
                 </div>

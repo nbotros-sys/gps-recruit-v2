@@ -18,13 +18,42 @@ export async function GET(req: NextRequest) {
 
   const admin = getAdmin()
 
-  // Get client user record
-  const { data: clientUser } = await admin
-    .from("client_users")
-    .select("*")
-    .eq("auth_user_id", user.id)
-    .eq("is_active", true)
-    .maybeSingle()
+  // Staff preview — ?mandate=<id> lets an active staff member view a specific
+  // mandate's portal exactly as that mandate's client sees it. Without the
+  // param, behaviour is unchanged: the portal resolves from the logged-in
+  // client account.
+  const previewMandateId = req.nextUrl.searchParams.get("mandate")
+  let clientUser: any = null
+  let preview = false
+
+  if (previewMandateId) {
+    const { data: staff } = await admin
+      .from("staff_users")
+      .select("id")
+      .eq("email", user.email)
+      .eq("is_active", true)
+      .maybeSingle()
+    if (!staff) return NextResponse.json({ error: "Unauthorised" }, { status: 403 })
+
+    const { data: previewClients } = await admin
+      .from("client_users")
+      .select("*")
+      .eq("mandate_id", previewMandateId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+    clientUser = previewClients?.[0] || null
+    if (!clientUser) return NextResponse.json({ error: "No active client is linked to this mandate" }, { status: 404 })
+    preview = true
+  } else {
+    const { data: cu } = await admin
+      .from("client_users")
+      .select("*")
+      .eq("auth_user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle()
+    clientUser = cu
+  }
 
   if (!clientUser) return NextResponse.json({ error: "No client account found" }, { status: 403 })
 
@@ -70,6 +99,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
 
   return NextResponse.json({
+    preview,
     clientUser,
     mandate,
     applications: applications || [],

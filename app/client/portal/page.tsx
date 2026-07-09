@@ -103,7 +103,8 @@ export default function ClientPortal() {
 
   async function load(silent = false) {
     if (!silent) setLoading(true)
-    const res = await fetch("/api/client-portal")
+    const previewId = new URLSearchParams(window.location.search).get("mandate")
+    const res = await fetch("/api/client-portal" + (previewId ? "?mandate=" + encodeURIComponent(previewId) : ""))
     if (res.status === 401) { window.location.href = "/client/login"; return }
     const d = await res.json()
     if (d.error) { if (!silent) { setError(d.error); setLoading(false) } return }
@@ -265,6 +266,14 @@ export default function ClientPortal() {
 
   return (
     <div className="min-h-screen" style={{ background: "#FAFAF8", fontFamily: "var(--font-manrope)" }}>
+
+      {data.preview && (
+        <div style={{ background: "#0a1f24" }} className="px-7 py-2 text-center">
+          <span className="text-xs font-medium" style={{ color: "#A8D5D1" }}>
+            Staff preview — viewing this portal as {clientUser.full_name} ({clientUser.company_name}). Anything you submit here will be recorded as the client.
+          </span>
+        </div>
+      )}
 
       {/* Header */}
       <header style={{ background: "linear-gradient(135deg, #0a1f24 0%, #0f2b30 60%, #0a2326 100%)", position: "relative", overflow: "hidden" }} className="px-7 py-6">
