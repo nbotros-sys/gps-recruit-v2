@@ -155,6 +155,8 @@ export default function JobDetailPage() {
         }
       }
 
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+
       try {
         await fetch("/api/send-email", {
           method: "POST",
@@ -166,6 +168,8 @@ export default function JobDetailPage() {
             roleTitle: mandate.title,
             clientName: mandate.client_name,
             location: mandate.location,
+            candidateId,
+            hasAccount: !!authUser,
           })
         })
         await fetch("/api/send-email", {

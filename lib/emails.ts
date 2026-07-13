@@ -1,4 +1,5 @@
 import { emailLayout, brandFrom, infoPanel, infoRow, para } from "./email-layout"
+import { signClaimToken } from "./claim-token"
 import { Resend } from "resend"
 
 function getResend() { return new Resend(process.env.RESEND_API_KEY!) }
@@ -7,18 +8,28 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 // Email 1: Candidate applied to a specific role
 export async function sendApplicationConfirmation({
-  candidateName, candidateEmail, roleTitle, clientName, location, mandateId
+  candidateName, candidateEmail, roleTitle, clientName, location, mandateId, candidateId, hasAccount
 }: {
   candidateName: string, candidateEmail: string, roleTitle: string,
-  clientName?: string, location?: string, mandateId?: string
+  clientName?: string, location?: string, mandateId?: string,
+  candidateId?: string, hasAccount?: boolean
 }) {
   const firstName = candidateName.split(" ")[0] || candidateName
   const rows = infoRow("Role", roleTitle)
     + (clientName ? infoRow("Employer", clientName) : "")
     + (location ? infoRow("Location", location) : "")
+
+  const canClaim = !hasAccount && !!candidateId
+  const claimUrl = canClaim
+    ? `${BASE_URL}/claim?token=${encodeURIComponent(signClaimToken(candidateId as string, candidateEmail))}`
+    : ""
+
   const body =
-    para(`We've received your application and a GPS consultant will review it as soon as possible. You can track its progress anytime from your account.`)
+    para(`We've received your application and a GPS consultant will review it as soon as possible.`)
     + infoPanel(rows, "Your application")
+    + para(canClaim
+        ? `Set a password to create your account, then you can track this application anytime.`
+        : `You can track its progress anytime from your account.`)
 
   return getResend().emails.send({
     from: brandFrom("talnt"),
@@ -30,8 +41,8 @@ export async function sendApplicationConfirmation({
       badge: "Application received",
       heading: `You're in the running, ${firstName}`,
       bodyHtml: body,
-      ctaLabel: "Log in to track",
-      ctaUrl: `${BASE_URL}/account`,
+      ctaLabel: canClaim ? "Set a password to track" : "Log in to track",
+      ctaUrl: canClaim ? claimUrl : `${BASE_URL}/account`,
       footerNote: "You received this because you applied via GPS Talent Network.",
     }),
   })
