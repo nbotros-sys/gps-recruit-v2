@@ -579,6 +579,10 @@ export default function MandateDetail() {
     const app = applications.find(a => a.id === appId)
     const candidateName = app?.candidate?.name || "Candidate"
     const mandateTitle = mandate?.title || "mandate"
+    if (newStage === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app?.stage)) {
+      fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: appId }) }).catch(() => {})
+    }
     if (newStage === "placed") {
       // Placed notification + auto post-placement task
       fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },

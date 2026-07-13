@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { sendStaffFeedbackAlert, sendStaffInterviewRequest } from "@/lib/emails"
 
 function getAdmin() {
   return createAdminClient(
@@ -9,6 +10,8 @@ function getAdmin() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 // GET — fetch portal data for the logged-in client
 export async function GET(req: NextRequest) {
@@ -145,6 +148,10 @@ export async function POST(req: NextRequest) {
           message: `Feedback on ${candidateName} — ${mandateTitle}`,
           link: `/internal/clients?client=${client_user_id}&tab=feedback`,
         }])
+        await sendStaffFeedbackAlert({
+          candidateName, mandateTitle, sentiment, feedbackText: feedback_text,
+          link: `/internal/clients?client=${client_user_id}&tab=feedback`,
+        })
       })
 
       return NextResponse.json({ success: true })
@@ -177,6 +184,10 @@ export async function POST(req: NextRequest) {
           link_label: mandateTitle,
           auto_generated: true,
         }])
+        await sendStaffInterviewRequest({
+          candidateName, mandateTitle, preferredDates: preferred_dates, notes,
+          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
+        })
       })
 
       return NextResponse.json({ success: true })

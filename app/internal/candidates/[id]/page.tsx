@@ -540,6 +540,9 @@ export default function CandidateProfile() {
                         <button key={s} onClick={async () => {
                           await supabase.from("applications").update({ stage: s }).eq("id", app.id)
                           setApplications(prev => prev.map(a => a.id === app.id ? { ...a, stage: s } : a))
+                          if (s === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app.stage)) {
+                            fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ application_id: app.id }) }).catch(() => {})
+                          }
                         }}
                           className={`badge ${STAGE_COLORS[s] || "bg-gray-100 text-gray-500"} capitalize cursor-pointer hover:opacity-80 transition-opacity`}>
                           {s}
