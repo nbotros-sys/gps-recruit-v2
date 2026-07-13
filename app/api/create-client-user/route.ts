@@ -1,3 +1,4 @@
+import { emailLayout, brandFrom, para } from "@/lib/email-layout"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
@@ -14,8 +15,8 @@ function getAdmin() {
 
 function getResend() { return new Resend(process.env.RESEND_API_KEY!) }
 
-const FROM = process.env.FROM_EMAIL || "GPS Talent <onboarding@resend.dev>"
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://gps-recruit-v2.vercel.app"
+const FROM = brandFrom("gps")
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 export async function POST(req: NextRequest) {
   // Auth guard — belt-and-braces (middleware is primary)
@@ -150,60 +151,24 @@ export async function POST(req: NextRequest) {
 
 function buildWelcomeEmail(name: string, email: string, password: string, baseUrl: string): string {
   const firstName = name.split(" ")[0] || name
-  const LOGO = "https://recruit.gps4hr.com/gps-logo-full.png"
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Your GPS client portal</title></head>
-<body style="margin:0;padding:0;background-color:#f0f4f3;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f4f3;">
-<tr><td align="center" style="padding:48px 20px;">
-<table border="0" cellpadding="0" cellspacing="0" width="520">
-<tr><td align="center" style="padding-bottom:24px;"><img src="${LOGO}" alt="GPS Recruitment" width="160" style="display:block;border:0;" /></td></tr>
-</table>
-<table border="0" cellpadding="0" cellspacing="0" width="520" style="background-color:#ffffff;border:1px solid #e0e0e0;">
-<tr><td height="4" style="background-color:#028090;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:40px 44px 36px;">
-  <h1 style="font-size:22px;font-weight:bold;color:#0a1f24;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</h1>
-  <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 24px 0;font-family:Arial,Helvetica,sans-serif;">
-    Your GPS client portal is ready. You can now view shortlisted candidates, leave feedback, and request interviews.
-  </p>
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f8fafc;border:1px solid #e5e7eb;margin-bottom:28px;">
-  <tr><td style="padding:16px 20px 0;">
-    <p style="font-size:11px;font-weight:bold;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px 0;font-family:Arial,sans-serif;">Your login credentials</p>
-  </td></tr>
-  <tr><td style="padding:0 20px;">
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid #f0f0f0;">
-    <tr>
-      <td style="font-size:12px;color:#9ca3af;padding:9px 0;border-bottom:1px solid #f0f0f0;font-family:Arial,sans-serif;">Portal</td>
-      <td align="right" style="font-size:12px;color:#028090;font-weight:bold;padding:9px 0;border-bottom:1px solid #f0f0f0;font-family:Arial,sans-serif;">${baseUrl}/client/login</td>
-    </tr>
-    <tr>
-      <td style="font-size:12px;color:#9ca3af;padding:9px 0;border-bottom:1px solid #f0f0f0;font-family:Arial,sans-serif;">Email</td>
-      <td align="right" style="font-size:13px;color:#0a1f24;font-weight:bold;padding:9px 0;border-bottom:1px solid #f0f0f0;font-family:monospace;">${email}</td>
-    </tr>
-    <tr>
-      <td style="font-size:12px;color:#9ca3af;padding:9px 0;font-family:Arial,sans-serif;">Password</td>
-      <td align="right" style="font-size:13px;color:#0a1f24;font-weight:bold;padding:9px 0;font-family:monospace;">${password}</td>
-    </tr>
+  const cred = `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f5faf9;border:1px solid #d0e8e4;margin:0 0 22px 0;"><tr><td style="padding:16px 20px;">
+    <div style="font-size:11px;font-weight:bold;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;font-family:Arial,sans-serif;">Your login credentials</div>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr><td style="font-size:13px;color:#888;padding:4px 0;font-family:Arial,sans-serif;">Portal</td><td align="right" style="font-size:13px;color:#028090;font-weight:bold;padding:4px 0;font-family:Arial,sans-serif;">${baseUrl}/client/login</td></tr>
+      <tr><td style="font-size:13px;color:#888;padding:4px 0;font-family:Arial,sans-serif;">Email</td><td align="right" style="font-size:13px;color:#0a1f24;font-weight:bold;padding:4px 0;font-family:'Courier New',monospace;">${email}</td></tr>
+      <tr><td style="font-size:13px;color:#888;padding:4px 0;font-family:Arial,sans-serif;">Password</td><td align="right" style="font-size:13px;color:#0a1f24;font-weight:bold;padding:4px 0;font-family:'Courier New',monospace;">${password}</td></tr>
     </table>
-  </td></tr>
-  <tr><td style="padding:8px 20px 14px;">
-    <p style="font-size:12px;color:#9ca3af;margin:0;font-family:Arial,sans-serif;">Please change your password after your first login.</p>
-  </td></tr>
-  </table>
-  <table border="0" cellpadding="0" cellspacing="0" width="100%">
-  <tr><td align="center">
-    <a href="${baseUrl}/client/login" style="display:inline-block;background-color:#028090;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;text-decoration:none;padding:15px 40px;border:0;">Access your portal &#8594;</a>
-  </td></tr>
-  </table>
-</td></tr>
-<tr><td style="background-color:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>
-<td style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">GPS Recruitment &middot; Your Trusted HR Partner</td>
-<td align="right" style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">Egypt &middot; MENA</td>
-</tr></table>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body></html>`
+  </td></tr></table>`
+  const body = para("Your GPS client portal is ready. You can now view shortlisted candidates, leave feedback, and request interviews.")
+    + cred
+    + `<p style="font-size:12px;color:#9ca3af;margin:0 0 4px 0;font-family:Arial,sans-serif;">Please change your password after your first login.</p>`
+  return emailLayout({
+    brand: "gps",
+    preheader: "Your GPS client portal is ready",
+    badge: "Portal access",
+    heading: `Hi ${firstName},`,
+    bodyHtml: body,
+    ctaLabel: "Access your portal",
+    ctaUrl: `${baseUrl}/client/login`,
+  })
 }

@@ -1,3 +1,4 @@
+import { emailLayout, brandFrom, para } from "@/lib/email-layout"
 import { createNotification } from "@/lib/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
@@ -5,8 +6,8 @@ import { Resend } from "resend"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
 
-const FROM = process.env.FROM_EMAIL || "GPS Talent <onboarding@resend.dev>"
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://gps-recruit-v2.vercel.app"
+const FROM = brandFrom("gps")
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 function getAdmin() {
   return createClient(
@@ -129,29 +130,17 @@ function buildPdfHtml(text: string, title?: string, client?: string) {
 function buildEmailHtml(name: string, text: string, title?: string, portalUrl?: string, pdfUrl?: string|null) {
   const firstName = name.split(" ")[0] || name
   const preview = text.substring(0, 200).replace(/\n/g, " ") + (text.length > 200 ? "…" : "")
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f8f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center">
-    <table width="520" cellpadding="0" cellspacing="0" style="background:white;border-radius:14px;overflow:hidden;border:1px solid #e0e0e0;">
-      <tr><td style="background:#0a1f24;padding:28px 36px;">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#028090;border-radius:8px;width:34px;height:34px;text-align:center;vertical-align:middle;"><span style="color:white;font-size:10px;font-weight:700;">GPS</span></td>
-          <td style="padding-left:10px;"><div style="color:white;font-size:14px;font-weight:700;">GPS Recruitment</div><div style="color:rgba(168,213,209,0.6);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Market Commentary</div></td>
-        </tr></table>
-      </td></tr>
-      <tr><td style="padding:32px 36px;">
-        <h1 style="font-size:20px;font-weight:700;color:#0a1f24;margin:0 0 8px;">Hi ${firstName},</h1>
-        <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 20px;">We have a new update for your search${title ? ` for <strong>${title}</strong>` : ""}.</p>
-        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
-          <p style="font-size:13px;color:#374151;line-height:1.7;margin:0;">${preview}</p>
-        </div>
-        ${portalUrl ? `<a href="${portalUrl}" style="display:block;background:#028090;color:white;text-align:center;padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:12px;">View full update in your portal →</a>` : ""}
-        ${pdfUrl ? `<a href="${pdfUrl}" style="display:block;text-align:center;padding:11px 28px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid #e5e7eb;color:#374151;">Download PDF</a>` : ""}
-      </td></tr>
-      <tr><td style="padding:16px 36px 24px;text-align:center;border-top:1px solid #f0f0f0;">
-        <p style="font-size:11px;color:#9ca3af;margin:0;">GPS — Your Trusted HR Partner · Egypt</p>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`
+  const panel = `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f5faf9;border:1px solid #d0e8e4;margin:0 0 22px 0;"><tr><td style="padding:16px 20px;font-size:13px;color:#374151;line-height:1.7;font-family:Arial,sans-serif;">${preview}</td></tr></table>`
+  const pdfLink = pdfUrl ? `<p style="font-size:13px;margin:0;font-family:Arial,sans-serif;"><a href="${pdfUrl}" style="color:#028090;text-decoration:none;">Download the full PDF &#8594;</a></p>` : ""
+  const body = para(`We have a new update for your search${title ? ` for <strong>${title}</strong>` : ""}.`)
+    + panel + pdfLink
+  return emailLayout({
+    brand: "gps",
+    preheader: `New market update${title ? ` for ${title}` : ""}`,
+    badge: "Market commentary",
+    heading: `Hi ${firstName},`,
+    bodyHtml: body,
+    ctaLabel: portalUrl ? "View full update in your portal" : undefined,
+    ctaUrl: portalUrl,
+  })
 }

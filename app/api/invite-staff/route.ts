@@ -1,3 +1,4 @@
+import { emailLayout, brandFrom, para } from "@/lib/email-layout"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
@@ -12,7 +13,7 @@ function getAdmin() {
   )
 }
 
-const FROM = process.env.FROM_EMAIL || "GPS Recruitment <no-reply@gps4hr.com>"
+const FROM = brandFrom("gps")
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
 export async function POST(req: NextRequest) {
@@ -159,41 +160,15 @@ export async function DELETE(req: NextRequest) {
 
 function buildInviteEmail(name: string, inviteLink: string): string {
   const firstName = name.split(" ")[0] || name
-  const body = `
-    <h1 style="font-size:22px;font-weight:bold;color:#0a1f24;margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</h1>
-    <p style="font-size:15px;color:#6b7280;line-height:1.7;margin:0 0 28px 0;font-family:Arial,Helvetica,sans-serif;">
-      You've been invited to join the GPS Recruitment internal platform.
-      Click the button below to set up your account and get started.
-    </p>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-    <tr><td align="center" style="padding:4px 0 0;">
-      <a href="${inviteLink}" style="display:inline-block;background-color:#028090;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;text-decoration:none;padding:15px 40px;border:0;">Set up your account &#8594;</a>
-    </td></tr>
-    </table>
-    <p style="font-size:12px;color:#9ca3af;margin:20px 0 0;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
-      This invitation expires in 24 hours. If you weren't expecting this, you can safely ignore this email.
-    </p>
-  `
-  const LOGO = "https://recruit.gps4hr.com/gps-logo-full.png"
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>You've been invited</title></head>
-<body style="margin:0;padding:0;background-color:#f0f4f3;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f4f3;">
-<tr><td align="center" style="padding:48px 20px;">
-<table border="0" cellpadding="0" cellspacing="0" width="520">
-<tr><td align="center" style="padding-bottom:24px;"><img src="${LOGO}" alt="GPS Recruitment" width="160" style="display:block;border:0;" /></td></tr>
-</table>
-<table border="0" cellpadding="0" cellspacing="0" width="520" style="background-color:#ffffff;border:1px solid #e0e0e0;">
-<tr><td height="4" style="background-color:#028090;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:40px 44px 36px;">${body}</td></tr>
-<tr><td style="background-color:#f8fafa;border-top:1px solid #f0f0f0;padding:18px 44px;">
-<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>
-<td style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">GPS Recruitment &middot; Your Trusted HR Partner</td>
-<td align="right" style="font-size:11px;color:#9ca3af;font-family:Arial,sans-serif;">Egypt &middot; MENA</td>
-</tr></table>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body></html>`
+  const body = para("You've been invited to join the GPS Recruitment internal platform. Click the button below to set up your account and get started.")
+    + `<p style="font-size:12px;color:#9ca3af;margin:16px 0 0;line-height:1.6;font-family:Arial,sans-serif;">This invitation expires in 24 hours. If you weren't expecting this, you can safely ignore this email.</p>`
+  return emailLayout({
+    brand: "gps",
+    preheader: "You've been invited to the GPS Recruitment platform",
+    badge: "Staff invitation",
+    heading: `Hi ${firstName},`,
+    bodyHtml: body,
+    ctaLabel: "Set up your account",
+    ctaUrl: inviteLink,
+  })
 }
