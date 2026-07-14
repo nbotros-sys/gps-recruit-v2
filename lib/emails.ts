@@ -434,3 +434,42 @@ export async function sendStaffInterviewFollowup({
     }),
   })
 }
+
+// Email 16: Internal — daily self-test / health report
+export async function sendSelfTestReport({
+  passed, failed, failures, totalPages, totalEndpoints, dynamicCount
+}: {
+  passed: number, failed: number,
+  failures: { name: string, detail: string }[],
+  totalPages: number, totalEndpoints: number, dynamicCount: number
+}) {
+  const allGood = failed === 0
+  const failBlock = failures.length
+    ? `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#fef2f2;border:1px solid #fecaca;margin:0 0 22px 0;"><tr><td style="padding:14px 18px;font-family:Arial,sans-serif;">`
+      + failures.map(f => `<div style="font-size:13px;color:#991b1b;line-height:1.6;margin:0 0 6px 0;"><strong>${f.name}</strong> — ${f.detail}</div>`).join("")
+      + `</td></tr></table>`
+    : ""
+  const summary = infoPanel(
+    infoRow("Checks passed", String(passed))
+    + infoRow("Checks failed", String(failed))
+    + infoRow("Pages checked", String(totalPages))
+    + infoRow("Endpoints checked", String(totalEndpoints))
+    + infoRow("Dynamic routes (not pinged)", String(dynamicCount)),
+    "Summary")
+  return send({
+    from: brandFrom("gps"),
+    to: GPS_INTERNAL,
+    subject: allGood ? `Health check: all ${passed} checks passed` : `Health check: ${failed} failing`,
+    html: emailLayout({
+      brand: "gps",
+      preheader: allGood ? "All systems healthy" : `${failed} check(s) failing`,
+      badge: allGood ? "All clear" : "Attention needed",
+      heading: allGood ? "Daily health check — all clear" : "Daily health check — attention needed",
+      bodyHtml: (allGood
+        ? para("Every page and endpoint responded, and the database and email domain are healthy.")
+        : para("The daily check found issues that need a look:") + failBlock)
+        + summary,
+      footerNote: "GPS RecruitAI · Automated daily health check.",
+    }),
+  })
+}

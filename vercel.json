@@ -1,5 +1,12 @@
 {
   "crons": [
-    { "path": "/api/cron/interview-daily", "schedule": "0 7 * * *" }
+    {
+      "path": "/api/cron/interview-daily",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/selftest",
+      "schedule": "0 6 * * *"
+    }
   ]
 }

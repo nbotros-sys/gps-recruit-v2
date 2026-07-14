@@ -1,0 +1,335 @@
+{
+  "generatedAt": "2026-07-14T04:50:43.509Z",
+  "pages": [
+    {
+      "path": "/",
+      "dynamic": false
+    },
+    {
+      "path": "/account",
+      "dynamic": false
+    },
+    {
+      "path": "/account/cv",
+      "dynamic": false
+    },
+    {
+      "path": "/account/profile",
+      "dynamic": false
+    },
+    {
+      "path": "/auth/accept-invite",
+      "dynamic": false
+    },
+    {
+      "path": "/auth/error",
+      "dynamic": false
+    },
+    {
+      "path": "/auth/login",
+      "dynamic": false
+    },
+    {
+      "path": "/auth/update-password",
+      "dynamic": false
+    },
+    {
+      "path": "/claim",
+      "dynamic": false
+    },
+    {
+      "path": "/client/login",
+      "dynamic": false
+    },
+    {
+      "path": "/client/portal",
+      "dynamic": false
+    },
+    {
+      "path": "/cv-builder",
+      "dynamic": false
+    },
+    {
+      "path": "/cv-builder/success",
+      "dynamic": false
+    },
+    {
+      "path": "/cv-coming-soon",
+      "dynamic": false
+    },
+    {
+      "path": "/how-it-works",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/activity",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/candidates",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/candidates/[id]",
+      "dynamic": true
+    },
+    {
+      "path": "/internal/candidates/duplicates",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/clients",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/dashboard",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/database",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/login",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/mandates",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/mandates/[id]",
+      "dynamic": true
+    },
+    {
+      "path": "/internal/search",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/settings",
+      "dynamic": false
+    },
+    {
+      "path": "/internal/sourcing",
+      "dynamic": false
+    },
+    {
+      "path": "/jobs",
+      "dynamic": false
+    },
+    {
+      "path": "/jobs/[id]",
+      "dynamic": true
+    },
+    {
+      "path": "/join",
+      "dynamic": false
+    },
+    {
+      "path": "/login",
+      "dynamic": false
+    },
+    {
+      "path": "/send-cv",
+      "dynamic": false
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "/api/backfill-dob",
+      "dynamic": false
+    },
+    {
+      "path": "/api/build-profile",
+      "dynamic": false
+    },
+    {
+      "path": "/api/bulk-embed",
+      "dynamic": false
+    },
+    {
+      "path": "/api/bulk-extract-structured",
+      "dynamic": false
+    },
+    {
+      "path": "/api/bulk-score",
+      "dynamic": false
+    },
+    {
+      "path": "/api/candidate-cv",
+      "dynamic": false
+    },
+    {
+      "path": "/api/claim-account",
+      "dynamic": false
+    },
+    {
+      "path": "/api/client-portal",
+      "dynamic": false
+    },
+    {
+      "path": "/api/create-client-user",
+      "dynamic": false
+    },
+    {
+      "path": "/api/cron/interview-daily",
+      "dynamic": false
+    },
+    {
+      "path": "/api/cron/selftest",
+      "dynamic": false
+    },
+    {
+      "path": "/api/debug-env",
+      "dynamic": false
+    },
+    {
+      "path": "/api/debug-search",
+      "dynamic": false
+    },
+    {
+      "path": "/api/delete-candidate",
+      "dynamic": false
+    },
+    {
+      "path": "/api/delete-mandate",
+      "dynamic": false
+    },
+    {
+      "path": "/api/enrich-from-linkedin",
+      "dynamic": false
+    },
+    {
+      "path": "/api/extract-candidate",
+      "dynamic": false
+    },
+    {
+      "path": "/api/extract-cv",
+      "dynamic": false
+    },
+    {
+      "path": "/api/extract-photo",
+      "dynamic": false
+    },
+    {
+      "path": "/api/extract-structured",
+      "dynamic": false
+    },
+    {
+      "path": "/api/file-url",
+      "dynamic": false
+    },
+    {
+      "path": "/api/find-candidate-by-name",
+      "dynamic": false
+    },
+    {
+      "path": "/api/find-duplicates",
+      "dynamic": false
+    },
+    {
+      "path": "/api/generate-cv",
+      "dynamic": false
+    },
+    {
+      "path": "/api/generate-cv-pdf",
+      "dynamic": false
+    },
+    {
+      "path": "/api/generate-embedding",
+      "dynamic": false
+    },
+    {
+      "path": "/api/generate-outreach",
+      "dynamic": false
+    },
+    {
+      "path": "/api/invite-staff",
+      "dynamic": false
+    },
+    {
+      "path": "/api/linkedin-search",
+      "dynamic": false
+    },
+    {
+      "path": "/api/mandate-insight",
+      "dynamic": false
+    },
+    {
+      "path": "/api/merge-candidates",
+      "dynamic": false
+    },
+    {
+      "path": "/api/notifications",
+      "dynamic": false
+    },
+    {
+      "path": "/api/notify-candidate-stage",
+      "dynamic": false
+    },
+    {
+      "path": "/api/notify-client-submission",
+      "dynamic": false
+    },
+    {
+      "path": "/api/notify-interview-confirmed",
+      "dynamic": false
+    },
+    {
+      "path": "/api/notify-role-filled",
+      "dynamic": false
+    },
+    {
+      "path": "/api/reset-password",
+      "dynamic": false
+    },
+    {
+      "path": "/api/score-cv",
+      "dynamic": false
+    },
+    {
+      "path": "/api/search-candidates",
+      "dynamic": false
+    },
+    {
+      "path": "/api/send-commentary",
+      "dynamic": false
+    },
+    {
+      "path": "/api/send-email",
+      "dynamic": false
+    },
+    {
+      "path": "/api/set-staff-password",
+      "dynamic": false
+    },
+    {
+      "path": "/api/talent-pool-scan",
+      "dynamic": false
+    },
+    {
+      "path": "/api/task-notes",
+      "dynamic": false
+    },
+    {
+      "path": "/api/tasks",
+      "dynamic": false
+    },
+    {
+      "path": "/api/test-email",
+      "dynamic": false
+    },
+    {
+      "path": "/api/upload-cv-file",
+      "dynamic": false
+    },
+    {
+      "path": "/api/upload-photo",
+      "dynamic": false
+    },
+    {
+      "path": "/auth/callback",
+      "dynamic": false
+    }
+  ]
+}
