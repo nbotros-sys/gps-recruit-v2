@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
-import { sendStaffFeedbackAlert, sendStaffInterviewRequest } from "@/lib/emails"
+import { sendStaffFeedbackAlert, sendStaffInterviewRequest, sendCandidateNotSelected } from "@/lib/emails"
 
 function getAdmin() {
   return createAdminClient(
@@ -203,6 +203,14 @@ export async function POST(req: NextRequest) {
       notifyBestEffort(admin, async () => {
         const candidateName = await getCandidateName(admin, application_id)
         const mandateTitle = await getMandateTitle(admin, mandate_id)
+        // Notify the candidate they weren't selected
+        const { data: appRow } = await admin.from("applications").select("candidate_id").eq("id", application_id).maybeSingle()
+        if (appRow?.candidate_id) {
+          const { data: cand } = await admin.from("candidates").select("email").eq("id", appRow.candidate_id).maybeSingle()
+          if (cand?.email) {
+            try { await sendCandidateNotSelected({ candidateName, candidateEmail: cand.email, roleTitle: mandateTitle }) } catch (e) { console.error("reject candidate email failed:", e) }
+          }
+        }
         await admin.from("notifications").insert([{
           type: "client_rejected",
           title: "Client rejected candidate",

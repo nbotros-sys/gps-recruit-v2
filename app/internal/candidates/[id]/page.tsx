@@ -543,6 +543,9 @@ export default function CandidateProfile() {
                           if (s === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app.stage)) {
                             fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ application_id: app.id }) }).catch(() => {})
                           }
+                          if (["shortlisted","placed","rejected"].includes(s) && (s !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app.stage))) {
+                            fetch("/api/notify-candidate-stage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ application_id: app.id, stage: s }) }).catch(() => {})
+                          }
                         }}
                           className={`badge ${STAGE_COLORS[s] || "bg-gray-100 text-gray-500"} capitalize cursor-pointer hover:opacity-80 transition-opacity`}>
                           {s}

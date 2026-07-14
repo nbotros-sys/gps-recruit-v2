@@ -583,6 +583,11 @@ export default function MandateDetail() {
       fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ application_id: appId }) }).catch(() => {})
     }
+    if (["shortlisted","placed","rejected"].includes(newStage) &&
+        (newStage !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app?.stage))) {
+      fetch("/api/notify-candidate-stage", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: appId, stage: newStage }) }).catch(() => {})
+    }
     if (newStage === "placed") {
       // Placed notification + auto post-placement task
       fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -851,6 +856,10 @@ export default function MandateDetail() {
                 salary_range: editForm.salary_range,
                 status: editForm.status,
               }).eq("id", id)
+              if (editForm.status === "filled" && mandate.status !== "filled") {
+                fetch("/api/notify-role-filled", { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ mandate_id: id }) }).catch(() => {})
+              }
               setMandate({ ...mandate, ...editForm })
               setSavingEdit(false)
               setEditSaved(true)

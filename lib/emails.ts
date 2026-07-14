@@ -293,3 +293,90 @@ export async function sendClientInterviewConfirmed({
     }),
   })
 }
+
+// Email 10: Candidate — shortlisted / progressing
+export async function sendCandidateShortlisted({
+  candidateName, candidateEmail, roleTitle
+}: { candidateName: string, candidateEmail: string, roleTitle: string }) {
+  const firstName = candidateName.split(" ")[0] || candidateName
+  return send({
+    from: brandFrom("talnt"),
+    to: candidateEmail,
+    subject: `Your application is progressing — ${roleTitle}`,
+    html: emailLayout({
+      brand: "talnt",
+      preheader: `Good news about your application for ${roleTitle}`,
+      badge: "Application update",
+      heading: `Good news, ${firstName}`,
+      bodyHtml: para(`Your application for <strong>${roleTitle}</strong> is progressing — you've been shortlisted for the role. A GPS consultant may be in touch with next steps.`)
+        + para(`There's nothing you need to do right now — we'll keep you posted.`),
+      footerNote: "You received this because you applied via GPS Talent Network.",
+    }),
+  })
+}
+
+// Email 11: Candidate — not selected
+export async function sendCandidateNotSelected({
+  candidateName, candidateEmail, roleTitle
+}: { candidateName: string, candidateEmail: string, roleTitle: string }) {
+  const firstName = candidateName.split(" ")[0] || candidateName
+  return send({
+    from: brandFrom("talnt"),
+    to: candidateEmail,
+    subject: `Update on your application — ${roleTitle}`,
+    html: emailLayout({
+      brand: "talnt",
+      preheader: `An update on your application for ${roleTitle}`,
+      badge: "Application update",
+      heading: `Thank you, ${firstName}`,
+      bodyHtml: para(`Thank you for your interest in <strong>${roleTitle}</strong>. After careful consideration, we won't be moving forward with your application for this particular role.`)
+        + para(`This isn't a reflection of your abilities — the fit for this specific role just wasn't right. We'll keep your profile on file and match it against future opportunities, and we'd genuinely encourage you to keep an eye on our open roles.`),
+      ctaLabel: "Browse open roles",
+      ctaUrl: `${BASE_URL}/jobs`,
+      footerNote: "You received this because you applied via GPS Talent Network.",
+    }),
+  })
+}
+
+// Email 12: Candidate — placed
+export async function sendCandidatePlaced({
+  candidateName, candidateEmail, roleTitle
+}: { candidateName: string, candidateEmail: string, roleTitle: string }) {
+  const firstName = candidateName.split(" ")[0] || candidateName
+  return send({
+    from: brandFrom("talnt"),
+    to: candidateEmail,
+    subject: `Congratulations — ${roleTitle}`,
+    html: emailLayout({
+      brand: "talnt",
+      preheader: `Congratulations on your placement`,
+      badge: "Congratulations",
+      heading: `Congratulations, ${firstName}!`,
+      bodyHtml: para(`We're delighted to let you know you've been placed in the <strong>${roleTitle}</strong> role. Your GPS consultant will be in touch with the next steps and details.`)
+        + para(`Congratulations again — it's been a pleasure working with you.`),
+      footerNote: "You received this because you applied via GPS Talent Network.",
+    }),
+  })
+}
+
+// Email 13: Client — role filled
+export async function sendClientRoleFilled({
+  clientName, clientEmail, roleTitle, portalUrl
+}: { clientName?: string, clientEmail: string, roleTitle: string, portalUrl?: string }) {
+  const first = (clientName || "").split(" ")[0] || "there"
+  return send({
+    from: brandFrom("gps"),
+    to: clientEmail,
+    subject: `Role filled — ${roleTitle}`,
+    html: emailLayout({
+      brand: "gps",
+      preheader: `${roleTitle} has been filled`,
+      badge: "Role filled",
+      heading: `Hi ${first}, your role has been filled`,
+      bodyHtml: para(`Great news — the <strong>${roleTitle}</strong> role has now been filled. Thank you for partnering with GPS Recruitment on this search.`)
+        + para(`Your consultant will follow up with the final details.`),
+      ctaLabel: portalUrl ? "View in your portal" : undefined,
+      ctaUrl: portalUrl,
+    }),
+  })
+}
