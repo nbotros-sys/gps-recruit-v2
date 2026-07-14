@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 function getAdmin() {
   return createAdminClient(
@@ -11,10 +12,8 @@ function getAdmin() {
 }
 
 async function assertStaff() {
-  const sc = createServerSupabaseClient()
-  const { data: { user } } = await sc.auth.getUser()
-  if (!user) return null
-  return user
+  const gate = await requireStaff()
+  return gate.ok ? gate.user : null
 }
 
 export async function GET() {

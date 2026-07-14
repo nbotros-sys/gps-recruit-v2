@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { sendNetworkWelcome } from "@/lib/emails"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 export async function GET(req: NextRequest) {
-  // Auth check
-  const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   const email = req.nextUrl.searchParams.get("email") || "nbotros@hotmail.com"
   try {

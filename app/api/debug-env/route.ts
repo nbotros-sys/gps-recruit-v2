@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { requireStaff } from "@/lib/require-staff"
 
 export async function GET(req: NextRequest) {
-  // Auth check — middleware handles this but belt-and-braces
-  const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const gate = await requireStaff()
+  if (!gate.ok) return gate.response
 
   return NextResponse.json({
     supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || "NOT SET",
