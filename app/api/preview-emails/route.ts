@@ -19,9 +19,11 @@ export async function GET(req: NextRequest) {
   const iv = { dateStr: "Monday, 21 July 2026", time: "14:00", format: "Video call", location: "https://meet.google.com/sample-link", interviewer: "Mona Barsoum" }
 
   const results: string[] = []
+  // Resend caps at 10 requests/second; space sends out to stay well under it.
   const run = async (name: string, fn: () => Promise<any>) => {
     try { await fn(); results.push(`ok: ${name}`) }
     catch (e: any) { results.push(`FAIL ${name}: ${e?.message || e}`) }
+    await new Promise((r) => setTimeout(r, 150))
   }
 
   E.setPreviewRecipient(email)
