@@ -37,6 +37,8 @@ updated as we go. Newest session at the top.
 ### Security (verified 14 Jul)
 - **anon → service-role swap:** the 7 routes (`find-candidate-by-name`, `find-duplicates`, `candidate-cv`, `search-candidates`, `bulk-extract-structured`, `enrich-from-linkedin`, `debug-search`) already use the service-role key with staff gates — the old memory note was stale. ✅ No change needed.
 - **`debug-search`** hardened: added its own `requireStaff` gate (was login-only, relying on middleware). Consider removing this debug endpoint entirely before launch.
+- **H1 (staff-route auth gaps) — DONE 14 Jul:** added `requireStaff` to `notifications`, `tasks`, `task-notes`, `test-email`, `debug-env` (were login-only; all internal-only, verified). Staff features re-tested live (Activity page loads tasks + notifications). **Before launch: delete the debug/test endpoints (`debug-search`, `debug-env`, `test-email`) — they don't belong in production.**
+- **Bug fixed (found during H1 audit):** `/api/claim-account` was missing from middleware `PUBLIC_PREFIXES` → anonymous candidates clicking their claim link got 401, so the **claim flow was blocked**. Now public (protected by its own signed token). Full anonymous test pending (Layer 2 / manual).
 
 ---
 
