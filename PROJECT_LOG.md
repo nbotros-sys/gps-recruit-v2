@@ -7,7 +7,7 @@ updated as we go. Newest session at the top.
 
 ## Current state (what's LIVE)
 
-> **Email system VERIFIED end-to-end (14 Jul):** live apply-to-a-job test fired the candidate "application received" + internal "new application" emails — both landed and rendered correctly. Pipeline + branded template + real trigger all confirmed. The other 13 email types share the same pipeline; they'll be verified via MailSlurp test inboxes (so no real candidate/client gets a test email).
+> **Email system VERIFIED live (14 Jul):** confirmed 4 types via real triggers, all landed + rendered correctly: **application received** (candidate), **new application alert** (admin) via a live apply; **placed** (candidate) + **not selected** (candidate) via pipeline moves on a test application. Candidate-facing + admin-facing, positive + negative tone. Remaining types (client-facing + interview flow) share the same proven pipeline and will be verified via **MailSlurp test inboxes** so no real client/candidate is emailed. NOTE: test artifacts created (nader's Sales Executive application = Rejected + auto post-placement tasks) — clean up at launch.
 
 
 **Email system — complete (15 email types, all branded, all delivering).**
