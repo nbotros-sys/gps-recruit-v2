@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/interview-daily", "schedule": "0 7 * * *" }
+  ]
+}

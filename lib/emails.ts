@@ -380,3 +380,57 @@ export async function sendClientRoleFilled({
     }),
   })
 }
+
+// Email 14: Candidate — interview reminder (day before)
+export async function sendCandidateInterviewReminder({
+  candidateName, candidateEmail, roleTitle, dateStr, time, format, location, interviewer
+}: {
+  candidateName: string, candidateEmail: string, roleTitle: string,
+  dateStr?: string, time?: string, format?: string, location?: string, interviewer?: string
+}) {
+  const firstName = candidateName.split(" ")[0] || candidateName
+  const locVal = location
+    ? (/^https?:\/\//i.test(location) ? `<a href="${location}" style="color:#028090;text-decoration:none;">${location}</a>` : location)
+    : ""
+  const rows = (dateStr ? infoRow("Date", dateStr) : "")
+    + (time ? infoRow("Time", time) : "")
+    + (format ? infoRow("Format", format) : "")
+    + (locVal ? infoRow("Location / link", locVal) : "")
+    + (interviewer ? infoRow("Interviewer", interviewer) : "")
+  return send({
+    from: brandFrom("talnt"),
+    to: candidateEmail,
+    subject: `Reminder: your interview is tomorrow — ${roleTitle}`,
+    html: emailLayout({
+      brand: "talnt",
+      preheader: `Your interview for ${roleTitle} is tomorrow`,
+      badge: "Interview reminder",
+      heading: `Reminder, ${firstName} — your interview is tomorrow`,
+      bodyHtml: para(`A quick reminder about your interview for <strong>${roleTitle}</strong>:`)
+        + infoPanel(rows, "Interview details")
+        + para(`Good luck! If you need to reschedule, contact your GPS consultant.`),
+      footerNote: "You received this because you applied via GPS Talent Network.",
+    }),
+  })
+}
+
+// Email 15: Internal — interview follow-up needed (day after, not marked done)
+export async function sendStaffInterviewFollowup({
+  candidateName, mandateTitle, dateStr, link
+}: { candidateName: string, mandateTitle: string, dateStr?: string, link?: string }) {
+  return send({
+    from: brandFrom("gps"),
+    to: GPS_INTERNAL,
+    subject: `Interview follow-up needed — ${candidateName}`,
+    html: emailLayout({
+      brand: "gps",
+      preheader: `Follow up on the interview with ${candidateName}`,
+      badge: "Interview follow-up",
+      heading: "An interview needs a follow-up",
+      bodyHtml: para(`The interview with <strong>${candidateName}</strong> for <strong>${mandateTitle}</strong>${dateStr ? ` on ${dateStr}` : ""} has passed and hasn't been marked done. Please confirm the outcome and update its status — a task has been created for you.`),
+      ctaLabel: link ? "Open interview" : undefined,
+      ctaUrl: link,
+      footerNote: "GPS RecruitAI · Internal notification only.",
+    }),
+  })
+}

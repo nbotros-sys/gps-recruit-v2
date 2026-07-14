@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     "/api/extract-cv",
     "/api/extract-photo",
     "/api/send-email",
+    "/api/cron",
     "/api/upload-cv-file",
     "/api/upload-photo",
     "/api/extract-structured",
