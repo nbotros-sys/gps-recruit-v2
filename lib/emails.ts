@@ -6,7 +6,15 @@ function getResend() { return new Resend(process.env.RESEND_API_KEY!) }
 
 // Wraps Resend send so an API-level rejection (invalid address, unverified
 // domain, rate limit) throws instead of being silently swallowed.
+// When set, every send is redirected to this address with a [PREVIEW] subject —
+// used by /api/preview-emails so a reviewer can see all templates in one inbox.
+let previewRecipient: string | null = null
+export function setPreviewRecipient(email: string | null) { previewRecipient = email }
+
 async function send(opts: any) {
+  if (previewRecipient) {
+    opts = { ...opts, to: previewRecipient, subject: `[PREVIEW] ${opts.subject}` }
+  }
   const { data, error } = await getResend().emails.send(opts)
   if (error) throw new Error((error as any)?.message || JSON.stringify(error))
   return data
