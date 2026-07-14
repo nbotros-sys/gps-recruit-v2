@@ -34,6 +34,10 @@ updated as we go. Newest session at the top.
 - **Emails weren't sending** — root cause: Resend domain `gps4hr.com` de-verified because its DNS records (DKIM `resend._domainkey`, SPF MX/TXT on `send`) were **deleted ~14h earlier when Google Workspace was set up**. Re-added those 3 records + DMARC in **Vercel DNS**; domain re-verified. Google Workspace + Resend coexist fine — do NOT clear the `send` / `resend._domainkey` records again.
 - **Nothing was deploying** — every build from Batch 1 onward silently FAILED (TS strict error: `app?.stage` passed into `.includes()`). Local esbuild check catches syntax, not types. Fixed (`app?.stage || ""`); all batches then deployed.
 
+### Security (verified 14 Jul)
+- **anon → service-role swap:** the 7 routes (`find-candidate-by-name`, `find-duplicates`, `candidate-cv`, `search-candidates`, `bulk-extract-structured`, `enrich-from-linkedin`, `debug-search`) already use the service-role key with staff gates — the old memory note was stale. ✅ No change needed.
+- **`debug-search`** hardened: added its own `requireStaff` gate (was login-only, relying on middleware). Consider removing this debug endpoint entirely before launch.
+
 ---
 
 ## Decisions locked in
