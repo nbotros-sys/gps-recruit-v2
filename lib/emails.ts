@@ -225,3 +225,71 @@ export async function sendClientNewCandidate({
     }),
   })
 }
+
+// Email 8: Candidate — interview scheduled (invitation)
+export async function sendCandidateInterviewInvite({
+  candidateName, candidateEmail, roleTitle, dateStr, time, format, location, interviewer
+}: {
+  candidateName: string, candidateEmail: string, roleTitle: string,
+  dateStr?: string, time?: string, format?: string, location?: string, interviewer?: string
+}) {
+  const firstName = candidateName.split(" ")[0] || candidateName
+  const locVal = location
+    ? (/^https?:\/\//i.test(location) ? `<a href="${location}" style="color:#028090;text-decoration:none;">${location}</a>` : location)
+    : ""
+  const rows = (dateStr ? infoRow("Date", dateStr) : "")
+    + (time ? infoRow("Time", time) : "")
+    + (format ? infoRow("Format", format) : "")
+    + (locVal ? infoRow("Location / link", locVal) : "")
+    + (interviewer ? infoRow("Interviewer", interviewer) : "")
+  return send({
+    from: brandFrom("talnt"),
+    to: candidateEmail,
+    subject: `Interview scheduled — ${roleTitle}`,
+    html: emailLayout({
+      brand: "talnt",
+      preheader: `Your interview for ${roleTitle} has been scheduled`,
+      badge: "Interview scheduled",
+      heading: `Good news, ${firstName} — you have an interview`,
+      bodyHtml: para(`An interview has been scheduled for your application to <strong>${roleTitle}</strong>. Here are the details:`)
+        + infoPanel(rows, "Interview details")
+        + para("If you need to reschedule, just reply to your GPS consultant."),
+      footerNote: "You received this because you applied via GPS Talent Network.",
+    }),
+  })
+}
+
+// Email 9: Client — interview confirmed
+export async function sendClientInterviewConfirmed({
+  clientName, clientEmail, candidateName, roleTitle, dateStr, time, format, location, interviewer, portalUrl
+}: {
+  clientName?: string, clientEmail: string, candidateName: string, roleTitle: string,
+  dateStr?: string, time?: string, format?: string, location?: string, interviewer?: string, portalUrl?: string
+}) {
+  const first = (clientName || "").split(" ")[0] || "there"
+  const locVal = location
+    ? (/^https?:\/\//i.test(location) ? `<a href="${location}" style="color:#028090;text-decoration:none;">${location}</a>` : location)
+    : ""
+  const rows = infoRow("Candidate", candidateName)
+    + infoRow("Role", roleTitle)
+    + (dateStr ? infoRow("Date", dateStr) : "")
+    + (time ? infoRow("Time", time) : "")
+    + (format ? infoRow("Format", format) : "")
+    + (locVal ? infoRow("Location / link", locVal) : "")
+    + (interviewer ? infoRow("Interviewer", interviewer) : "")
+  return send({
+    from: brandFrom("gps"),
+    to: clientEmail,
+    subject: `Interview confirmed — ${candidateName} (${roleTitle})`,
+    html: emailLayout({
+      brand: "gps",
+      preheader: `Interview confirmed with ${candidateName}`,
+      badge: "Interview confirmed",
+      heading: `Hi ${first}, the interview is confirmed`,
+      bodyHtml: para(`The interview with <strong>${candidateName}</strong> for <strong>${roleTitle}</strong> is now confirmed.`)
+        + infoPanel(rows, "Interview details"),
+      ctaLabel: portalUrl ? "View in your portal" : undefined,
+      ctaUrl: portalUrl,
+    }),
+  })
+}

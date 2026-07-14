@@ -40,7 +40,7 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
   showMandate?: boolean
   onAssign: (id: string, name: string) => void
   onStatus: (id: string, status: string) => void
-  onConfirmDetails: (id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) => Promise<void>
+  onConfirmDetails: (id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string; location: string }) => Promise<void>
 }) {
   const sc = getStatusBadge(ir.status)
   const [editingDetails, setEditingDetails] = useState(false)
@@ -48,12 +48,13 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
   const [confirmedTime, setConfirmedTime] = useState(ir.confirmed_time || "")
   const [format, setFormat] = useState(ir.format || "Video call")
   const [interviewer, setInterviewer] = useState(ir.interviewer || "")
+  const [location, setLocation] = useState(ir.location || "")
   const [saving, setSaving] = useState(false)
   const hasConfirmed = !!ir.confirmed_date
 
   async function save() {
     setSaving(true)
-    await onConfirmDetails(ir.id, { confirmed_date: confirmedDate, confirmed_time: confirmedTime, format, interviewer })
+    await onConfirmDetails(ir.id, { confirmed_date: confirmedDate, confirmed_time: confirmedTime, format, interviewer, location })
     setSaving(false)
     setEditingDetails(false)
   }
@@ -76,6 +77,7 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
               {ir.confirmed_time && ` · ${ir.confirmed_time}`}
               {ir.format && ` · ${ir.format}`}
               {ir.interviewer && ` · ${ir.interviewer}`}
+              {ir.location && ` · ${ir.location}`}
             </div>
           )}
         </div>
@@ -128,6 +130,12 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
             <label className="text-[11px] text-gray-400 block mb-1">Interviewer</label>
             <input type="text" value={interviewer} onChange={e => setInterviewer(e.target.value)}
               placeholder="e.g. Sarah, Head of Sales"
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none" />
+          </div>
+          <div className="col-span-2">
+            <label className="text-[11px] text-gray-400 block mb-1">Location / joining link</label>
+            <input type="text" value={location} onChange={e => setLocation(e.target.value)}
+              placeholder="Address, video link, or phone number"
               className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none" />
           </div>
           <div className="col-span-2">
@@ -263,7 +271,7 @@ function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate:
     setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, assigned_to_name: name } : ir))
   }
 
-  async function updateInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) {
+  async function updateInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string; location: string }) {
     const current = interviews.find(ir => ir.id === id)
     const nextStatus = current?.status === "new" ? "in_progress" : current?.status
     const payload = {
@@ -271,11 +279,15 @@ function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate:
       confirmed_time: details.confirmed_time || null,
       format: details.format || null,
       interviewer: details.interviewer || null,
+      location: details.location || null,
       status: nextStatus,
       updated_at: new Date().toISOString(),
     }
     await supabase.from("client_interview_requests").update(payload).eq("id", id)
     setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, ...payload } : ir))
+    if (details.confirmed_date) {
+      fetch("/api/notify-interview-confirmed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ interview_request_id: id }) }).catch(() => {})
+    }
   }
 
   function refreshCommentary() {
@@ -621,7 +633,7 @@ export default function ClientsPage() {
     if (!silent) setLoadingDetail(false)
   }
 
-  async function confirmInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string }) {
+  async function confirmInterviewDetails(id: string, details: { confirmed_date: string; confirmed_time: string; format: string; interviewer: string; location: string }) {
     const current = detailInterviews.find(ir => ir.id === id)
     const nextStatus = current?.status === "new" ? "in_progress" : current?.status
     await supabase.from("client_interview_requests").update({
@@ -629,9 +641,13 @@ export default function ClientsPage() {
       confirmed_time: details.confirmed_time || null,
       format: details.format || null,
       interviewer: details.interviewer || null,
+      location: details.location || null,
       status: nextStatus,
       updated_at: new Date().toISOString(),
     }).eq("id", id)
+    if (details.confirmed_date) {
+      fetch("/api/notify-interview-confirmed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ interview_request_id: id }) }).catch(() => {})
+    }
     if (selected) loadDetail(selected.id)
   }
 
