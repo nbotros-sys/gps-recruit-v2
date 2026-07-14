@@ -7,6 +7,9 @@ updated as we go. Newest session at the top.
 
 ## Current state (what's LIVE)
 
+> **Email system VERIFIED end-to-end (14 Jul):** live apply-to-a-job test fired the candidate "application received" + internal "new application" emails — both landed and rendered correctly. Pipeline + branded template + real trigger all confirmed. The other 13 email types share the same pipeline; they'll be verified via MailSlurp test inboxes (so no real candidate/client gets a test email).
+
+
 **Email system — complete (15 email types, all branded, all delivering).**
 - Shared Outlook-safe branded template: `lib/email-layout.ts` (brand tokens: `gps`, `talnt`).
 - Sender: `no-reply@gps4hr.com` (verified). Reply channel: none (no-reply) — by design; actions go through in-app buttons/landing pages (see Parked #2).
