@@ -56,7 +56,7 @@ updated as we go. Newest session at the top.
 6. **CV-ready email** — dormant until CV Builder relaunches (currently offline → Coming Soon).
 7. **`CRON_SECRET`** — add in Vercel to lock the two cron endpoints (`/api/cron/*`).
 8. **Supabase URL Configuration** — verify Site URL / redirects point at `recruit.gps4hr.com`, not the old vercel.app domain.
-9. **Rotate Enrich Layer / Proxycurl API key** (pre-launch; key was exposed).
+9. ~~Rotate Enrich Layer / Proxycurl API key~~ — ✅ DONE 14 Jul: regenerated (new key `dyc…`), old `FPiF…` replaced, LinkedIn sourcing verified working. (Optional: confirm old key gone on enrichlayer.)
 
 ---
 
