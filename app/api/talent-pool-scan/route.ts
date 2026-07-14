@@ -1,4 +1,5 @@
 import { createNotification } from "@/lib/activity"
+import { sendSystemErrorAlert } from "@/lib/emails"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
@@ -423,6 +424,13 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error("POST scan error:", err)
+    try {
+      await sendSystemErrorAlert({
+        context: "Talent pool scan",
+        message: "A talent-pool scan failed to complete.",
+        detail: (err as any)?.message || String(err),
+      })
+    } catch {}
     return NextResponse.json({ error: "Failed" }, { status: 500 })
   }
 }

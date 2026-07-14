@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
 import { cleanCvText } from "@/lib/clean-cv"
+import { sendSystemErrorAlert } from "@/lib/emails"
 
 function normalisePhone(phone: string | null | undefined): string {
   if (!phone) return ""
@@ -148,6 +149,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "LinkedIn profile not found or private" }, { status: 404 })
       }
       if (enrichRes.status === 401 || enrichRes.status === 403) {
+        try {
+          await sendSystemErrorAlert({
+            context: "LinkedIn enrichment (Enrich Layer)",
+            message: "Enrich Layer rejected the request — API key invalid or quota exceeded. Check PROXYCURL_API_KEY.",
+            detail: `HTTP ${enrichRes.status}: ${(errText || "").slice(0, 300)}`,
+          })
+        } catch {}
         return NextResponse.json({ error: "API key invalid or quota exceeded" }, { status: 403 })
       }
       return NextResponse.json({ error: `Enrichment service returned ${enrichRes.status}` }, { status: 502 })
@@ -276,6 +284,13 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: any) {
     console.error("enrich-from-linkedin error:", err)
+    try {
+      await sendSystemErrorAlert({
+        context: "LinkedIn enrichment",
+        message: "An unexpected error occurred during LinkedIn enrichment.",
+        detail: err?.message || String(err),
+      })
+    } catch {}
     return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 })
   }
 }
