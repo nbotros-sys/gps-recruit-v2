@@ -540,10 +540,10 @@ export default function CandidateProfile() {
                         <button key={s} onClick={async () => {
                           await supabase.from("applications").update({ stage: s }).eq("id", app.id)
                           setApplications(prev => prev.map(a => a.id === app.id ? { ...a, stage: s } : a))
-                          if (s === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app.stage)) {
+                          if (s === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app.stage || "")) {
                             fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ application_id: app.id }) }).catch(() => {})
                           }
-                          if (["shortlisted","placed","rejected"].includes(s) && (s !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app.stage))) {
+                          if (["shortlisted","placed","rejected"].includes(s) && (s !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app.stage || ""))) {
                             fetch("/api/notify-candidate-stage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ application_id: app.id, stage: s }) }).catch(() => {})
                           }
                         }}

@@ -579,12 +579,12 @@ export default function MandateDetail() {
     const app = applications.find(a => a.id === appId)
     const candidateName = app?.candidate?.name || "Candidate"
     const mandateTitle = mandate?.title || "mandate"
-    if (newStage === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app?.stage)) {
+    if (newStage === "shortlisted" && !["shortlisted","interview","offered","placed"].includes(app?.stage || "")) {
       fetch("/api/notify-client-submission", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ application_id: appId }) }).catch(() => {})
     }
     if (["shortlisted","placed","rejected"].includes(newStage) &&
-        (newStage !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app?.stage))) {
+        (newStage !== "shortlisted" || !["shortlisted","interview","offered","placed"].includes(app?.stage || ""))) {
       fetch("/api/notify-candidate-stage", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ application_id: appId, stage: newStage }) }).catch(() => {})
     }
