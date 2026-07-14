@@ -89,12 +89,13 @@ export async function POST(req: NextRequest) {
     // 4) Send the branded email with the setup link.
     try {
       const resend = new Resend(process.env.RESEND_API_KEY!)
-      await resend.emails.send({
+      const { error: sendError } = await resend.emails.send({
         from: FROM,
         to: emailNorm,
         subject,
         html: buildInviteEmail(full_name, setupLink),
       })
+      if (sendError) throw new Error((sendError as any)?.message || "Email send failed")
     } catch (emailErr: any) {
       console.error("Invite email failed:", emailErr?.message)
       return NextResponse.json({ error: "Account is ready, but the email failed to send. Please try again." }, { status: 500 })

@@ -75,12 +75,13 @@ export async function POST(req: NextRequest) {
       const portalUrl = `${BASE_URL}/client/${mandate_id}`
       for (const client of clients) {
         try {
-          await getResend().emails.send({
+          const { error: sendError } = await getResend().emails.send({
             from: FROM,
             to: client.email,
             subject: `GPS Update — ${mandate?.title || "Your Mandate"}`,
             html: buildEmailHtml(client.full_name, commentary_text, mandate?.title, portalUrl, pdfUrl),
           })
+          if (sendError) throw new Error((sendError as any)?.message || "Email send failed")
           emailsSent++
         } catch (e) { console.error(`Email failed for ${client.email}:`, e) }
       }

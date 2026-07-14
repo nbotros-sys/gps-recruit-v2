@@ -3,6 +3,14 @@ import { signClaimToken } from "./claim-token"
 import { Resend } from "resend"
 
 function getResend() { return new Resend(process.env.RESEND_API_KEY!) }
+
+// Wraps Resend send so an API-level rejection (invalid address, unverified
+// domain, rate limit) throws instead of being silently swallowed.
+async function send(opts: any) {
+  const { data, error } = await getResend().emails.send(opts)
+  if (error) throw new Error((error as any)?.message || JSON.stringify(error))
+  return data
+}
 const GPS_INTERNAL = process.env.GPS_INTERNAL_EMAIL || "nbotros@hotmail.com"
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://recruit.gps4hr.com"
 
@@ -31,7 +39,7 @@ export async function sendApplicationConfirmation({
         ? `Set a password to create your account, then you can track this application anytime.`
         : `You can track its progress anytime from your account.`)
 
-  return getResend().emails.send({
+  return send({
     from: brandFrom("talnt"),
     to: candidateEmail,
     subject: `Application received — ${roleTitle}`,
@@ -59,7 +67,7 @@ export async function sendNetworkWelcome({
     para(`Your CV has been added to the GPS Talent Network. Our consultants review profiles personally and will reach out when a suitable opportunity arises. A copy is kept in our database and matched against future roles.`)
     + para(`You can also browse and apply to open roles directly.`)
 
-  return getResend().emails.send({
+  return send({
     from: brandFrom("talnt"),
     to: candidateEmail,
     subject: "Welcome to GPS Talent Network",
@@ -97,7 +105,7 @@ export async function sendInternalAlert({
     para(`A new application has been received via the public portal${aiScore ? ". AI scoring is complete." : "."}`)
     + infoPanel(rows, "Candidate details")
 
-  return getResend().emails.send({
+  return send({
     from: brandFrom("gps"),
     to: GPS_INTERNAL,
     subject: `New application: ${candidateName} → ${roleTitle}`,
@@ -125,7 +133,7 @@ export async function sendStaffFeedbackAlert({
   const quote = feedbackText
     ? `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-left:3px solid #028090;margin:0 0 22px 0;"><tr><td style="padding:2px 0 2px 16px;font-size:13px;color:#374151;line-height:1.7;font-family:Arial,sans-serif;">${feedbackText}</td></tr></table>`
     : ""
-  return getResend().emails.send({
+  return send({
     from: brandFrom("gps"),
     to: GPS_INTERNAL,
     subject: `Client feedback: ${candidateName} — ${mandateTitle}`,
@@ -153,7 +161,7 @@ export async function sendStaffInterviewRequest({
   const noteBlock = notes
     ? `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-left:3px solid #028090;margin:0 0 22px 0;"><tr><td style="padding:2px 0 2px 16px;font-size:13px;color:#374151;line-height:1.7;font-family:Arial,sans-serif;">${notes}</td></tr></table>`
     : ""
-  return getResend().emails.send({
+  return send({
     from: brandFrom("gps"),
     to: GPS_INTERNAL,
     subject: `Interview requested: ${candidateName} — ${mandateTitle}`,
@@ -179,7 +187,7 @@ export async function sendSystemErrorAlert({
   const detailBlock = detail
     ? `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#fef2f2;border:1px solid #fecaca;margin:0 0 22px 0;"><tr><td style="padding:14px 18px;font-size:12px;color:#991b1b;line-height:1.6;font-family:'Courier New',monospace;">${detail}</td></tr></table>`
     : ""
-  return getResend().emails.send({
+  return send({
     from: brandFrom("gps"),
     to: GPS_INTERNAL,
     subject: `System error: ${context}`,
@@ -201,7 +209,7 @@ export async function sendClientNewCandidate({
   clientName?: string, clientEmail: string, roleTitle: string, portalUrl: string
 }) {
   const first = (clientName || "").split(" ")[0] || "there"
-  return getResend().emails.send({
+  return send({
     from: brandFrom("gps"),
     to: clientEmail,
     subject: `New candidate ready to review — ${roleTitle}`,

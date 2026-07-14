@@ -131,12 +131,13 @@ export async function POST(req: NextRequest) {
 
     // 3. Send welcome email
     try {
-      await getResend().emails.send({
+      const { error: sendError } = await getResend().emails.send({
         from: FROM,
         to: email,
         subject: "Your GPS client portal access",
         html: buildWelcomeEmail(full_name, email, temp_password, BASE_URL),
       })
+      if (sendError) throw new Error((sendError as any)?.message || "Email send failed")
     } catch (emailErr) {
       console.error("Welcome email failed:", emailErr)
       // Non-blocking — account still created
