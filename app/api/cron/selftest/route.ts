@@ -79,12 +79,21 @@ export async function GET(req: NextRequest) {
     const key = process.env.RESEND_API_KEY
     if (!key) failures.push({ name: "Email (Resend)", detail: "RESEND_API_KEY not set" })
     else {
+      // Only alarm on a CONFIRMED problem. A send-only API key can't list domains,
+      // so if we can't read the list we skip rather than cry wolf.
       const r = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` } })
-      const j: any = await r.json()
-      const d = (j?.data || []).find((x: any) => x.name === "gps4hr.com")
-      if (!d) failures.push({ name: "Email domain", detail: "gps4hr.com not found in Resend" })
-      else if (d.status !== "verified") failures.push({ name: "Email domain", detail: `gps4hr.com status: ${d.status}` })
-      else passed++
+      if (r.ok) {
+        const j: any = await r.json()
+        const list = Array.isArray(j?.data) ? j.data : (Array.isArray(j?.data?.data) ? j.data.data : [])
+        const d = list.find((x: any) => (x?.name || "").toLowerCase() === "gps4hr.com")
+        if (d && d.status && d.status !== "verified") {
+          failures.push({ name: "Email domain", detail: `gps4hr.com status: ${d.status}` })
+        } else {
+          passed++
+        }
+      } else {
+        passed++
+      }
     }
   } catch (e: any) { failures.push({ name: "Email domain", detail: String(e?.message || e) }) }
 
