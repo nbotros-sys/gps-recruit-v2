@@ -238,7 +238,15 @@ export default function MandateDetail() {
   }
 
   async function loadData() {
-    const { data: m } = await supabase.from("mandates").select("*").eq("id", id).single()
+    const { data: mRow } = await supabase.from("mandates").select("*").eq("id", id).single()
+    const { data: cacheRow } = await supabase
+      .from("mandate_ai_cache").select("*").eq("mandate_id", id).maybeSingle()
+    const m: any = mRow ? {
+      ...mRow,
+      talent_pool_cache: cacheRow?.talent_pool_cache ?? null,
+      talent_pool_cached_at: cacheRow?.talent_pool_cached_at ?? null,
+      linkedin_search_cache: cacheRow?.linkedin_search_cache ?? null,
+    } : null
     if (m) {
       setMandate(m)
       setJdText(m.job_description || "")
@@ -365,11 +373,12 @@ export default function MandateDetail() {
           setScanPolling(false)
           setScanId(null)
           setInsightLoading(false)
-          // Cache in mandates table
-          await supabase.from("mandates").update({
+          // Cache in staff-only mandate_ai_cache table
+          await supabase.from("mandate_ai_cache").upsert({
+            mandate_id: id,
             talent_pool_cache: data.result,
             talent_pool_cached_at: data.scanned_at,
-          }).eq("id", id)
+          }, { onConflict: "mandate_id" })
         } else if (data.status === "no_new_candidates") {
           setScanPolling(false)
           setScanId(null)
@@ -412,9 +421,10 @@ export default function MandateDetail() {
       // Cache results in Supabase against this mandate
       const now = new Date().toISOString()
       setLinkedinCachedAt(now)
-      await supabase.from("mandates").update({
+      await supabase.from("mandate_ai_cache").upsert({
+        mandate_id: id,
         linkedin_search_cache: { results: data.results, cached_at: now, search_params: data.search_params },
-      }).eq("id", id)
+      }, { onConflict: "mandate_id" })
     } catch (err) {
       console.error("LinkedIn search failed:", err)
     }
@@ -521,11 +531,12 @@ export default function MandateDetail() {
         setInsightData(data.result)
         setInsightCachedAt(data.scanned_at)
         setInsightLoading(false)
-        // Cache in mandates table
-        await supabase.from("mandates").update({
+        // Cache in staff-only mandate_ai_cache table
+        await supabase.from("mandate_ai_cache").upsert({
+          mandate_id: id,
           talent_pool_cache: data.result,
           talent_pool_cached_at: data.scanned_at,
-        }).eq("id", id)
+        }, { onConflict: "mandate_id" })
       } else if (data.status === "no_new_candidates") {
         setInsightLoading(false)
         setScanProgress("No new candidates since last scan — showing cached results")
