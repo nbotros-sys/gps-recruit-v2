@@ -324,16 +324,20 @@ export default function MandateDetail() {
   }, [tab])
 
   // Restore Talent Pool scroll position after coming back from a candidate.
+  // NB: the scroll container is the layout's <main>, not the window.
   useEffect(() => {
     if (tab !== "insight" || !insightData) return
+    let raf1 = 0, raf2 = 0
     try {
       const y = sessionStorage.getItem(`mandate-scroll-${id}`)
       if (y != null) {
         const yy = parseInt(y, 10) || 0
-        requestAnimationFrame(() => window.scrollTo(0, yy))
+        const apply = () => { const sc = document.querySelector("main"); if (sc) sc.scrollTop = yy }
+        raf1 = requestAnimationFrame(() => { apply(); raf2 = requestAnimationFrame(apply) })
         sessionStorage.removeItem(`mandate-scroll-${id}`)
       }
     } catch {}
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
   }, [tab, insightData, id])
 
   // Talent Pool matches don't carry DOB in the scan cache — look up ages so we
@@ -1809,7 +1813,7 @@ export default function MandateDetail() {
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all whitespace-nowrap">
                             <UserPlus size={12} /> Add to pipeline
                           </button>
-                          <a href={`/internal/candidates/${c.id}`} onClick={() => { try { sessionStorage.setItem(`mandate-scroll-${id}`, String(window.scrollY)) } catch {} }} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
+                          <a href={`/internal/candidates/${c.id}`} onClick={() => { try { const sc = document.querySelector("main"); sessionStorage.setItem(`mandate-scroll-${id}`, String(sc ? sc.scrollTop : 0)) } catch {} }} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
                         </div>
                       </div>
                     </div>
