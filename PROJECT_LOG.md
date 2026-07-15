@@ -57,6 +57,16 @@ updated as we go. Newest session at the top.
 
 ---
 
+## Session — 15 Jul 2026 (H2 residual + H3 rate limiting)
+
+### Shipped
+- **H2 residual CLOSED** — AI/LinkedIn cache moved to staff-only `mandate_ai_cache` (RLS), 18 rows migrated, page repointed, old `mandates` columns dropped. Verified live (staff read+write OK; non-staff sees 0 / writes 0).
+- **H3 DONE — public email endpoint rate-limited.** `/api/send-email` (called from the unauthenticated apply/join flows) was open to abuse (spam our branded emails to anyone / burn Resend quota). Added a **serverless-safe DB rate limiter** (no external service): `rate_limits` table + atomic `rate_limit_hit(bucket, window_seconds, limit)` SQL function; `lib/rate-limit.ts` helper (fails OPEN on infra error). Gated send-email at **30/hour per IP** → 429 when exceeded. Verified the function directly (limit 3 → true,true,true,false,false).
+
+### Still open
+- **H4** — `/api/generate-embedding` (burns OpenAI $) still open. NOTE: it's called server-to-server from `enrich-from-linkedin` (no cookies) + staff `internal/database` page, so IP rate-limiting is wrong here — gate it with a shared internal secret / auth instead (different fix from H3).
+- **M3** — 4-hour session timeout (Supabase toggle).
+
 ## Parked / to-do
 1. **Layer 2 full-coverage testing** — test env (post-launch) + coverage tracker + Playwright journeys for every flow; tests kept in lockstep with code.
 2. **Portal self-service** — landing-page buttons (request-change / add-feedback / message-us).
