@@ -63,6 +63,10 @@ updated as we go. Newest session at the top.
 - **H2 residual CLOSED** — AI/LinkedIn cache moved to staff-only `mandate_ai_cache` (RLS), 18 rows migrated, page repointed, old `mandates` columns dropped. Verified live (staff read+write OK; non-staff sees 0 / writes 0).
 - **H3 DONE — public email endpoint rate-limited.** `/api/send-email` (called from the unauthenticated apply/join flows) was open to abuse (spam our branded emails to anyone / burn Resend quota). Added a **serverless-safe DB rate limiter** (no external service): `rate_limits` table + atomic `rate_limit_hit(bucket, window_seconds, limit)` SQL function; `lib/rate-limit.ts` helper (fails OPEN on infra error). Gated send-email at **30/hour per IP** → 429 when exceeded. Verified the function directly (limit 3 → true,true,true,false,false).
 
+### Talent Pool UX (15 Jul)
+- **Candidate age shown** on Talent Pool match cards. DOB isn't in the scan cache, so ages are looked up from `candidates.dob` client-side (works on cached reports, no re-scan). Age only shows when a DOB is on file — most candidates have none (DOB is only captured when a CV explicitly states it), so blanks are expected/graceful.
+- **Back-navigation fixed.** Active tab is now persisted in the URL (`?tab=…`) and restored on load, and Talent Pool scroll position is saved (in the layout's `<main>` scroll container, not window) and restored on return — retrying until the list renders tall enough. Verified live: open candidate → Back → returns to Talent Pool at the exact scroll spot.
+
 ### Still open
 - **H4** — `/api/generate-embedding` (burns OpenAI $) still open. NOTE: it's called server-to-server from `enrich-from-linkedin` (no cookies) + staff `internal/database` page, so IP rate-limiting is wrong here — gate it with a shared internal secret / auth instead (different fix from H3).
 - **M3** — 4-hour session timeout (Supabase toggle).
