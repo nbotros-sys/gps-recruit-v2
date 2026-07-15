@@ -324,20 +324,29 @@ export default function MandateDetail() {
   }, [tab])
 
   // Restore Talent Pool scroll position after coming back from a candidate.
-  // NB: the scroll container is the layout's <main>, not the window.
+  // The scroll container is the layout's <main>, not the window. We retry across
+  // frames until the list has rendered tall enough to actually reach the target.
   useEffect(() => {
-    if (tab !== "insight" || !insightData) return
-    let raf1 = 0, raf2 = 0
-    try {
-      const y = sessionStorage.getItem(`mandate-scroll-${id}`)
-      if (y != null) {
-        const yy = parseInt(y, 10) || 0
-        const apply = () => { const sc = document.querySelector("main"); if (sc) sc.scrollTop = yy }
-        raf1 = requestAnimationFrame(() => { apply(); raf2 = requestAnimationFrame(apply) })
-        sessionStorage.removeItem(`mandate-scroll-${id}`)
+    if (tab !== "insight") return
+    const key = `mandate-scroll-${id}`
+    let target: number | null = null
+    try { const y = sessionStorage.getItem(key); if (y != null) target = parseInt(y, 10) || 0 } catch {}
+    if (target == null || target <= 0) return
+    const t = target
+    let raf = 0, tries = 0, done = false
+    const tick = () => {
+      if (done) return
+      const sc = document.querySelector("main") as HTMLElement | null
+      if (sc && sc.scrollHeight - sc.clientHeight >= t - 2) {
+        sc.scrollTop = t
+        done = true
+        try { sessionStorage.removeItem(key) } catch {}
+        return
       }
-    } catch {}
-    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
+      if (tries++ < 60) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => { done = true; cancelAnimationFrame(raf) }
   }, [tab, insightData, id])
 
   // Talent Pool matches don't carry DOB in the scan cache — look up ages so we
