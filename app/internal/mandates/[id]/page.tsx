@@ -98,6 +98,7 @@ export default function MandateDetail() {
   const [savingNotes, setSavingNotes] = useState(false)
   const [drawerTab, setDrawerTab] = useState<"overview" | "cv" | "roles" | "notes">("overview")
   const [insightData, setInsightData] = useState<any>(null)
+  const [ageById, setAgeById] = useState<Record<string, number>>({})
   const [insightLoading, setInsightLoading] = useState(false)
   const [deeperSearching, setDeeperSearching] = useState(false)
   const [insightCachedAt, setInsightCachedAt] = useState<string | null>(null)
@@ -303,6 +304,60 @@ export default function MandateDetail() {
   }
 
   useEffect(() => { loadData() }, [id])
+
+  // Restore the active tab from the URL on mount, so returning (browser Back)
+  // from a candidate profile lands back on the same tab (e.g. Talent Pool).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab")
+    const valid = ["details", "jd", "pipeline", "bulk", "ai", "insight", "source"]
+    if (t && valid.includes(t)) setTab(t as any)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep the URL in sync with the active tab (replace, no new history entry).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (tab === "pipeline") params.delete("tab")
+    else params.set("tab", tab)
+    const qs = params.toString()
+    window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""))
+  }, [tab])
+
+  // Restore Talent Pool scroll position after coming back from a candidate.
+  useEffect(() => {
+    if (tab !== "insight" || !insightData) return
+    try {
+      const y = sessionStorage.getItem(`mandate-scroll-${id}`)
+      if (y != null) {
+        const yy = parseInt(y, 10) || 0
+        requestAnimationFrame(() => window.scrollTo(0, yy))
+        sessionStorage.removeItem(`mandate-scroll-${id}`)
+      }
+    } catch {}
+  }, [tab, insightData, id])
+
+  // Talent Pool matches don't carry DOB in the scan cache — look up ages so we
+  // can show them without needing a re-scan.
+  useEffect(() => {
+    if (!insightData) return
+    const ids = [
+      ...(insightData.strong_matches || []),
+      ...(insightData.possible_matches || []),
+    ].map((c: any) => c.id).filter(Boolean)
+    if (ids.length === 0) return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase.from("candidates").select("id, dob").in("id", ids)
+      if (cancelled || !data) return
+      const map: Record<string, number> = {}
+      for (const r of data as any[]) {
+        const a = ageFromDob(r.dob)
+        if (a != null) map[r.id] = a
+      }
+      setAgeById(map)
+    })()
+    return () => { cancelled = true }
+  }, [insightData])
 
   // Realtime: keep the pipeline in sync when other users add, move, or remove candidates
   useEffect(() => {
@@ -1711,7 +1766,7 @@ export default function MandateDetail() {
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5">
                             {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{c.location ? ` · ${c.location}` : ""}
-                            {c.total_years ? ` · ${c.total_years}yrs exp` : ""}
+                            {c.total_years ? ` · ${c.total_years}yrs exp` : ""}{ageById[c.id] != null ? ` · ${ageById[c.id]}y` : ""}
                           </div>
                           {c.candidate?.source && (
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mt-1 ${SOURCE_COLORS[c.candidate.source] || "bg-gray-100 text-gray-600"}`}>
@@ -1754,7 +1809,7 @@ export default function MandateDetail() {
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all whitespace-nowrap">
                             <UserPlus size={12} /> Add to pipeline
                           </button>
-                          <a href={`/internal/candidates/${c.id}`} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
+                          <a href={`/internal/candidates/${c.id}`} onClick={() => { try { sessionStorage.setItem(`mandate-scroll-${id}`, String(window.scrollY)) } catch {} }} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
                         </div>
                       </div>
                     </div>
@@ -1772,7 +1827,7 @@ export default function MandateDetail() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}
+                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{ageById[c.id] != null ? ` · ${ageById[c.id]}y` : ""}
                         </div>
                         <div className="text-xs text-amber-600 mt-1 italic">{c.reason}</div>
                       </div>
