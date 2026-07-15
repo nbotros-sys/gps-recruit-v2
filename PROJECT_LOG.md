@@ -67,6 +67,7 @@ updated as we go. Newest session at the top.
 7. **`CRON_SECRET`** — add in Vercel to lock the two cron endpoints (`/api/cron/*`).
 8. **Supabase URL Configuration** — verify Site URL / redirects point at `recruit.gps4hr.com`, not the old vercel.app domain.
 9. ~~Rotate Enrich Layer / Proxycurl API key~~ — ✅ DONE 14 Jul: regenerated (new key `dyc…`), old `FPiF…` replaced, LinkedIn sourcing verified working. (Optional: confirm old key gone on enrichlayer.)
+10. **BEFORE LAUNCH — upgrade the email (Resend) plan.** Currently on Resend **free** (100 emails/day, 3,000/month). Fine for testing, but a busy launch day could hit the cap and silently drop real notification emails. Options: Resend paid (~$20/mo, 50k emails, no daily cap) or Amazon SES (~$0.10 per 1,000 emails — near-free at our volume). Decided against self-sending via Google Workspace SMTP (worse deliverability, ~2k/day cap, suspension risk, no bounce handling). Action at launch: pick a plan + upgrade so live emails never get quota-blocked.
 
 ---
 
