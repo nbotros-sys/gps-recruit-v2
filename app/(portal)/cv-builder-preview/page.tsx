@@ -5,7 +5,7 @@ import { ArrowRight, ArrowLeft, Upload, Sparkles, CheckCircle, Loader2, User, Ey
 import Link from "next/link"
 
 const FUNCTIONS = ["Finance & Accounting","HR & People","Sales & Business Development","Marketing","Operations","Technology & IT","Legal","Supply Chain & Logistics","General Management","C-Suite / Executive","Other"]
-const LEVELS = ["Entry level (0â2 years)","Junior (2â4 years)","Mid-level (4â7 years)","Senior (7â12 years)","Manager / Team Lead","Director","VP / GM","C-Level / Executive"]
+const LEVELS = ["Entry level (0–2 years)","Junior (2–4 years)","Mid-level (4–7 years)","Senior (7–12 years)","Manager / Team Lead","Director","VP / GM","C-Level / Executive"]
 // Arabic-speaking nationalities only
 const NATIONALITIES = ["Egyptian","Saudi","Emirati","Kuwaiti","Qatari","Bahraini","Omani","Jordanian","Lebanese","Syrian","Palestinian","Iraqi","Yemeni","Sudanese","Libyan","Moroccan","Tunisian","Algerian","Mauritanian","Comoran","Other"]
 const LANGUAGES = ["Arabic","English","French","German","Spanish","Italian","Turkish","Mandarin","Other"]
@@ -60,7 +60,7 @@ const INITIAL: FormData = {
   job_function:"", level:"", achievements:"",
 }
 
-// ââ DENSITY ENGINE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DENSITY ENGINE ────────────────────────────────────────────────────────────
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t }
 function lerpF(a: number, b: number, t: number) { return parseFloat(lerp(a, b, t).toFixed(3)) }
 
@@ -89,29 +89,29 @@ function getContentDensity(form: FormData) {
   return {
     score, t,
     isSparse: score < 45,
-    // Sparse (t=0) â large, airy, fills page. Dense (t=1) â compact, everything fits.
-    bodyEm:         lerpF(1.18, 0.85, t),   // body text â noticeably bigger when sparse
-    bulletEm:       lerpF(1.12, 0.82, t),
+    // Sparse (t=0) → large, airy, fills page. Dense (t=1) → compact, everything fits.
+    bodyEm:         lerpF(1.06, 0.85, t),   // body text — noticeably bigger when sparse
+    bulletEm:       lerpF(1.02, 0.82, t),
     secLabelEm:     lerpF(0.88, 0.68, t),
-    lineHeight:     lerpF(2.10, 1.52, t),   // very open leading when sparse
+    lineHeight:     lerpF(1.78, 1.52, t),   // very open leading when sparse
     letterSp:       lerpF(0.04, 0.10, t),
-    nameEm:         lerpF(2.20, 1.50, t),   // large name when sparse
-    titleEm:        lerpF(1.18, 0.88, t),
-    photoEm:        lerpF(8.50, 5.00, t),   // bigger photo when sparse
-    sectionGapEm:   lerpF(2.80, 0.80, t),   // generous gaps when sparse
-    headerPadVEm:   lerpF(3.20, 1.40, t),   // tall header when sparse
+    nameEm:         lerpF(1.90, 1.50, t),   // large name when sparse
+    titleEm:        lerpF(1.08, 0.88, t),
+    photoEm:        lerpF(7.00, 5.00, t),   // bigger photo when sparse
+    sectionGapEm:   lerpF(1.80, 0.80, t),   // generous gaps when sparse
+    headerPadVEm:   lerpF(2.30, 1.40, t),   // tall header when sparse
     headerPadHEm:   lerpF(2.40, 1.60, t),
-    bodyPadEm:      lerpF(2.20, 1.10, t),   // generous body padding when sparse
+    bodyPadEm:      lerpF(1.70, 1.10, t),   // generous body padding when sparse
     sidebarPct:     32,   // percentage of total width
     showHobbies:      hasHobbies || score < 58,
     showAchievements: hasAchievements || score < 42,
-    summaryTargetWords: Math.round(lerp(85, 42, t)),
-    minBulletsPerRole:  score < 45 ? 4 : 3,
+    summaryTargetWords: Math.round(lerp(120, 55, t)),
+    minBulletsPerRole: score < 45 ? 5 : 3,
   }
 }
 type D = ReturnType<typeof getContentDensity>
 
-// ââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmtDate(month: string, year: string) {
   if (!year) return ""
   if (!month) return year
@@ -147,13 +147,13 @@ const PH = {
   skills:["Financial Reporting","Budgeting","SAP","Excel Advanced","Team Leadership","IFRS","Cash Flow Mgmt"],
   languages:[{ lang:"Arabic", level:"Native" }, { lang:"English", level:"Fluent" }],
   hobbies:"Football, reading, photography",
-  achievements:"CMA certified Â· Top performer Q3 2022 Â· Implemented first automated reporting system",
+  achievements:"CMA certified · Top performer Q3 2022 · Implemented first automated reporting system",
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// TEMPLATE 1 â PRESTIGE  (dark slate sidebar, gold accents, Georgian serif)
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 1 — PRESTIGE  (dark slate sidebar, gold accents, Georgian serif)
 // Key text fix: sidebar uses percentage width, all text has overflowWrap/wordBreak
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
 function TplPrestige({ form, d }: { form:FormData; d:D }) {
   const f = form
   const name   = f.personal.name   || PH.name
@@ -190,7 +190,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
 
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"Georgia,serif", fontSize:"1em" }}>
-      {/* Sidebar â percentage width so it never squeezes below readable size */}
+      {/* Sidebar — percentage width so it never squeezes below readable size */}
       <div style={{ width:`${d.sidebarPct}%`, flexShrink:0, background:SLATE,
         padding:`${d.headerPadVEm}em ${d.headerPadHEm*0.7}em`,
         display:"flex", flexDirection:"column" as const, overflow:"hidden", minWidth:0 }}>
@@ -224,7 +224,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
         {langs.filter(l=>l.lang).map((l,i)=>(
           <div key={i} style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"rgba(255,255,255,0.58)", marginBottom:"0.25em", lineHeight:1.4, ...NO_BREAK }}>
             <span style={{ color:"rgba(255,255,255,0.82)", fontWeight:600 }}>{l.lang}</span>
-            <span style={{ color:"rgba(255,255,255,0.32)" }}> Â· {l.level}</span>
+            <span style={{ color:"rgba(255,255,255,0.32)" }}> · {l.level}</span>
           </div>
         ))}
         {hob && (<>
@@ -243,13 +243,13 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.5em", flexWrap:"nowrap" as const }}>
               <div style={{ fontSize:`${d.bodyEm*1.06}em`, fontWeight:700, color:INK, fontFamily:"Georgia,serif", ...NO_BREAK, flex:1 }}>{e.title}</div>
               <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, color:"#9B8B7A", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` â ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
+                {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
               </div>
             </div>
             <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.9}em`, color:GOLD, fontWeight:600, marginBottom:"0.3em", ...NO_BREAK }}>{e.company}</div>
             {e.bullets.filter(b=>b.trim()).map((b,j)=>(
               <div key={j} style={{ display:"flex", gap:"0.5em", marginBottom:"0.16em", alignItems:"flex-start" }}>
-                <span style={{ color:GOLD, fontSize:`${d.bulletEm*0.85}em`, flexShrink:0, marginTop:"0.22em", lineHeight:1 }}>â</span>
+                <span style={{ color:GOLD, fontSize:`${d.bulletEm*0.85}em`, flexShrink:0, marginTop:"0.22em", lineHeight:1 }}>—</span>
                 <p style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4A4A4A", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
               </div>
             ))}
@@ -258,9 +258,9 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
         {ach && (
           <div style={{ background:"rgba(184,150,110,0.07)", border:"0.5px solid rgba(184,150,110,0.28)", borderRadius:"0.35em", padding:"0.65em 0.85em", marginBottom:`${d.sectionGapEm*0.45}em` }}>
             <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.secLabelEm*0.82}em`, fontWeight:700, color:GOLD, letterSpacing:"0.06em", textTransform:"uppercase" as const, marginBottom:"0.38em" }}>Key Achievements</div>
-            {ach.split("Â·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
+            {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
               <div key={i} style={{ display:"flex", gap:"0.45em", marginBottom:"0.18em", alignItems:"flex-start" }}>
-                <span style={{ color:GOLD, flexShrink:0, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, marginTop:"0.12em" }}>â</span>
+                <span style={{ color:GOLD, flexShrink:0, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, marginTop:"0.12em" }}>✓</span>
                 <span style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#4A4A4A", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>{a}</span>
               </div>
             ))}
@@ -269,8 +269,8 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
         {mL("Education")}
         {edus.filter(e=>e.institution).map((e,i)=>(
           <div key={i} style={{ marginBottom:"0.45em" }}>
-            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` â ${e.field}`:""}</div>
-            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#6B6B6B", ...NO_BREAK }}>{e.institution}{e.endYear?` Â· ${e.endYear}`:""}</div>
+            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
+            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#6B6B6B", ...NO_BREAK }}>{e.institution}{e.endYear?` · ${e.endYear}`:""}</div>
           </div>
         ))}
         <div style={{ flex:1 }} />
@@ -279,9 +279,9 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
   )
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// TEMPLATE 2 â ARCHITECT  (white, bold name, single-column main + sidebar)
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 2 — ARCHITECT  (white, bold name, single-column main + sidebar)
+// ═══════════════════════════════════════════════════════════════════════════════
 function TplArchitect({ form, d }: { form:FormData; d:D }) {
   const f = form
   const name   = f.personal.name   || PH.name
@@ -309,7 +309,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
     </div>
   )
 
-  // sidebar width as percentage of total â 30%
+  // sidebar width as percentage of total — 30%
   const SW = 30
 
   return (
@@ -342,13 +342,13 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em", flexWrap:"nowrap" as const }}>
                 <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*1.03}em`, fontWeight:700, color:INK, ...NO_BREAK, flex:1 }}>{e.title}</span>
                 <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` â ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
+                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
                 </span>
               </div>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:TEAL, fontWeight:600, marginBottom:"0.28em", ...NO_BREAK }}>{e.company}</div>
               {e.bullets.filter(b=>b.trim()).map((b,j)=>(
                 <div key={j} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:TEAL, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>âº</span>
+                  <span style={{ color:TEAL, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>›</span>
                   <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
                 </div>
               ))}
@@ -357,9 +357,9 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
           {ach && (
             <div style={{ background:MIST, borderRadius:"0.32em", padding:"0.6em 0.8em", borderLeft:`0.18em solid ${TEAL}`, marginTop:`${d.sectionGapEm*0.45}em` }}>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.8}em`, fontWeight:800, color:TEAL, letterSpacing:"0.09em", textTransform:"uppercase" as const, marginBottom:"0.32em" }}>Key Achievements</div>
-              {ach.split("Â·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
+              {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
                 <div key={i} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:TEAL, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>â</span>
+                  <span style={{ color:TEAL, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>✓</span>
                   <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#374151", lineHeight:d.lineHeight*0.86, ...NO_BREAK }}>{a}</span>
                 </div>
               ))}
@@ -381,7 +381,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
           {sec("Education")}
           {edus.filter(e=>e.institution).map((e,i)=>(
             <div key={i} style={{ marginBottom:"0.5em" }}>
-              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, lineHeight:1.3, ...NO_BREAK }}>{e.degree}{e.field?` â ${e.field}`:""}</div>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, lineHeight:1.3, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{e.institution}</div>
               {e.endYear&&<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
             </div>
@@ -390,13 +390,13 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
           {langs.filter(l=>l.lang).map((l,i)=>(
             <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#374151", marginBottom:"0.22em", lineHeight:1.45, ...NO_BREAK }}>
               <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
-              <span style={{ color:"#9CA3AF" }}> Â· {l.level}</span>
+              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
             </div>
           ))}
           {hob&&(<>
             {sec("Interests")}
             <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>
-              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" Â· ":""}</span>)}
+              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" · ":""}</span>)}
             </div>
           </>)}
         </div>
@@ -405,9 +405,9 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
   )
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// TEMPLATE 3 â MERIDIAN  (navy gradient header, white body, right sidebar)
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 3 — MERIDIAN  (navy gradient header, white body, right sidebar)
+// ═══════════════════════════════════════════════════════════════════════════════
 function TplMeridian({ form, d }: { form:FormData; d:D }) {
   const f = form
   const name   = f.personal.name   || PH.name
@@ -478,13 +478,13 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em", flexWrap:"nowrap" as const }}>
                 <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*1.03}em`, fontWeight:700, color:INK, ...NO_BREAK, flex:1 }}>{e.title}</span>
                 <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` â ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
+                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
                 </span>
               </div>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.88}em`, color:AQUA, fontWeight:600, marginBottom:"0.28em", ...NO_BREAK }}>{e.company}</div>
               {e.bullets.filter(b=>b.trim()).map((b,j)=>(
                 <div key={j} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:AQUA, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>â¸</span>
+                  <span style={{ color:AQUA, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>▸</span>
                   <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
                 </div>
               ))}
@@ -493,9 +493,9 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
           {ach && (
             <div style={{ background:"#F0F7F8", borderRadius:"0.35em", padding:"0.6em 0.8em", borderLeft:`0.18em solid ${AQUA}`, marginTop:`${d.sectionGapEm*0.38}em` }}>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.8}em`, fontWeight:700, color:NAVY, letterSpacing:"0.07em", textTransform:"uppercase" as const, marginBottom:"0.32em" }}>Key Achievements</div>
-              {ach.split("Â·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
+              {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
                 <div key={i} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:AQUA, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>â</span>
+                  <span style={{ color:AQUA, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>✓</span>
                   <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#374151", lineHeight:d.lineHeight*0.86, ...NO_BREAK }}>{a}</span>
                 </div>
               ))}
@@ -509,7 +509,7 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
           {sec("Education")}
           {edus.filter(e=>e.institution).map((e,i)=>(
             <div key={i} style={{ marginBottom:"0.5em" }}>
-              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` â ${e.field}`:""}</div>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{e.institution}</div>
               {e.endYear&&<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
             </div>
@@ -518,13 +518,13 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
           {langs.filter(l=>l.lang).map((l,i)=>(
             <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#374151", marginBottom:"0.25em", lineHeight:1.45, ...NO_BREAK }}>
               <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
-              <span style={{ color:"#9CA3AF" }}> Â· {l.level}</span>
+              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
             </div>
           ))}
           {hob&&(<>
             {sec("Interests")}
             <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>
-              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" Â· ":""}</span>)}
+              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" · ":""}</span>)}
             </div>
           </>)}
         </div>
@@ -534,21 +534,21 @@ function TplMeridian({ form, d }: { form:FormData; d:D }) {
 }
 
 const TEMPLATES = [
-  { id:"prestige",  name:"Prestige",  sub:"Finance Â· C-Suite Â· Legal",   component:TplPrestige },
-  { id:"architect", name:"Architect", sub:"Tech Â· Strategy Â· Ops",       component:TplArchitect },
-  { id:"meridian",  name:"Meridian",  sub:"HR Â· Sales Â· Marketing",      component:TplMeridian },
+  { id:"prestige",  name:"Prestige",  sub:"Finance · C-Suite · Legal",   component:TplPrestige },
+  { id:"architect", name:"Architect", sub:"Tech · Strategy · Ops",       component:TplArchitect },
+  { id:"meridian",  name:"Meridian",  sub:"HR · Sales · Marketing",      component:TplMeridian },
 ]
 
-// ââ CV PREVIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CV PREVIEW ────────────────────────────────────────────────────────────────
 // basePx drives ALL sizing inside the CV (everything is in em).
 // It has two inputs:
-//   1. Box width  â keeps the CV proportional at any preview size
-//   2. Density t  â scales type UP when content is sparse so it fills the page
+//   1. Box width  → keeps the CV proportional at any preview size
+//   2. Density t  → scales type UP when content is sparse so it fills the page
 //
 // At t=0 (empty CV):  font is 45% larger than at t=1 (full CV)
-// At t=1 (full CV):   font is at baseline â nothing overflows
+// At t=1 (full CV):   font is at baseline — nothing overflows
 // This means a candidate with 1 job gets text that fills the page just like
-// a candidate with 4 jobs â the type simply breathes more.
+// a candidate with 4 jobs — the type simply breathes more.
 function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
   const [boxWidth, setBoxWidth] = useState(790)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -567,9 +567,9 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
 
   // Width factor: ~9.5px at 790px wide, scales proportionally
   const widthFactor = Math.max(0.6, Math.min(1.2, boxWidth / 790))
-  // Density factor: 1.45 when empty â 1.0 when full
+  // Density factor: 1.45 when empty → 1.0 when full
   // Clamped so we never go below 1.0 (don't shrink below baseline for full CVs)
-  const densityFactor = lerp(1.45, 1.0, Math.min(density.t, 1))
+  const densityFactor = lerp(1.22, 1.0, Math.min(density.t, 1))
   const basePx = Math.round(9.5 * widthFactor * densityFactor * 10) / 10
 
   return (
@@ -588,7 +588,7 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
   )
 }
 
-// ââ PREMIUM DATE PICKER âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── PREMIUM DATE PICKER ───────────────────────────────────────────────────────
 function DatePicker({ label, month, year, onMonth, onYear, disabled=false }:
   { label:string; month:string; year:string; onMonth:(v:string)=>void; onYear:(v:string)=>void; disabled?:boolean }) {
   const sel:React.CSSProperties = { padding:"9px 10px", border:"1.5px solid #e5e7eb", borderRadius:"9px", fontSize:"13px", color:disabled?"#9ca3af":"#0a1f24", background:disabled?"#f9fafb":"white", cursor:disabled?"default":"pointer", outline:"none", appearance:"none" as const, WebkitAppearance:"none" as const }
@@ -609,7 +609,7 @@ function DatePicker({ label, month, year, onMonth, onYear, disabled=false }:
   )
 }
 
-// ââ MAIN PAGE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function CVBuilderPage() {
   const [activeTab, setActiveTab] = useState<"builder"|"reviewer">("builder")
   const [pendingAutosave, setPendingAutosave] = useState(false)
@@ -618,7 +618,7 @@ export default function CVBuilderPage() {
       const p=new URLSearchParams(window.location.search)
       if(p.get("tab")==="reviewer") setActiveTab("reviewer")
       if(p.get("autosave")==="1") {
-        // User returned from login â go to template step and trigger save
+        // User returned from login — go to template step and trigger save
         setPendingAutosave(true)
         // Clean URL
         const url = new URL(window.location.href)
@@ -762,7 +762,7 @@ export default function CVBuilderPage() {
     setAuthLoading(true); setAuthError("")
     const{error}=await supabase.auth.signUp({email,password})
     if(error){
-      // Existing account â switch to signin mode with email pre-filled
+      // Existing account — switch to signin mode with email pre-filled
       if(error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("already exists")){
         setAuthMode("signin")
         setAuthError("You already have an account. Sign in below.")
@@ -841,7 +841,7 @@ export default function CVBuilderPage() {
         </button>
         <div style={{ width:"1px", height:"18px", background:"#e5e7eb" }} />
         <span style={{ fontSize:"13px", fontWeight:700, color:"#0a1f24", letterSpacing:"-0.01em" }}>CV Builder</span>
-        {/* Template pills â only on template step */}
+        {/* Template pills — only on template step */}
         {activeTab==="builder" && isTemplateStep && (
           <div style={{ display:"flex", gap:"4px", marginLeft:"12px" }}>
             {TEMPLATES.map(t=>(
@@ -880,12 +880,12 @@ export default function CVBuilderPage() {
                   style={{ border:"2px dashed #d1d5db", borderRadius:"14px", padding:"40px", textAlign:"center" as const, cursor:"pointer", marginBottom:"20px", background:reviewFile?"#f0fdf4":"white" }}>
                   <Upload size={28} color={reviewFile?"#028090":"#9ca3af"} style={{ margin:"0 auto 12px" }} />
                   <p style={{ fontWeight:600, color:reviewFile?"#028090":"#374151", fontSize:"15px", margin:0 }}>{reviewFile?reviewFile.name:"Drop your CV here"}</p>
-                  <p style={{ color:"#9ca3af", fontSize:"13px", margin:"4px 0 0" }}>PDF or Word Â· Max 5MB</p>
+                  <p style={{ color:"#9ca3af", fontSize:"13px", margin:"4px 0 0" }}>PDF or Word · Max 5MB</p>
                   <input id="review-input" type="file" accept=".pdf,.doc,.docx,.txt" style={{ display:"none" }} onChange={e=>setReviewFile(e.target.files?.[0]||null)} />
                 </div>
                 <button onClick={handleReview} disabled={!reviewFile||reviewing}
                   style={{ width:"100%", padding:"14px", background:reviewFile?"#028090":"#e5e7eb", color:reviewFile?"white":"#9ca3af", border:"none", borderRadius:"12px", fontWeight:700, fontSize:"15px", cursor:reviewFile?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px" }}>
-                  {reviewing?<><Loader2 size={16} className="animate-spin"/>Analysingâ¦</>:<><Sparkles size={16}/>Analyse with AI</>}
+                  {reviewing?<><Loader2 size={16} className="animate-spin"/>Analysing…</>:<><Sparkles size={16}/>Analyse with AI</>}
                 </button>
               </>
             ) : (
@@ -906,17 +906,17 @@ export default function CVBuilderPage() {
                 </div>
                 {reviewResult.strengths?.length>0&&(
                   <div style={{ marginBottom:"12px" }}>
-                    <p style={{ fontSize:"12px", fontWeight:600, color:"#059669", marginBottom:"8px" }}>â Strengths</p>
+                    <p style={{ fontSize:"12px", fontWeight:600, color:"#059669", marginBottom:"8px" }}>✓ Strengths</p>
                     {reviewResult.strengths.map((s:string,i:number)=>(
-                      <div key={i} style={{ fontSize:"13px", color:"#374151", padding:"6px 0", borderBottom:i<reviewResult.strengths.length-1?"1px solid #f3f4f6":"none" }}>â¢ {s}</div>
+                      <div key={i} style={{ fontSize:"13px", color:"#374151", padding:"6px 0", borderBottom:i<reviewResult.strengths.length-1?"1px solid #f3f4f6":"none" }}>• {s}</div>
                     ))}
                   </div>
                 )}
                 {reviewResult.concerns?.length>0&&(
                   <div style={{ marginBottom:"20px" }}>
-                    <p style={{ fontSize:"12px", fontWeight:600, color:"#d97706", marginBottom:"8px" }}>â  Areas to improve</p>
+                    <p style={{ fontSize:"12px", fontWeight:600, color:"#d97706", marginBottom:"8px" }}>⚠ Areas to improve</p>
                     {reviewResult.concerns.map((c:string,i:number)=>(
-                      <div key={i} style={{ fontSize:"13px", color:"#374151", padding:"6px 0", borderBottom:i<reviewResult.concerns.length-1?"1px solid #f3f4f6":"none" }}>â¢ {c}</div>
+                      <div key={i} style={{ fontSize:"13px", color:"#374151", padding:"6px 0", borderBottom:i<reviewResult.concerns.length-1?"1px solid #f3f4f6":"none" }}>• {c}</div>
                     ))}
                   </div>
                 )}
@@ -930,7 +930,7 @@ export default function CVBuilderPage() {
                       <CheckCircle size={16} color="#a8d5d1"/>
                       <p style={{ fontWeight:700, color:"white", fontSize:"14px", margin:0 }}>Save your CV to the GPS Talent Network</p>
                     </div>
-                    <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"12px", lineHeight:1.6, marginBottom:"14px" }}>GPS recruiters will find you when a matching role opens. Free â 10 seconds.</p>
+                    <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"12px", lineHeight:1.6, marginBottom:"14px" }}>GPS recruiters will find you when a matching role opens. Free — 10 seconds.</p>
                     <div style={{ display:"flex", flexDirection:"column" as const, gap:"8px", marginBottom:"12px" }}>
                       <input style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }} type="email" placeholder="Your email" value={reviewEmail} onChange={e=>setReviewEmail(e.target.value)}/>
                       <input style={{ width:"100%", padding:"9px 12px", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"8px", fontSize:"13px", background:"rgba(255,255,255,0.08)", color:"white", outline:"none" }} type="password" placeholder="Choose a password" value={reviewPassword} onChange={e=>setReviewPassword(e.target.value)}/>
@@ -938,7 +938,7 @@ export default function CVBuilderPage() {
                     {reviewAuthError&&<p style={{ color:"#fca5a5", fontSize:"12px", marginBottom:"8px" }}>{reviewAuthError}</p>}
                     <button onClick={handleReviewSave} disabled={reviewSaving||!reviewEmail||!reviewPassword}
                       style={{ width:"100%", padding:"11px", background:"#028090", border:"none", borderRadius:"9px", fontWeight:700, fontSize:"13px", cursor:"pointer", color:"white", display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", opacity:(!reviewEmail||!reviewPassword)?0.5:1 }}>
-                      {reviewSaving?<><Loader2 size={13} className="animate-spin"/>Savingâ¦</>:<>Save to GPS Network<ArrowRight size={13}/></>}
+                      {reviewSaving?<><Loader2 size={13} className="animate-spin"/>Saving…</>:<>Save to GPS Network<ArrowRight size={13}/></>}
                     </button>
                   </div>
                 ):(
@@ -1110,11 +1110,11 @@ export default function CVBuilderPage() {
                       </label>
                       <label style={lbl}>Your rough notes for this role</label>
                       <p style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"8px", lineHeight:1.5 }}>
-                        Jot down what you did â team size, budgets, results, anything. Add at least 3 notes, then AI will rewrite them into polished bullet points.
+                        Jot down what you did — team size, budgets, results, anything. Add at least 3 notes, then AI will rewrite them into polished bullet points.
                       </p>
                       {e.bullets.map((b,j)=>(
                         <div key={j} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"flex-start" }}>
-                          <span style={{ color:"#028090", fontSize:"14px", marginTop:"10px", flexShrink:0, lineHeight:1 }}>â¸</span>
+                          <span style={{ color:"#028090", fontSize:"14px", marginTop:"10px", flexShrink:0, lineHeight:1 }}>▸</span>
                           <input style={{ ...inp, fontSize:"13px" }} placeholder={
                             j===0 ? "e.g. Managed a team of 8 people" :
                             j===1 ? "e.g. Cut costs by 20% through process changes" :
@@ -1133,13 +1133,13 @@ export default function CVBuilderPage() {
                                 style={{ fontSize:"12px", color:"#028090", background:"none", border:"none", cursor:"pointer", fontWeight:600, padding:0 }}>+ Add note</button>
                               <button onClick={()=>generateBullets(i)} disabled={!canAI||generatingBullet===i}
                                 style={{ fontSize:"12px", color:"white", background:canAI?"#028090":"#d1d5db", border:"none", borderRadius:"7px", padding:"5px 12px", cursor:canAI?"pointer":"default", fontWeight:600, display:"flex", alignItems:"center", gap:"5px" }}>
-                                {generatingBullet===i?<><Loader2 size={11} className="animate-spin"/>Polishingâ¦</>:<><Sparkles size={11}/>Polish with AI</>}
+                                {generatingBullet===i?<><Loader2 size={11} className="animate-spin"/>Polishing…</>:<><Sparkles size={11}/>Polish with AI</>}
                               </button>
                             </div>
                             {!canAI && e.title && e.company && (
                               <p style={{ fontSize:"11px", color:"#9ca3af", marginTop:"6px" }}>
                                 Add {Math.max(0, 3-filledBullets)} more note{3-filledBullets!==1?"s":""} to unlock AI polish
-                                {" Â· "}<span style={{ display:"inline-flex", gap:"3px" }}>
+                                {" · "}<span style={{ display:"inline-flex", gap:"3px" }}>
                                   {[0,1,2].map(n=><span key={n} style={{ width:"6px", height:"6px", borderRadius:"50%", background:n<filledBullets?"#028090":"#e5e7eb", display:"inline-block" }}/>)}
                                 </span>
                               </p>
@@ -1159,7 +1159,7 @@ export default function CVBuilderPage() {
                   <h2 style={{ fontSize:"22px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Skills & languages</h2>
                   <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"8px" }}>
                     {form.job_function
-                      ? `Suggested skills for ${form.job_function} â tap to select.`
+                      ? `Suggested skills for ${form.job_function} — tap to select.`
                       : "Tap to select your key skills. These appear on your CV."}
                   </p>
                   <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"7px", marginBottom:"20px" }}>
@@ -1169,16 +1169,16 @@ export default function CVBuilderPage() {
                           borderColor:form.skills.includes(s)?"#028090":"#e5e7eb",
                           background:form.skills.includes(s)?"#028090":"white",
                           color:form.skills.includes(s)?"white":"#374151" }}>
-                        {form.skills.includes(s)?"â ":""}{s}
+                        {form.skills.includes(s)?"✓ ":""}{s}
                       </button>
                     ))}
                   </div>
                   {form.skills.length>0&&(
                     <div style={{ marginBottom:"20px", padding:"12px 14px", background:"#f0f9f8", borderRadius:"10px", border:"1px solid #d1f0ee" }}>
-                      <p style={{ fontSize:"11px", fontWeight:600, color:"#028090", margin:"0 0 7px" }}>{form.skills.length} selected â tap to remove</p>
+                      <p style={{ fontSize:"11px", fontWeight:600, color:"#028090", margin:"0 0 7px" }}>{form.skills.length} selected — tap to remove</p>
                       <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"5px" }}>
                         {form.skills.map(s=>(
-                          <span key={s} onClick={()=>toggleSkill(s)} style={{ background:"#028090", color:"white", fontSize:"11px", padding:"3px 10px", borderRadius:"99px", cursor:"pointer", fontWeight:600 }}>{s} Ã</span>
+                          <span key={s} onClick={()=>toggleSkill(s)} style={{ background:"#028090", color:"white", fontSize:"11px", padding:"3px 10px", borderRadius:"99px", cursor:"pointer", fontWeight:600 }}>{s} ×</span>
                         ))}
                       </div>
                     </div>
@@ -1248,15 +1248,15 @@ export default function CVBuilderPage() {
                   <button onClick={addEdu} style={{ width:"100%", padding:"11px", border:"1.5px dashed #d1d5db", borderRadius:"12px", background:"white", color:"#6b7280", fontSize:"13px", cursor:"pointer", fontWeight:600, marginBottom:"20px" }}>+ Add education</button>
                   <div>
                     <label style={lbl}>Achievements & certifications <span style={{ color:"#d1d5db", fontWeight:400 }}>optional</span></label>
-                    <p style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"8px" }}>Separate with Â· e.g. "CMA certified Â· Top performer Q3 2022"</p>
+                    <p style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"8px" }}>Separate with · e.g. "CMA certified · Top performer Q3 2022"</p>
                     <div style={{ display:"flex", gap:"8px" }}>
-                      <textarea style={{ ...inp, height:"60px", resize:"none" as const, fontSize:"13px", flex:1 }} placeholder="CMA certified Â· Top performer Q3 2022" value={form.achievements} onChange={e=>setForm(f=>({...f,achievements:e.target.value}))}/>
+                      <textarea style={{ ...inp, height:"60px", resize:"none" as const, fontSize:"13px", flex:1 }} placeholder="CMA certified · Top performer Q3 2022" value={form.achievements} onChange={e=>setForm(f=>({...f,achievements:e.target.value}))}/>
                       <button onClick={generateAchievements} title="Generate with AI"
                         style={{ flexShrink:0, width:"42px", background:"#028090", color:"white", border:"none", borderRadius:"10px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                         <Sparkles size={15}/>
                       </button>
                     </div>
-                    <p style={{ fontSize:"11px", color:"#9ca3af", marginTop:"6px" }}>The â¨ button generates achievements based on your experience.</p>
+                    <p style={{ fontSize:"11px", color:"#9ca3af", marginTop:"6px" }}>The ✨ button generates achievements based on your experience.</p>
                   </div>
                 </div>
               )}
@@ -1266,14 +1266,14 @@ export default function CVBuilderPage() {
                 <div>
                   <h2 style={{ fontSize:"22px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Professional summary</h2>
                   <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"20px" }}>
-                    3â4 sentences about who you are. The AI reads your job title, experience, and skills to write this â the more you've filled in, the richer it'll be.
+                    3–4 sentences about who you are. The AI reads your job title, experience, and skills to write this — the more you've filled in, the richer it'll be.
                   </p>
                   <textarea style={{ ...inp, height:"150px", resize:"none" as const, lineHeight:1.65, marginBottom:"14px", fontSize:"14px" }}
-                    placeholder="Experienced finance professional with 8+ yearsâ¦"
+                    placeholder="Experienced finance professional with 8+ years…"
                     value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))}/>
                   {generating?(
                     <div style={{ display:"flex", alignItems:"center", gap:"7px", color:"#028090", fontSize:"13px" }}>
-                      <Loader2 size={14} className="animate-spin"/> Writing your summaryâ¦
+                      <Loader2 size={14} className="animate-spin"/> Writing your summary…
                     </div>
                   ):(
                     <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
@@ -1286,7 +1286,7 @@ export default function CVBuilderPage() {
                         <Sparkles size={13}/>
                         {form.summary?"Regenerate with AI":"Generate with AI"}
                       </button>
-                      {form.summary&&<div style={{ display:"flex", alignItems:"center", gap:"5px", color:"#059669", fontSize:"12px" }}><CheckCircle size={12}/>Generated â edit freely</div>}
+                      {form.summary&&<div style={{ display:"flex", alignItems:"center", gap:"5px", color:"#059669", fontSize:"12px" }}><CheckCircle size={12}/>Generated — edit freely</div>}
                     </div>
                   )}
                 </div>
@@ -1296,7 +1296,7 @@ export default function CVBuilderPage() {
               {currentStepId==="template"&&(
                 <div>
                   <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"3px" }}>Choose your template</h2>
-                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"16px" }}>3 premium designs. Your CV is live on the right â switch anytime.</p>
+                  <p style={{ color:"#9ca3af", fontSize:"12px", marginBottom:"16px" }}>3 premium designs. Your CV is live on the right — switch anytime.</p>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"8px", marginBottom:"18px" }}>
                     {TEMPLATES.map(t=>(
                       <button key={t.id} onClick={()=>setSelectedTemplate(t.id)}
@@ -1306,22 +1306,22 @@ export default function CVBuilderPage() {
                           <p style={{ fontSize:"11px", fontWeight:800, color:selectedTemplate===t.id?"#028090":"#0a1f24", margin:0, marginBottom:"3px" }}>{t.name}</p>
                           <p style={{ fontSize:"9px", color:"#9ca3af", margin:0, lineHeight:1.4 }}>{t.sub}</p>
                         </div>
-                        {selectedTemplate===t.id&&<div style={{ background:"#028090", padding:"3px 0", textAlign:"center" as const, fontSize:"8px", color:"white", fontWeight:700, letterSpacing:".05em" }}>â SELECTED</div>}
+                        {selectedTemplate===t.id&&<div style={{ background:"#028090", padding:"3px 0", textAlign:"center" as const, fontSize:"8px", color:"white", fontWeight:700, letterSpacing:".05em" }}>✓ SELECTED</div>}
                       </button>
                     ))}
                   </div>
                   <div style={{ display:"flex", alignItems:"center", gap:"10px", padding:"11px 14px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"10px", marginBottom:"16px" }}>
-                    <span style={{ fontSize:"16px" }}>ð¸ð¦</span>
+                    <span style={{ fontSize:"16px" }}>🇸🇦</span>
                     <div>
-                      <p style={{ fontSize:"12px", fontWeight:600, color:"#166534", margin:0 }}>Arabic CV â coming soon</p>
+                      <p style={{ fontSize:"12px", fontWeight:600, color:"#166534", margin:0 }}>Arabic CV — coming soon</p>
                       <p style={{ fontSize:"11px", color:"#15803d", margin:0 }}>Full RTL Arabic version. Save now and we'll notify you.</p>
                     </div>
                   </div>
                   <button onClick={handleSaveAndDownload} disabled={saving}
                     style={{ width:"100%", padding:"14px", background:"#028090", color:"white", border:"none", borderRadius:"12px", fontWeight:700, fontSize:"15px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px" }}>
-                    {saving?<><Loader2 size={15} className="animate-spin"/>Savingâ¦</>:<><Download size={15}/>Save & Download PDF</>}
+                    {saving?<><Loader2 size={15} className="animate-spin"/>Saving…</>:<><Download size={15}/>Save & Download PDF</>}
                   </button>
-                  <p style={{ textAlign:"center" as const, fontSize:"11px", color:"#9ca3af", marginTop:"8px" }}>Saves to GPS recruiter database Â· Free download Â· No watermark</p>
+                  <p style={{ textAlign:"center" as const, fontSize:"11px", color:"#9ca3af", marginTop:"8px" }}>Saves to GPS recruiter database · Free download · No watermark</p>
                 </div>
               )}
             </div>
@@ -1342,7 +1342,7 @@ export default function CVBuilderPage() {
             </div>
           </div>
 
-          {/* RIGHT â preview (template step only) */}
+          {/* RIGHT — preview (template step only) */}
           {isTemplateStep&&(
             <div style={{ padding:"14px", overflow:"hidden" }}>
               <CVPreview form={form} templateId={selectedTemplate}/>
@@ -1351,12 +1351,12 @@ export default function CVBuilderPage() {
         </div>
       )}
 
-      {/* SIGNUP / SIGNIN / FORGOT MODAL â 3-state, no data loss */}
+      {/* SIGNUP / SIGNIN / FORGOT MODAL — 3-state, no data loss */}
       {showSignup&&(
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:"24px" }}>
           <div style={{ background:"white", borderRadius:"20px", padding:"32px", width:"100%", maxWidth:"400px", boxShadow:"0 24px 80px rgba(0,0,0,0.25)" }}>
 
-            {/* ââ STATE: signup ââ */}
+            {/* ── STATE: signup ── */}
             {authMode==="signup"&&(<>
               <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
                 <div style={{ width:"44px", height:"44px", background:"#e6f5f3", borderRadius:"12px", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 10px" }}>
@@ -1364,7 +1364,7 @@ export default function CVBuilderPage() {
                 </div>
                 <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Almost there!</h2>
                 <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>
-                  Create a free account to save your CV to the GPS Talent Network â our recruiters will be able to find you instantly.
+                  Create a free account to save your CV to the GPS Talent Network — our recruiters will be able to find you instantly.
                 </p>
               </div>
               <div style={{ display:"flex", flexDirection:"column" as const, gap:"10px", marginBottom:"12px" }}>
@@ -1374,7 +1374,7 @@ export default function CVBuilderPage() {
               {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
               <button onClick={handleSignupAndSave} disabled={authLoading||!email||!password}
                 style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
-                {authLoading?<><Loader2 size={14} className="animate-spin"/>Savingâ¦</>:<>Save CV & Go Live<ArrowRight size={14}/></>}
+                {authLoading?<><Loader2 size={14} className="animate-spin"/>Saving…</>:<>Save CV & Go Live<ArrowRight size={14}/></>}
               </button>
               <p style={{ textAlign:"center" as const, fontSize:"12px", color:"#9ca3af" }}>
                 Already have an account?{" "}
@@ -1383,11 +1383,11 @@ export default function CVBuilderPage() {
               <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"4px" }}>Cancel</button>
             </>)}
 
-            {/* ââ STATE: signin ââ */}
+            {/* ── STATE: signin ── */}
             {authMode==="signin"&&(<>
               <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
                 <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Welcome back</h2>
-                <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>Sign in to save your CV â your form data is still here.</p>
+                <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.5 }}>Sign in to save your CV — your form data is still here.</p>
               </div>
               <div style={{ display:"flex", flexDirection:"column" as const, gap:"10px", marginBottom:"12px" }}>
                 <input style={inp} type="email" placeholder="Your email" value={email} onChange={e=>setEmail(e.target.value)} autoFocus/>
@@ -1396,7 +1396,7 @@ export default function CVBuilderPage() {
               {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
               <button onClick={handleSigninAndSave} disabled={authLoading||!email||!password}
                 style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
-                {authLoading?<><Loader2 size={14} className="animate-spin"/>Signing inâ¦</>:<>Sign in & Save CV<ArrowRight size={14}/></>}
+                {authLoading?<><Loader2 size={14} className="animate-spin"/>Signing in…</>:<>Sign in & Save CV<ArrowRight size={14}/></>}
               </button>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px" }}>
                 <button onClick={()=>{setAuthMode("forgot");setAuthError("")}} style={{ color:"#6b7280", background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>Forgot password?</button>
@@ -1405,7 +1405,7 @@ export default function CVBuilderPage() {
               <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"8px" }}>Cancel</button>
             </>)}
 
-            {/* ââ STATE: forgot ââ */}
+            {/* ── STATE: forgot ── */}
             {authMode==="forgot"&&(<>
               <div style={{ textAlign:"center" as const, marginBottom:"20px" }}>
                 <h2 style={{ fontSize:"17px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Reset your password</h2>
@@ -1420,7 +1420,7 @@ export default function CVBuilderPage() {
                 {authError&&<p style={{ color:"#ef4444", fontSize:"12px", marginBottom:"10px" }}>{authError}</p>}
                 <button onClick={handleForgotPassword} disabled={authLoading||!email}
                   style={{ width:"100%", padding:"12px", background:"#028090", color:"white", border:"none", borderRadius:"10px", fontWeight:700, fontSize:"14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"7px", marginBottom:"12px" }}>
-                  {authLoading?<><Loader2 size={14} className="animate-spin"/>Sendingâ¦</>:<>Send reset link</>}
+                  {authLoading?<><Loader2 size={14} className="animate-spin"/>Sending…</>:<>Send reset link</>}
                 </button>
               </>)}
               {authForgotSent&&(
@@ -1430,9 +1430,9 @@ export default function CVBuilderPage() {
                 </div>
               )}
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px" }}>
-                <button onClick={()=>{setAuthMode("signin");setAuthError("");setAuthForgotSent(false)}} style={{ color:"#6b7280", background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>â Back to sign in</button>
+                <button onClick={()=>{setAuthMode("signin");setAuthError("");setAuthForgotSent(false)}} style={{ color:"#6b7280", background:"none", border:"none", cursor:"pointer", fontSize:"12px", padding:0 }}>← Back to sign in</button>
               </div>
-              <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"8px" }}>Cancel â I'll do this later</button>
+              <button onClick={()=>setShowSignup(false)} style={{ width:"100%", padding:"8px", background:"none", border:"none", color:"#9ca3af", fontSize:"12px", cursor:"pointer", marginTop:"8px" }}>Cancel — I'll do this later</button>
             </>)}
           </div>
         </div>
