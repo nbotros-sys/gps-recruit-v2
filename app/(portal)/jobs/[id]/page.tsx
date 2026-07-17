@@ -14,6 +14,7 @@ export default function JobDetailPage() {
   const [file, setFile] = useState<File | null>(null)
   const [form, setForm] = useState({ name: "", email: "", phone: "" })
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
   const [candidate, setCandidate] = useState<any>(null)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
   const supabase = createClient()
@@ -61,137 +62,50 @@ export default function JobDetailPage() {
     // Require either an uploaded file or an existing CV on file
     if (!file && !candidate?.cv_text) return
     setSubmitting(true)
+    setSubmitError("")
     try {
       let cvText = candidate?.cv_text || ""
 
-      // Only extract from file if they uploaded a new one
+      // Only extract from a newly uploaded file
       if (file) {
-        const formData = new FormData()
-        formData.append("file", file)
-        const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
+        const fd = new FormData()
+        fd.append("file", file)
+        const extractRes = await fetch("/api/extract-cv", { method: "POST", body: fd })
         const { text } = await extractRes.json()
         cvText = text || ""
       }
 
-      const [profileRes, scoreRes] = await Promise.all([
-        fetch("/api/build-profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cv_text: cvText || "", filename: file?.name || "profile" })
-        }),
-        fetch("/api/score-cv", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cv_text: cvText || "", job_description: mandate.job_description, mandate_title: mandate.title })
-        })
-      ])
-      const profile = await profileRes.json()
-      const score = await scoreRes.json()
-
-      let candidateId: string | null = candidate?.id || null
-
-      if (candidate) {
-        // Already have a candidate record — update CV if they uploaded a new file
-        if (file && cvText) {
-          await supabase.from("candidates").update({
-            cv_text: cvText,
-            tags: profile.tags || candidate.tags || [],
-            notes: profile.summary || candidate.notes || "",
-            current_title: profile.current_title || candidate.current_title,
-          }).eq("id", candidate.id)
-        }
-      } else {
-        // No candidate record yet — create one
-        const { data: existingByEmail } = await supabase
-          .from("candidates")
-          .select("id")
-          .eq("email", form.email)
-          .single()
-
-        if (existingByEmail) {
-          candidateId = existingByEmail.id
-          await supabase.from("candidates").update({
-            cv_text: cvText || "",
-            tags: profile.tags || [],
-            notes: profile.summary || "",
-            current_title: profile.current_title,
-          }).eq("id", existingByEmail.id)
-        } else {
-          const { data: newCand } = await supabase.from("candidates").insert([{
-            name: form.name || profile.name,
-            email: form.email,
-            phone: form.phone || profile.phone,
-            current_title: profile.current_title,
-            current_company: profile.current_company,
-            location: profile.location,
-            dob: profile.dob || null,
-            cv_text: cvText || "",
-            tags: profile.tags || [],
-            source: "direct",
-            notes: profile.summary || "",
-          }]).select().single()
-          if (newCand) candidateId = newCand.id
-        }
-      }
-
-      if (candidateId) {
-        const { data: existingApp } = await supabase
-          .from("applications")
-          .select("id")
-          .eq("candidate_id", candidateId)
-          .eq("mandate_id", id)
-          .single()
-
-        if (!existingApp) {
-          await supabase.from("applications").insert([{
-            candidate_id: candidateId,
-            mandate_id: id,
-            stage: "new",
-            ai_score: score.score,
-            ai_summary: score.summary,
-            ai_strengths: Array.isArray(score.strengths) ? score.strengths : [],
-            ai_concerns: Array.isArray(score.concerns) ? score.concerns : [],
-          }])
-        }
-      }
-
       const { data: { user: authUser } } = await supabase.auth.getUser()
 
-      try {
-        await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "application_confirmation",
-            candidateName: form.name || profile.name || "Candidate",
-            candidateEmail: form.email,
-            roleTitle: mandate.title,
-            clientName: mandate.client_name,
-            location: mandate.location,
-            candidateId,
-            hasAccount: !!authUser,
-          })
-        })
-        await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "internal_alert",
-            candidateName: form.name || profile.name || "Candidate",
-            candidateEmail: form.email,
-            candidatePhone: form.phone || profile.phone,
-            candidateTitle: profile.current_title || candidate?.current_title,
-            candidateCompany: profile.current_company || candidate?.current_company,
-            candidateLocation: profile.location || candidate?.location || mandate.location,
-            aiScore: score.score,
-            roleTitle: mandate.title,
-            clientName: mandate.client_name,
-          })
-        })
-      } catch (e) { console.log("Email send failed:", e) }
-
+      // CV read, scoring, candidate + application save and emails all run
+      // server-side so RLS never silently drops the application.
+      const res = await fetch("/api/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mandate_id: id,
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          cv_text: cvText,
+          filename: file?.name || "profile",
+          cv_is_new: !!file,
+          job_description: mandate.job_description,
+          mandate_title: mandate.title,
+          client_name: mandate.client_name,
+          mandate_location: mandate.location,
+          has_account: !!authUser,
+        }),
+      })
+      const result = await res.json().catch(() => ({} as any))
+      if (!res.ok) {
+        throw new Error(result.error || "Could not submit your application. Please try again.")
+      }
       setSubmitted(true)
-    } catch (err) { console.error(err) }
+    } catch (err: any) {
+      console.error(err)
+      setSubmitError(err?.message || "Could not submit your application. Please try again.")
+    }
     setSubmitting(false)
   }
 
@@ -405,6 +319,7 @@ export default function JobDetailPage() {
                     style={{ background: "#028090" }}>
                     {submitting ? <><Loader2 size={14} className="animate-spin" /> Submitting...</> : "Submit application"}
                   </button>
+                  {submitError && <p className="text-xs text-red-500 text-center">{submitError}</p>}
                   <p className="text-xs text-gray-400 text-center">Confidential · Never shared without consent</p>
                 </form>
               )}
