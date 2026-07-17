@@ -52,35 +52,28 @@ export default function JoinPage() {
         setState("done_existing"); return
       }
 
-      // Extract CV + build profile
+      // Extract CV text (public step). The CV reading + profile save both happen
+      // server-side inside /api/register-candidate (service role), so an anonymous
+      // visitor's browser is never blocked by RLS and the AI reader stays private.
       const formData = new FormData()
       formData.append("file", file)
       const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
       const { text: cvText } = await extractRes.json()
 
-      const profileRes = await fetch("/api/build-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cv_text: cvText || "", filename: file.name })
-      })
-      const profile = await profileRes.json()
-
-      // Save candidate to DB via server route (service role). A browser insert is
-      // blocked by RLS for anonymous visitors, which silently dropped the profile.
+      // Save candidate (server reads the CV and fills title/company/summary/tags).
       const regRes = await fetch("/api/register-candidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name || profile.name,
+          name: form.name,
           email: form.email,
-          phone: form.phone !== "+20 " ? form.phone : (profile.phone || null),
-          current_title: profile.current_title,
-          current_company: profile.current_company,
-          location: form.location || profile.location,
+          phone: form.phone !== "+20 " ? form.phone : "",
+          location: form.location,
+          job_function: form.function,
+          level: form.level,
           cv_text: cvText || "",
-          tags: [...(profile.tags || []), form.function, form.level].filter(Boolean),
+          filename: file.name,
           source: "direct",
-          notes: [profile.summary, form.function ? `Function: ${form.function}` : "", form.level ? `Level: ${form.level}` : ""].filter(Boolean).join(" | "),
         }),
       })
       const reg = await regRes.json().catch(() => ({} as any))
@@ -118,7 +111,7 @@ export default function JoinPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "network_welcome",
-            candidateName: form.name || profile.name || "Candidate",
+            candidateName: form.name || "Candidate",
             candidateEmail: form.email,
           })
         })

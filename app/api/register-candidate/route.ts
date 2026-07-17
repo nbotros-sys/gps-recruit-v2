@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { buildProfileFromCV } from "@/lib/build-profile-core"
 
 // Service-role (master key) client. Bypasses RLS so the insert + read-back is
 // not cancelled by the candidate SELECT policy (an anonymous visitor cannot read
@@ -13,25 +14,20 @@ function getAdmin() {
   )
 }
 
-// Columns a public caller is allowed to set on a new candidate.
-const ALLOWED = [
-  "name", "email", "phone", "current_title", "current_company",
-  "location", "dob", "cv_text", "tags", "source", "notes", "avatar_url",
-]
-
-// Public route: create (or find) a candidate record.
+// Public route: create (or find) a candidate record. If cv_text is provided, the
+// CV is read server-side (title/company/summary/tags) — the AI reader is never
+// exposed directly to anonymous callers.
 // Returns { id, existing } — existing=true if the email was already registered.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({} as any))
   const email = (body?.email || "").trim()
-  const name = (body?.name || "").trim()
-  if (!email || !name) {
-    return NextResponse.json({ error: "Missing name or email" }, { status: 400 })
+  if (!email) {
+    return NextResponse.json({ error: "Missing email" }, { status: 400 })
   }
 
   const supabase = getAdmin()
 
-  // Already registered? Return the existing record's id.
+  // Already registered? Return the existing record's id (skip the CV read).
   const { data: existing, error: findErr } = await supabase
     .from("candidates")
     .select("id")
@@ -40,14 +36,36 @@ export async function POST(req: NextRequest) {
   if (findErr) return NextResponse.json({ error: findErr.message }, { status: 500 })
   if (existing) return NextResponse.json({ id: existing.id, existing: true })
 
-  // Whitelist columns before insert.
-  const row: Record<string, any> = {}
-  for (const k of ALLOWED) {
-    if (body?.[k] !== undefined) row[k] = body[k]
+  // Read the CV server-side (never throws — returns a minimal profile on failure).
+  const cvText: string = body?.cv_text || ""
+  const profile = await buildProfileFromCV(cvText, body?.filename)
+
+  // Form values take precedence over parsed values where the user typed something.
+  const jobFunction: string = (body?.job_function || "").trim()
+  const level: string = (body?.level || "").trim()
+  const formPhone: string = (body?.phone && body.phone.trim() !== "+20") ? body.phone.trim() : ""
+
+  const name = (body?.name || "").trim() || profile.name || "Unknown"
+  const tags = [...(profile.tags || []), jobFunction, level].filter(Boolean)
+  const notes = [
+    profile.summary,
+    jobFunction ? `Function: ${jobFunction}` : "",
+    level ? `Level: ${level}` : "",
+  ].filter(Boolean).join(" | ")
+
+  const row: Record<string, any> = {
+    name,
+    email,
+    phone: formPhone || profile.phone || null,
+    current_title: profile.current_title,
+    current_company: profile.current_company,
+    location: (body?.location || "").trim() || profile.location || null,
+    dob: profile.dob || null,
+    cv_text: cvText,
+    tags,
+    notes,
+    source: body?.source || "direct",
   }
-  row.email = email
-  row.name = name
-  if (!row.source) row.source = "direct"
 
   const { data: created, error: insErr } = await supabase
     .from("candidates")
@@ -57,5 +75,5 @@ export async function POST(req: NextRequest) {
   if (insErr || !created) {
     return NextResponse.json({ error: insErr?.message || "Could not save profile" }, { status: 500 })
   }
-  return NextResponse.json({ id: created.id, existing: false })
+  return NextResponse.json({ id: created.id, existing: false, is_cv: profile.is_cv })
 }
