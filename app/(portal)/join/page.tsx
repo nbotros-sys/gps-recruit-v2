@@ -65,19 +65,30 @@ export default function JoinPage() {
       })
       const profile = await profileRes.json()
 
-      // Save candidate to DB
-      const { data: newCand } = await supabase.from("candidates").insert([{
-        name: form.name || profile.name,
-        email: form.email,
-        phone: form.phone !== "+20 " ? form.phone : (profile.phone || null),
-        current_title: profile.current_title,
-        current_company: profile.current_company,
-        location: form.location || profile.location,
-        cv_text: cvText || "",
-        tags: [...(profile.tags || []), form.function, form.level].filter(Boolean),
-        source: "direct",
-        notes: [profile.summary, form.function ? `Function: ${form.function}` : "", form.level ? `Level: ${form.level}` : ""].filter(Boolean).join(" | "),
-      }]).select("id").single()
+      // Save candidate to DB via server route (service role). A browser insert is
+      // blocked by RLS for anonymous visitors, which silently dropped the profile.
+      const regRes = await fetch("/api/register-candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name || profile.name,
+          email: form.email,
+          phone: form.phone !== "+20 " ? form.phone : (profile.phone || null),
+          current_title: profile.current_title,
+          current_company: profile.current_company,
+          location: form.location || profile.location,
+          cv_text: cvText || "",
+          tags: [...(profile.tags || []), form.function, form.level].filter(Boolean),
+          source: "direct",
+          notes: [profile.summary, form.function ? `Function: ${form.function}` : "", form.level ? `Level: ${form.level}` : ""].filter(Boolean).join(" | "),
+        }),
+      })
+      const reg = await regRes.json().catch(() => ({} as any))
+      if (!regRes.ok || !reg.id) {
+        throw new Error(reg.error || "Could not save your profile")
+      }
+      if (reg.existing) { setState("done_existing"); return }
+      const newCand = { id: reg.id }
 
       // Create auth account with password — no OTP needed
       const { error: signUpError } = await supabase.auth.signUp({
