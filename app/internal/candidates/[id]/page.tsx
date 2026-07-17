@@ -194,6 +194,8 @@ export default function CandidateProfile() {
   const [form, setForm] = useState<any>({})
   const [notes, setNotes] = useState("")
   const [savingNotes, setSavingNotes] = useState(false)
+  const [reanalyzing, setReanalyzing] = useState(false)
+  const [reanalyzeMsg, setReanalyzeMsg] = useState("")
   const supabase = createClient()
 
   useEffect(() => {
@@ -262,6 +264,29 @@ export default function CandidateProfile() {
     await supabase.from("candidates").update({ notes }).eq("id", id)
     setCandidate({ ...candidate, notes })
     setSavingNotes(false)
+  }
+
+  async function reanalyzeCV() {
+    setReanalyzing(true); setReanalyzeMsg("")
+    try {
+      const res = await fetch("/api/reparse-candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setReanalyzeMsg(data.error || "Could not re-analyse CV."); }
+      else if (data.updated) {
+        const { data: fresh } = await supabase.from("candidates").select("*").eq("id", id).maybeSingle()
+        if (fresh) { setCandidate(fresh); setForm(fresh) }
+        setReanalyzeMsg("Profile updated: " + (data.fields || []).join(", "))
+      } else {
+        setReanalyzeMsg(data.message || "Nothing to backfill.")
+      }
+    } catch (e: any) {
+      setReanalyzeMsg("Could not re-analyse CV.")
+    }
+    setReanalyzing(false)
   }
 
   const scoreColor = (s: number) => s >= 70 ? "#028090" : s >= 50 ? "#d97706" : "#9ca3af"
@@ -567,8 +592,17 @@ export default function CandidateProfile() {
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <FileText size={16} className="text-teal" /> CV Text
             </h3>
-            <span className="text-xs text-gray-400">{candidate.cv_text ? `${candidate.cv_text.length.toLocaleString()} characters` : "No CV stored"}</span>
+            <div className="flex items-center gap-3">
+              {candidate.cv_text && (
+                <button onClick={reanalyzeCV} disabled={reanalyzing}
+                  className="text-xs font-semibold text-teal border border-teal/40 rounded-lg px-3 py-1.5 hover:bg-teal/5 disabled:opacity-50 flex items-center gap-1.5">
+                  {reanalyzing ? "Re-analysing…" : "↺ Re-analyse CV"}
+                </button>
+              )}
+              <span className="text-xs text-gray-400">{candidate.cv_text ? `${candidate.cv_text.length.toLocaleString()} characters` : "No CV stored"}</span>
+            </div>
           </div>
+          {reanalyzeMsg && <p className="text-xs text-gray-500 mb-3">{reanalyzeMsg}</p>}
           {candidate.cv_text ? (
             <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5 max-h-[600px] overflow-y-auto">
               {cleanCvText(candidate.cv_text)}
