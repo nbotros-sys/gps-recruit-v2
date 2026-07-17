@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
     "/api/claim-account",
     "/api/cron",
     "/api/upload-cv-file",
+    "/api/register-candidate",
     "/api/upload-photo",
     "/api/extract-structured",
     "/api/generate-embedding",
