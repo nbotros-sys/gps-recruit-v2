@@ -80,7 +80,19 @@ export default function ProfilePage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = "/login"; return }
-      const { data: cand } = await supabase.from("candidates").select("*").eq("email", user.email).single()
+      let { data: cand } = await supabase.from("candidates").select("*").eq("email", user.email).maybeSingle()
+      // Self-heal: if a CV is on file but the profile was never read from it,
+      // enrich it once from the CV so the fields fill in automatically.
+      if (cand && cand.cv_text && !cand.current_title) {
+        try {
+          const r = await fetch("/api/enrich-my-profile", { method: "POST" })
+          const d = await r.json().catch(() => ({}))
+          if (d?.updated) {
+            const { data: fresh } = await supabase.from("candidates").select("*").eq("email", user.email).maybeSingle()
+            if (fresh) cand = fresh
+          }
+        } catch {}
+      }
       if (cand) { setCandidate(cand); setForm(cand) }
       setLoading(false)
     }
