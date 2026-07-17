@@ -154,100 +154,83 @@ const PH = {
 // TEMPLATE 1 — PRESTIGE  (dark slate sidebar, gold accents, Georgian serif)
 // Key text fix: sidebar uses percentage width, all text has overflowWrap/wordBreak
 // ═══════════════════════════════════════════════════════════════════════════════
+const eduRange = (e:Edu) => [e.startYear,e.endYear].filter(Boolean).join(" – ")
+
+// ═══ TEMPLATE 1 — PRESTIGE (slate sidebar, gold accents) ═══
 function TplPrestige({ form, d }: { form:FormData; d:D }) {
   const f = form
-  const name   = f.personal.name   || PH.name
-  const title  = f.personal.title  || PH.title
-  const email  = f.personal.email  || PH.email
-  const phone  = f.personal.phone  || PH.phone
-  const loc    = f.personal.location || PH.location
-  const link   = f.personal.linkedin || PH.linkedin
-  const sum    = f.summary         || PH.summary
-  const exps   = f.experience.some(e=>e.title) ? f.experience : PH.experience
-  const edus   = f.education.some(e=>e.institution) ? f.education : PH.education
+  const name = f.personal.name || PH.name
+  const title = f.personal.title || PH.title
+  const email = f.personal.email || PH.email
+  const phone = f.personal.phone || PH.phone
+  const loc = f.personal.location || PH.location
+  const link = (f.personal.linkedin || PH.linkedin || "").replace("https://","").replace(/\/notifications.*$/,"")
+  const sum = f.summary || PH.summary
+  const exps = f.experience.some((e:Exp)=>e.title) ? f.experience : PH.experience
+  const edus = f.education.some((e:Edu)=>e.institution) ? f.education : PH.education
   const skills = f.skills.length>0 ? f.skills : PH.skills
-  const langs  = f.languages.filter(l=>l.lang).length>0 ? f.languages : PH.languages
-  const hob    = f.hobbies||(d.showHobbies?PH.hobbies:"")
-  const ach    = f.achievements||(d.showAchievements?PH.achievements:"")
-
+  const langs = f.languages.filter((l:any)=>l.lang).length>0 ? f.languages : PH.languages
+  const hob = f.hobbies||(d.showHobbies?PH.hobbies:"")
+  const ach = f.achievements||(d.showAchievements?PH.achievements:"")
   const SLATE="#1C2B35", GOLD="#B8966E", CREAM="#FAFAF8", INK="#1A1A1A"
-
+  const chip:React.CSSProperties = { fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.82}em`, background:"rgba(184,150,110,0.16)", color:"#E7D8C4", padding:"0.18em 0.6em", borderRadius:"1em", ...NO_BREAK }
+  const eduChip:React.CSSProperties = { fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.8}em`, background:"rgba(184,150,110,0.14)", color:"#6B5842", padding:"0.18em 0.6em", borderRadius:"1em", ...NO_BREAK }
   const sL = (label:string) => (
-    <div style={{ fontSize:`${d.secLabelEm}em`, fontWeight:700, color:GOLD, letterSpacing:"0.12em",
-      textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm}em`, marginBottom:"0.45em",
-      paddingBottom:"0.3em", borderBottom:`1px solid rgba(184,150,110,0.28)`, ...NO_BREAK }}>
-      {label}
-    </div>
+    <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:GOLD, letterSpacing:"0.12em", textTransform:"uppercase" as const, marginBottom:"0.5em", ...NO_BREAK }}>{label}</div>
   )
   const mL = (label:string) => (
     <div style={{ display:"flex", alignItems:"center", gap:"0.55em", marginTop:`${d.sectionGapEm}em`, marginBottom:"0.55em" }}>
-      <div style={{ width:"0.22em", height:"1.1em", background:GOLD, borderRadius:"1px", flexShrink:0 }} />
-      <span style={{ fontFamily:"Georgia,serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:SLATE,
-        letterSpacing:`${d.letterSp}em`, textTransform:"uppercase" as const }}>{label}</span>
-      <div style={{ flex:1, height:"0.5px", background:"#E0DDD8" }} />
+      <span style={{ fontFamily:"Georgia,serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:SLATE, letterSpacing:`${d.letterSp}em`, textTransform:"uppercase" as const }}>{label}</span>
+      <div style={{ flex:1, height:"1px", background:"#E0DDD8" }} />
     </div>
   )
-
   return (
     <div style={{ display:"flex", height:"100%", fontFamily:"Georgia,serif", fontSize:"1em" }}>
-      {/* Sidebar — percentage width so it never squeezes below readable size */}
-      <div style={{ width:`${d.sidebarPct}%`, flexShrink:0, background:SLATE,
-        padding:`${d.headerPadVEm}em ${d.headerPadHEm*0.7}em`,
-        display:"flex", flexDirection:"column" as const, overflow:"hidden", minWidth:0 }}>
+      <div style={{ width:`${d.sidebarPct}%`, flexShrink:0, background:SLATE, padding:`${d.headerPadVEm}em ${d.headerPadHEm*0.7}em`, display:"flex", flexDirection:"column" as const, overflow:"hidden", minWidth:0 }}>
         {f.personal.photo ? (
           <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm}em`, height:`${d.photoEm}em`, borderRadius:"50%", objectFit:"cover", border:`0.14em solid ${GOLD}`, marginBottom:`${d.sectionGapEm*0.55}em`, flexShrink:0, maxWidth:"100%" }} />
         ) : (
-          <div style={{ width:`${d.photoEm}em`, height:`${d.photoEm}em`, borderRadius:"50%", background:"rgba(184,150,110,0.18)", border:`0.12em solid rgba(184,150,110,0.45)`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:`${d.sectionGapEm*0.55}em`, flexShrink:0, color:"rgba(255,255,255,0.5)", fontSize:`${d.photoEm*0.28}em`, fontWeight:700, maxWidth:"100%" }}>
-            {initials(name)}
-          </div>
+          <div style={{ width:`${d.photoEm}em`, height:`${d.photoEm}em`, borderRadius:"50%", background:"rgba(184,150,110,0.18)", border:`0.12em solid rgba(184,150,110,0.45)`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:`${d.sectionGapEm*0.55}em`, flexShrink:0, color:"rgba(255,255,255,0.5)", fontSize:`${d.photoEm*0.28}em`, fontWeight:700, maxWidth:"100%" }}>{initials(name)}</div>
         )}
         <div style={{ fontSize:`${d.nameEm}em`, fontWeight:700, color:"#FFF", lineHeight:1.15, marginBottom:"0.2em", ...NO_BREAK }}>{name}</div>
-        <div style={{ fontSize:`${d.titleEm*0.85}em`, color:GOLD, letterSpacing:"0.07em", fontFamily:"Arial,sans-serif", marginBottom:`${d.sectionGapEm*0.45}em`, textTransform:"uppercase" as const, ...NO_BREAK }}>{title}</div>
-        <div style={{ width:"1.4em", height:"0.1em", background:GOLD, marginBottom:`${d.sectionGapEm*0.45}em` }} />
+        <div style={{ fontSize:`${d.titleEm*0.85}em`, color:GOLD, letterSpacing:"0.07em", fontFamily:"Arial,sans-serif", marginBottom:`${d.sectionGapEm*0.5}em`, textTransform:"uppercase" as const, ...NO_BREAK }}>{title}</div>
+        <div style={{ width:"1.4em", height:"0.1em", background:GOLD, marginBottom:`${d.sectionGapEm*0.5}em` }} />
         {sL("Contact")}
-        <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"rgba(255,255,255,0.52)", lineHeight:d.lineHeight*0.92, ...NO_BREAK }}>
-          {email    && <div style={{ marginBottom:"0.22em" }}>{email}</div>}
-          {phone    && <div style={{ marginBottom:"0.22em" }}>{phone}</div>}
-          {loc      && <div style={{ marginBottom:"0.22em" }}>{loc}</div>}
-          {link     && <div style={{ color:GOLD, marginBottom:"0.22em" }}>{link.replace("https://","")}</div>}
+        <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"rgba(255,255,255,0.55)", lineHeight:d.lineHeight*0.92, marginBottom:`${d.sectionGapEm*0.7}em`, ...NO_BREAK }}>
+          {email && <div style={{ marginBottom:"0.25em" }}>{email}</div>}
+          {phone && <div style={{ marginBottom:"0.25em" }}>{phone}</div>}
+          {loc && <div style={{ marginBottom:"0.25em" }}>{loc}</div>}
+          {link && <div style={{ color:GOLD }}>{link}</div>}
         </div>
         {sL("Skills")}
-        <div style={{ display:"flex", flexDirection:"column" as const, gap:"0.3em" }}>
-          {skills.slice(0,9).map((s,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"0.45em", ...NO_BREAK }}>
-              <div style={{ width:"0.26em", height:"0.26em", background:GOLD, borderRadius:"50%", flexShrink:0, marginTop:"0.35em" }} />
-              <span style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"rgba(255,255,255,0.58)" }}>{s}</span>
+        <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.35em", marginBottom:`${d.sectionGapEm*0.7}em` }}>
+          {skills.slice(0,12).map((s:string,i:number)=>(<span key={i} style={chip}>{s}</span>))}
+        </div>
+        {sL("Languages")}
+        <div style={{ marginBottom:`${d.sectionGapEm*0.7}em` }}>
+          {langs.filter((l:any)=>l.lang).map((l:any,i:number)=>(
+            <div key={i} style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, marginBottom:"0.28em", ...NO_BREAK }}>
+              <span style={{ color:"rgba(255,255,255,0.85)", fontWeight:600 }}>{l.lang}</span>
+              <span style={{ color:"rgba(255,255,255,0.35)" }}> · {l.level}</span>
             </div>
           ))}
         </div>
-        {sL("Languages")}
-        {langs.filter(l=>l.lang).map((l,i)=>(
-          <div key={i} style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"rgba(255,255,255,0.58)", marginBottom:"0.25em", lineHeight:1.4, ...NO_BREAK }}>
-            <span style={{ color:"rgba(255,255,255,0.82)", fontWeight:600 }}>{l.lang}</span>
-            <span style={{ color:"rgba(255,255,255,0.32)" }}> · {l.level}</span>
-          </div>
-        ))}
-        {hob && (<>
-          {sL("Interests")}
-          <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"rgba(255,255,255,0.38)", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>{hob}</div>
-        </>)}
+        <div style={{ marginTop:"auto" }}>
+          {hob && (<>{sL("Interests")}<div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.82}em`, color:"rgba(255,255,255,0.42)", lineHeight:d.lineHeight*0.9, ...NO_BREAK }}>{hob}</div></>)}
+        </div>
       </div>
-
-      {/* Main content */}
-      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0 }}>
+      <div style={{ flex:1, background:CREAM, padding:`${d.headerPadVEm}em ${d.bodyPadEm+0.3}em 0`, overflow:"hidden", display:"flex", flexDirection:"column" as const, minWidth:0 }}>
         {mL("Professional Profile")}
         <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#3A3A3A", lineHeight:d.lineHeight, margin:"0 0 0.2em", ...NO_BREAK }}>{sum}</p>
         {mL("Professional Experience")}
-        {exps.filter(e=>e.title||e.company).map((e,i)=>(
+        {exps.filter((e:Exp)=>e.title||e.company).map((e:Exp,i:number)=>(
           <div key={i} style={{ marginBottom:`${d.sectionGapEm*0.72}em` }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.5em", flexWrap:"nowrap" as const }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.5em" }}>
               <div style={{ fontSize:`${d.bodyEm*1.06}em`, fontWeight:700, color:INK, fontFamily:"Georgia,serif", ...NO_BREAK, flex:1 }}>{e.title}</div>
-              <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, color:"#9B8B7A", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
-              </div>
+              <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, color:"#9B8B7A", flexShrink:0, whiteSpace:"nowrap" as const }}>{fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}</div>
             </div>
             <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.9}em`, color:GOLD, fontWeight:600, marginBottom:"0.3em", ...NO_BREAK }}>{e.company}</div>
-            {e.bullets.filter(b=>b.trim()).map((b,j)=>(
+            {e.bullets.filter((b:string)=>b.trim()).map((b:string,j:number)=>(
               <div key={j} style={{ display:"flex", gap:"0.5em", marginBottom:"0.16em", alignItems:"flex-start" }}>
                 <span style={{ color:GOLD, fontSize:`${d.bulletEm*0.85}em`, flexShrink:0, marginTop:"0.22em", lineHeight:1 }}>—</span>
                 <p style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4A4A4A", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
@@ -258,7 +241,7 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
         {ach && (
           <div style={{ background:"rgba(184,150,110,0.07)", border:"0.5px solid rgba(184,150,110,0.28)", borderRadius:"0.35em", padding:"0.65em 0.85em", marginBottom:`${d.sectionGapEm*0.45}em` }}>
             <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.secLabelEm*0.82}em`, fontWeight:700, color:GOLD, letterSpacing:"0.06em", textTransform:"uppercase" as const, marginBottom:"0.38em" }}>Key Achievements</div>
-            {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
+            {ach.split("·").map((a:string)=>a.trim()).filter(Boolean).map((a:string,i:number)=>(
               <div key={i} style={{ display:"flex", gap:"0.45em", marginBottom:"0.18em", alignItems:"flex-start" }}>
                 <span style={{ color:GOLD, flexShrink:0, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, marginTop:"0.12em" }}>✓</span>
                 <span style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#4A4A4A", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>{a}</span>
@@ -267,86 +250,76 @@ function TplPrestige({ form, d }: { form:FormData; d:D }) {
           </div>
         )}
         {mL("Education")}
-        {edus.filter(e=>e.institution).map((e,i)=>(
-          <div key={i} style={{ marginBottom:"0.45em" }}>
-            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
-            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#6B6B6B", ...NO_BREAK }}>{e.institution}{e.endYear?` · ${e.endYear}`:""}</div>
+        {edus.filter((e:Edu)=>e.institution).map((e:Edu,i:number)=>(
+          <div key={i} style={{ marginBottom:"0.5em" }}>
+            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*1.02}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}</div>
+            <div style={{ fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#6B6B6B", marginBottom:"0.3em", ...NO_BREAK }}>{e.institution}</div>
+            <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.35em" }}>
+              {e.field && <span style={eduChip}>{e.field}</span>}
+              {eduRange(e) && <span style={eduChip}>{eduRange(e)}</span>}
+            </div>
           </div>
         ))}
         <div style={{ flex:1 }} />
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderTop:"1px solid #E0DDD8", marginTop:"1em", padding:"0.6em 0 0.9em", fontFamily:"Arial,sans-serif", fontSize:`${d.bodyEm*0.66}em`, color:"#9B8B7A", letterSpacing:"0.04em" }}>
+          <span style={NO_BREAK}>{name} · {title}</span>
+          <span style={{ whiteSpace:"nowrap" as const }}>GPS Talent Network · Confidential</span>
+        </div>
       </div>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 2 — ARCHITECT  (white, bold name, single-column main + sidebar)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══ TEMPLATE 2 — ARCHITECT (white, teal, full-height sidebar) ═══
 function TplArchitect({ form, d }: { form:FormData; d:D }) {
   const f = form
-  const name   = f.personal.name   || PH.name
-  const title  = f.personal.title  || PH.title
-  const email  = f.personal.email  || PH.email
-  const phone  = f.personal.phone  || PH.phone
-  const loc    = f.personal.location || PH.location
-  const link   = f.personal.linkedin || PH.linkedin
-  const sum    = f.summary         || PH.summary
-  const exps   = f.experience.some(e=>e.title) ? f.experience : PH.experience
-  const edus   = f.education.some(e=>e.institution) ? f.education : PH.education
+  const name = f.personal.name || PH.name
+  const title = f.personal.title || PH.title
+  const email = f.personal.email || PH.email
+  const phone = f.personal.phone || PH.phone
+  const loc = f.personal.location || PH.location
+  const link = (f.personal.linkedin || PH.linkedin || "").replace("https://","").replace(/\/notifications.*$/,"")
+  const sum = f.summary || PH.summary
+  const exps = f.experience.some((e:Exp)=>e.title) ? f.experience : PH.experience
+  const edus = f.education.some((e:Edu)=>e.institution) ? f.education : PH.education
   const skills = f.skills.length>0 ? f.skills : PH.skills
-  const langs  = f.languages.filter(l=>l.lang).length>0 ? f.languages : PH.languages
-  const hob    = f.hobbies||(d.showHobbies?PH.hobbies:"")
-  const ach    = f.achievements||(d.showAchievements?PH.achievements:"")
-
-  const TEAL="#026B77", INK="#111827", MIST="#F8F9FA"
-
+  const langs = f.languages.filter((l:any)=>l.lang).length>0 ? f.languages : PH.languages
+  const hob = f.hobbies||(d.showHobbies?PH.hobbies:"")
+  const ach = f.achievements||(d.showAchievements?PH.achievements:"")
+  const TEAL="#026B77", INK="#111827", MIST="#F4F7F7"
   const sec = (label:string) => (
-    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:800, color:TEAL,
-      letterSpacing:"0.11em", textTransform:"uppercase" as const,
-      marginTop:`${d.sectionGapEm*0.9}em`, marginBottom:"0.5em",
-      display:"flex", alignItems:"center", gap:"0.6em" }}>
+    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:800, color:TEAL, letterSpacing:"0.11em", textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm*0.9}em`, marginBottom:"0.5em", display:"flex", alignItems:"center", gap:"0.6em" }}>
       {label}<div style={{ flex:1, height:"1.5px", background:"#E8EAEC" }} />
     </div>
   )
-
-  // sidebar width as percentage of total — 30%
-  const SW = 30
-
+  const secS = (label:string) => (
+    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.92}em`, fontWeight:800, color:"#FFF", letterSpacing:"0.11em", textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm*0.9}em`, marginBottom:"0.5em" }}>{label}</div>
+  )
   return (
-    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif" }}>
-      {/* Header */}
+    <div style={{ background:"#FFF", height:"100%", display:"flex", flexDirection:"column" as const, fontFamily:"Georgia,serif" }}>
       <div style={{ padding:`${d.headerPadVEm*0.82}em ${d.headerPadHEm*1.05}em`, borderBottom:`3px solid ${TEAL}`, display:"flex", alignItems:"flex-start", gap:"1.1em" }}>
-        {f.personal.photo && (
-          <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm*0.85}em`, height:`${d.photoEm*0.85}em`, objectFit:"cover", borderRadius:"0.28em", flexShrink:0, border:"0.5px solid #E0E0E0", maxWidth:"100%" }} />
-        )}
+        {f.personal.photo && (<img src={f.personal.photo} alt="" style={{ width:`${d.photoEm*0.8}em`, height:`${d.photoEm*0.8}em`, objectFit:"cover", borderRadius:"0.28em", flexShrink:0, border:"0.5px solid #E0E0E0", maxWidth:"100%" }} />)}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontWeight:900, fontSize:`${d.nameEm*1.02}em`, color:INK, letterSpacing:"-0.02em", lineHeight:1.05, marginBottom:"0.2em", ...NO_BREAK }}>{name.toUpperCase()}</div>
           <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.titleEm*0.88}em`, color:TEAL, fontWeight:600, letterSpacing:"0.09em", textTransform:"uppercase" as const, marginBottom:"0.45em", ...NO_BREAK }}>{title}</div>
           <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.9em" }}>
-            {[email,phone,loc,link&&link.replace("https://","")].filter(Boolean).map((c,i)=>(
-              <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{c}</span>
-            ))}
+            {[email,phone,loc,link].filter(Boolean).map((c:string,i:number)=>(<span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{c}</span>))}
           </div>
         </div>
       </div>
-
-      {/* Body grid */}
-      <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
-        {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em ${d.bodyPadEm*0.65}em ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0 }}>
+      <div style={{ display:"flex", flex:1, overflow:"hidden", minHeight:0 }}>
+        <div style={{ flex:1, padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.85}em 0 ${d.headerPadHEm*1.05}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
           {sec("Profile")}
           <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.28em", ...NO_BREAK }}>{sum}</p>
           {sec("Experience")}
-          {exps.filter(e=>e.title||e.company).map((e,i)=>(
+          {exps.filter((e:Exp)=>e.title||e.company).map((e:Exp,i:number)=>(
             <div key={i} style={{ marginBottom:`${d.sectionGapEm*0.62}em`, paddingLeft:"0.65em", borderLeft:`0.17em solid ${i===0?TEAL:"#D1D5DB"}` }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em", flexWrap:"nowrap" as const }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em" }}>
                 <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*1.03}em`, fontWeight:700, color:INK, ...NO_BREAK, flex:1 }}>{e.title}</span>
-                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
-                </span>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>{fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}</span>
               </div>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:TEAL, fontWeight:600, marginBottom:"0.28em", ...NO_BREAK }}>{e.company}</div>
-              {e.bullets.filter(b=>b.trim()).map((b,j)=>(
+              {e.bullets.filter((b:string)=>b.trim()).map((b:string,j:number)=>(
                 <div key={j} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
                   <span style={{ color:TEAL, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>›</span>
                   <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
@@ -357,7 +330,7 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
           {ach && (
             <div style={{ background:MIST, borderRadius:"0.32em", padding:"0.6em 0.8em", borderLeft:`0.18em solid ${TEAL}`, marginTop:`${d.sectionGapEm*0.45}em` }}>
               <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.8}em`, fontWeight:800, color:TEAL, letterSpacing:"0.09em", textTransform:"uppercase" as const, marginBottom:"0.32em" }}>Key Achievements</div>
-              {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
+              {ach.split("·").map((a:string)=>a.trim()).filter(Boolean).map((a:string,i:number)=>(
                 <div key={i} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
                   <span style={{ color:TEAL, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>✓</span>
                   <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#374151", lineHeight:d.lineHeight*0.86, ...NO_BREAK }}>{a}</span>
@@ -365,168 +338,135 @@ function TplArchitect({ form, d }: { form:FormData; d:D }) {
               ))}
             </div>
           )}
+          <div style={{ flex:1 }} />
+          <div style={{ borderTop:"1px solid #E8EAEC", marginTop:"1em", padding:"0.6em 0 0.9em", fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.68}em`, color:"#9CA3AF", letterSpacing:"0.04em", ...NO_BREAK }}>{name} · {title} — GPS Talent Network · Confidential</div>
         </div>
-
-        {/* Sidebar */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.7}em`, borderLeft:"1px solid #E8EAEC", background:MIST, overflow:"hidden", minWidth:0 }}>
-          {sec("Skills")}
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:"0.26em" }}>
-            {skills.map((s,i)=>(
-              <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"0.38em", ...NO_BREAK }}>
-                <div style={{ width:"0.2em", height:"0.2em", background:TEAL, borderRadius:"50%", flexShrink:0, marginTop:"0.45em" }} />
-                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#374151" }}>{s}</span>
-              </div>
-            ))}
+        <div style={{ width:"32%", flexShrink:0, padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.7}em`, background:TEAL, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
+          {secS("Skills")}
+          <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.3em" }}>
+            {skills.map((s:string,i:number)=>(<span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, background:"rgba(255,255,255,0.15)", color:"#EAF6F7", padding:"0.16em 0.55em", borderRadius:"1em", ...NO_BREAK }}>{s}</span>))}
           </div>
-          {sec("Education")}
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"0.5em" }}>
-              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, lineHeight:1.3, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
-              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{e.institution}</div>
-              {e.endYear&&<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
+          {secS("Education")}
+          {edus.filter((e:Edu)=>e.institution).map((e:Edu,i:number)=>(
+            <div key={i} style={{ marginBottom:"0.55em" }}>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:"#FFF", lineHeight:1.3, ...NO_BREAK }}>{e.degree}</div>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"rgba(255,255,255,0.7)", marginBottom:"0.3em", ...NO_BREAK }}>{e.institution}</div>
+              <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.3em" }}>
+                {e.field && <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, background:"rgba(255,255,255,0.18)", color:"#EAF6F7", padding:"0.14em 0.5em", borderRadius:"1em", ...NO_BREAK }}>{e.field}</span>}
+                {eduRange(e) && <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, background:"rgba(255,255,255,0.18)", color:"#EAF6F7", padding:"0.14em 0.5em", borderRadius:"1em", ...NO_BREAK }}>{eduRange(e)}</span>}
+              </div>
             </div>
           ))}
-          {sec("Languages")}
-          {langs.filter(l=>l.lang).map((l,i)=>(
-            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#374151", marginBottom:"0.22em", lineHeight:1.45, ...NO_BREAK }}>
-              <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
-              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
+          {secS("Languages")}
+          {langs.filter((l:any)=>l.lang).map((l:any,i:number)=>(
+            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.84}em`, color:"rgba(255,255,255,0.85)", marginBottom:"0.22em", ...NO_BREAK }}>
+              <span style={{ fontWeight:700, color:"#FFF" }}>{l.lang}</span><span style={{ color:"rgba(255,255,255,0.55)" }}> · {l.level}</span>
             </div>
           ))}
-          {hob&&(<>
-            {sec("Interests")}
-            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>
-              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" · ":""}</span>)}
-            </div>
-          </>)}
+          <div style={{ marginTop:"auto" }}>
+            {hob && (<>{secS("Interests")}<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"rgba(255,255,255,0.7)", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>{hob}</div></>)}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 3 — MERIDIAN  (navy gradient header, white body, right sidebar)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══ TEMPLATE 3 — MERIDIAN (navy header, full-height body, footer) ═══
 function TplMeridian({ form, d }: { form:FormData; d:D }) {
   const f = form
-  const name   = f.personal.name   || PH.name
-  const title  = f.personal.title  || PH.title
-  const email  = f.personal.email  || PH.email
-  const phone  = f.personal.phone  || PH.phone
-  const loc    = f.personal.location || PH.location
-  const link   = f.personal.linkedin || PH.linkedin
-  const sum    = f.summary         || PH.summary
-  const exps   = f.experience.some(e=>e.title) ? f.experience : PH.experience
-  const edus   = f.education.some(e=>e.institution) ? f.education : PH.education
+  const name = f.personal.name || PH.name
+  const title = f.personal.title || PH.title
+  const email = f.personal.email || PH.email
+  const phone = f.personal.phone || PH.phone
+  const loc = f.personal.location || PH.location
+  const link = (f.personal.linkedin || PH.linkedin || "").replace("https://","").replace(/\/notifications.*$/,"")
+  const sum = f.summary || PH.summary
+  const exps = f.experience.some((e:Exp)=>e.title) ? f.experience : PH.experience
+  const edus = f.education.some((e:Edu)=>e.institution) ? f.education : PH.education
   const skills = f.skills.length>0 ? f.skills : PH.skills
-  const langs  = f.languages.filter(l=>l.lang).length>0 ? f.languages : PH.languages
-  const hob    = f.hobbies||(d.showHobbies?PH.hobbies:"")
-  const ach    = f.achievements||(d.showAchievements?PH.achievements:"")
-
-  const NAVY="#0D2B45", AQUA="#028090", INK="#1A1A2E"
-  const SW = 29  // sidebar %
-
-  const sec = (label:string) => (
-    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:700, color:NAVY,
-      letterSpacing:"0.09em", textTransform:"uppercase" as const,
-      marginTop:`${d.sectionGapEm*0.82}em`, marginBottom:"0.45em",
-      paddingBottom:"0.28em", borderBottom:"1.5px solid #E2E8F0" }}>
-      {label}
+  const langs = f.languages.filter((l:any)=>l.lang).length>0 ? f.languages : PH.languages
+  const hob = f.hobbies||(d.showHobbies?PH.hobbies:"")
+  const ach = f.achievements||(d.showAchievements?PH.achievements:"")
+  const NAVY="#0F2742", BLUE="#2E6DA4", INK="#1A2330", MIST="#F5F8FB"
+  const sec = (label:string, color:string) => (
+    <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm}em`, fontWeight:800, color:color, letterSpacing:"0.1em", textTransform:"uppercase" as const, marginTop:`${d.sectionGapEm*0.85}em`, marginBottom:"0.45em", display:"flex", alignItems:"center", gap:"0.5em" }}>
+      {label}<div style={{ flex:1, height:"1px", background:"#E3E9F0" }} />
     </div>
   )
-
   return (
-    <div style={{ background:"#FFF", height:"100%", fontFamily:"Georgia,serif" }}>
-      {/* Header band */}
-      <div style={{ background:`linear-gradient(135deg,${NAVY} 0%,#164B6E 100%)`, padding:`${d.headerPadVEm*0.85}em ${d.headerPadHEm*1.05}em`, flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"1.1em" }}>
-          {f.personal.photo ? (
-            <img src={f.personal.photo} alt="" style={{ width:`${d.photoEm*0.88}em`, height:`${d.photoEm*0.88}em`, borderRadius:"50%", objectFit:"cover", border:`0.16em solid ${AQUA}`, flexShrink:0, maxWidth:"100%" }} />
-          ) : (
-            <div style={{ width:`${d.photoEm*0.88}em`, height:`${d.photoEm*0.88}em`, borderRadius:"50%", background:"rgba(2,128,144,0.22)", border:`0.11em solid ${AQUA}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:`${d.photoEm*0.26}em`, fontWeight:700, color:"rgba(255,255,255,0.65)", flexShrink:0, fontFamily:"Arial,sans-serif" }}>
-              {initials(name)}
-            </div>
-          )}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.nameEm}em`, fontWeight:700, color:"#FFF", lineHeight:1.1, marginBottom:"0.18em", ...NO_BREAK }}>{name}</div>
-            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.titleEm*0.82}em`, color:AQUA, letterSpacing:"0.09em", textTransform:"uppercase" as const, fontWeight:600, marginBottom:"0.4em", ...NO_BREAK }}>{title}</div>
-            <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.7em" }}>
-              {[email,phone,loc,link&&link.replace("https://","")].filter(Boolean).map((c,i)=>(
-                <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.78}em`, color:"rgba(255,255,255,0.52)", ...NO_BREAK }}>{c}</span>
-              ))}
-            </div>
+    <div style={{ background:"#FFF", height:"100%", display:"flex", flexDirection:"column" as const, fontFamily:"Georgia,serif" }}>
+      <div style={{ background:NAVY, padding:`${d.headerPadVEm*0.8}em ${d.headerPadHEm}em`, display:"flex", alignItems:"center", gap:"1.1em", flexShrink:0 }}>
+        {f.personal.photo ? (<img src={f.personal.photo} alt="" style={{ width:`${d.photoEm*0.72}em`, height:`${d.photoEm*0.72}em`, borderRadius:"50%", objectFit:"cover", border:"0.12em solid rgba(255,255,255,0.5)", flexShrink:0, maxWidth:"100%" }} />) : (
+          <div style={{ width:`${d.photoEm*0.72}em`, height:`${d.photoEm*0.72}em`, borderRadius:"50%", background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(255,255,255,0.7)", fontFamily:"Arial,sans-serif", fontWeight:700, fontSize:`${d.photoEm*0.22}em`, flexShrink:0 }}>{initials(name)}</div>
+        )}
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.nameEm*0.92}em`, fontWeight:700, color:"#FFF", lineHeight:1.1, ...NO_BREAK }}>{name}</div>
+          <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.titleEm*0.82}em`, color:"#9FC1E0", fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" as const, margin:"0.2em 0 0.4em", ...NO_BREAK }}>{title}</div>
+          <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.8em" }}>
+            {[email,phone,loc,link].filter(Boolean).map((c:string,i:number)=>(<span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, color:"rgba(255,255,255,0.6)", ...NO_BREAK }}>{c}</span>))}
           </div>
         </div>
-        {/* Skill pills */}
-        <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.35em", marginTop:"0.7em" }}>
-          {skills.slice(0,9).map((s,i)=>(
-            <span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.75}em`, color:"#FFF", background:"rgba(255,255,255,0.11)", border:"0.5px solid rgba(255,255,255,0.16)", padding:"0.18em 0.6em", borderRadius:"999px", fontWeight:500, ...NO_BREAK }}>{s}</span>
-          ))}
-        </div>
       </div>
-
-      {/* Body */}
-      <div style={{ display:"grid", gridTemplateColumns:`1fr ${SW}%`, flex:1, overflow:"hidden", minHeight:0 }}>
-        {/* Main */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.9}em`, overflow:"hidden", minWidth:0 }}>
-          {sec("Profile")}
-          <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.25em", ...NO_BREAK }}>{sum}</p>
-          {sec("Experience")}
-          {exps.filter(e=>e.title||e.company).map((e,i)=>(
-            <div key={i} style={{ marginBottom:`${d.sectionGapEm*0.62}em` }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em", flexWrap:"nowrap" as const }}>
-                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*1.03}em`, fontWeight:700, color:INK, ...NO_BREAK, flex:1 }}>{e.title}</span>
-                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>
-                  {fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}
-                </span>
+      <div style={{ display:"flex", flex:1, overflow:"hidden", minHeight:0 }}>
+        <div style={{ flex:1, padding:`${d.bodyPadEm*0.6}em ${d.bodyPadEm*0.85}em 0 ${d.headerPadHEm}em`, overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
+          {sec("Profile", BLUE)}
+          <p style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm}em`, color:"#374151", lineHeight:d.lineHeight, margin:"0 0 0.28em", ...NO_BREAK }}>{sum}</p>
+          {sec("Experience", BLUE)}
+          {exps.filter((e:Exp)=>e.title||e.company).map((e:Exp,i:number)=>(
+            <div key={i} style={{ marginBottom:`${d.sectionGapEm*0.6}em` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:"0.4em" }}>
+                <span style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*1.05}em`, fontWeight:700, color:INK, ...NO_BREAK, flex:1 }}>{e.title}</span>
+                <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.8}em`, color:"#9CA3AF", flexShrink:0, whiteSpace:"nowrap" as const }}>{fmtDate(e.startMonth,e.startYear)}{(e.startYear||e.endYear||e.current)?` – ${e.current?"Present":fmtDate(e.endMonth,e.endYear)}`:""}</span>
               </div>
-              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.88}em`, color:AQUA, fontWeight:600, marginBottom:"0.28em", ...NO_BREAK }}>{e.company}</div>
-              {e.bullets.filter(b=>b.trim()).map((b,j)=>(
-                <div key={j} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:AQUA, fontWeight:700, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.18em", lineHeight:1 }}>▸</span>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:BLUE, fontWeight:600, marginBottom:"0.28em", ...NO_BREAK }}>{e.company}</div>
+              {e.bullets.filter((b:string)=>b.trim()).map((b:string,j:number)=>(
+                <div key={j} style={{ display:"flex", gap:"0.45em", marginBottom:"0.13em", alignItems:"flex-start" }}>
+                  <span style={{ color:BLUE, fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.2em", lineHeight:1 }}>▸</span>
                   <p style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm}em`, color:"#4B5563", lineHeight:d.lineHeight, margin:0, ...NO_BREAK }}>{b}</p>
                 </div>
               ))}
             </div>
           ))}
           {ach && (
-            <div style={{ background:"#F0F7F8", borderRadius:"0.35em", padding:"0.6em 0.8em", borderLeft:`0.18em solid ${AQUA}`, marginTop:`${d.sectionGapEm*0.38}em` }}>
-              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.8}em`, fontWeight:700, color:NAVY, letterSpacing:"0.07em", textTransform:"uppercase" as const, marginBottom:"0.32em" }}>Key Achievements</div>
-              {ach.split("·").map(a=>a.trim()).filter(Boolean).map((a,i)=>(
-                <div key={i} style={{ display:"flex", gap:"0.4em", marginBottom:"0.13em", alignItems:"flex-start" }}>
-                  <span style={{ color:AQUA, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>✓</span>
-                  <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.88}em`, color:"#374151", lineHeight:d.lineHeight*0.86, ...NO_BREAK }}>{a}</span>
+            <div style={{ background:MIST, borderRadius:"0.3em", padding:"0.6em 0.8em", borderLeft:`0.18em solid ${BLUE}`, marginTop:`${d.sectionGapEm*0.4}em` }}>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.secLabelEm*0.8}em`, fontWeight:800, color:BLUE, letterSpacing:"0.08em", textTransform:"uppercase" as const, marginBottom:"0.3em" }}>Key Achievements</div>
+              {ach.split("·").map((a:string)=>a.trim()).filter(Boolean).map((a:string,i:number)=>(
+                <div key={i} style={{ display:"flex", gap:"0.4em", marginBottom:"0.12em", alignItems:"flex-start" }}>
+                  <span style={{ color:BLUE, fontFamily:"Arial,sans-serif", fontSize:`${d.bulletEm*0.82}em`, flexShrink:0, marginTop:"0.1em" }}>✓</span>
+                  <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bulletEm*0.86}em`, color:"#374151", lineHeight:d.lineHeight*0.86, ...NO_BREAK }}>{a}</span>
                 </div>
               ))}
             </div>
           )}
           <div style={{ flex:1 }} />
+          <div style={{ borderTop:"1px solid #E3E9F0", marginTop:"1em", padding:"0.6em 0 0.9em", fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.68}em`, color:"#9CA3AF", letterSpacing:"0.04em", ...NO_BREAK }}>{name} · {title} — GPS Talent Network · Confidential</div>
         </div>
-
-        {/* Right sidebar */}
-        <div style={{ padding:`${d.bodyPadEm*0.65}em ${d.bodyPadEm*0.7}em`, borderLeft:"1px solid #E8EEF2", overflow:"hidden", minWidth:0 }}>
-          {sec("Education")}
-          {edus.filter(e=>e.institution).map((e,i)=>(
-            <div key={i} style={{ marginBottom:"0.5em" }}>
-              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, ...NO_BREAK }}>{e.degree}{e.field?` — ${e.field}`:""}</div>
-              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", ...NO_BREAK }}>{e.institution}</div>
-              {e.endYear&&<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, color:"#9CA3AF" }}>{e.endYear}</div>}
+        <div style={{ width:"33%", flexShrink:0, padding:`${d.bodyPadEm*0.6}em ${d.bodyPadEm*0.7}em`, background:MIST, borderLeft:"1px solid #E3E9F0", overflow:"hidden", minWidth:0, display:"flex", flexDirection:"column" as const }}>
+          {sec("Skills", BLUE)}
+          <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.3em" }}>
+            {skills.map((s:string,i:number)=>(<span key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, background:"#E7EEF6", color:"#274B72", padding:"0.16em 0.55em", borderRadius:"1em", ...NO_BREAK }}>{s}</span>))}
+          </div>
+          {sec("Education", BLUE)}
+          {edus.filter((e:Edu)=>e.institution).map((e:Edu,i:number)=>(
+            <div key={i} style={{ marginBottom:"0.55em" }}>
+              <div style={{ fontFamily:"Georgia,serif", fontSize:`${d.bodyEm*0.94}em`, fontWeight:700, color:INK, lineHeight:1.3, ...NO_BREAK }}>{e.degree}</div>
+              <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", marginBottom:"0.3em", ...NO_BREAK }}>{e.institution}</div>
+              <div style={{ display:"flex", flexWrap:"wrap" as const, gap:"0.3em" }}>
+                {e.field && <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, background:"#E7EEF6", color:"#274B72", padding:"0.14em 0.5em", borderRadius:"1em", ...NO_BREAK }}>{e.field}</span>}
+                {eduRange(e) && <span style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.76}em`, background:"#E7EEF6", color:"#274B72", padding:"0.14em 0.5em", borderRadius:"1em", ...NO_BREAK }}>{eduRange(e)}</span>}
+              </div>
             </div>
           ))}
-          {sec("Languages")}
-          {langs.filter(l=>l.lang).map((l,i)=>(
-            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.86}em`, color:"#374151", marginBottom:"0.25em", lineHeight:1.45, ...NO_BREAK }}>
-              <span style={{ fontWeight:700, color:INK }}>{l.lang}</span>
-              <span style={{ color:"#9CA3AF" }}> · {l.level}</span>
+          {sec("Languages", BLUE)}
+          {langs.filter((l:any)=>l.lang).map((l:any,i:number)=>(
+            <div key={i} style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.84}em`, color:"#374151", marginBottom:"0.22em", ...NO_BREAK }}>
+              <span style={{ fontWeight:700, color:INK }}>{l.lang}</span><span style={{ color:"#9CA3AF" }}> · {l.level}</span>
             </div>
           ))}
-          {hob&&(<>
-            {sec("Interests")}
-            <div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>
-              {hob.split(",").map(h=>h.trim()).map((h,i,arr)=><span key={i}>{h}{i<arr.length-1?" · ":""}</span>)}
-            </div>
-          </>)}
+          <div style={{ marginTop:"auto" }}>
+            {hob && (<>{sec("Interests", BLUE)}<div style={{ fontFamily:"Arial,Helvetica,sans-serif", fontSize:`${d.bodyEm*0.8}em`, color:"#6B7280", lineHeight:d.lineHeight*0.88, ...NO_BREAK }}>{hob}</div></>)}
+          </div>
         </div>
       </div>
     </div>
