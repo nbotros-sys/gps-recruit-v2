@@ -543,7 +543,7 @@ function buildCVHtml(form: any, templateId: string): string {
 export async function POST(req: NextRequest) {
   try {
     const { candidateId, form, templateId, boost } = await req.json()
-    if (!candidateId || !form) return NextResponse.json({ error: "Missing data" }, { status: 400 })
+    if (!form) return NextResponse.json({ error: "Missing data" }, { status: 400 })
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -600,27 +600,29 @@ export async function POST(req: NextRequest) {
     const pdfBuffer = await (await fetch(pdfUrl)).arrayBuffer()
 
     // Upload to Supabase Storage
-    const storagePath = `${candidateId}/cv.pdf`
-    const { error: uploadError } = await supabase.storage
-      .from("cv-pdfs")
-      .upload(storagePath, pdfBuffer, {
-        contentType: "application/pdf",
-        upsert: true,
-        cacheControl: "3600",
-      })
-
-    if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
-
-    const { data: urlData } = supabase.storage.from("cv-pdfs").getPublicUrl(storagePath)
-    const cv_pdf_url = `${urlData.publicUrl}?t=${Date.now()}`
-
-    // Save URL + template + GPS CV badge flag to candidate record
-    await supabase.from("candidates").update({
-      cv_pdf_url,
-      cv_template: templateId || "prestige",
-      cv_source: "gps_builder",
-      cv_generated_at: new Date().toISOString(),
-    }).eq("id", candidateId)
+    let cv_pdf_url: string | null = null
+    if (candidateId) {
+      const storagePath = `${candidateId}/cv.pdf`
+      const { error: uploadError } = await supabase.storage
+        .from("cv-pdfs")
+        .upload(storagePath, pdfBuffer, {
+          contentType: "application/pdf",
+          upsert: true,
+          cacheControl: "3600",
+        })
+      if (uploadError) {
+        console.error("cv-pdfs upload failed:", uploadError.message)
+      } else {
+        const { data: urlData } = supabase.storage.from("cv-pdfs").getPublicUrl(storagePath)
+        cv_pdf_url = `${urlData.publicUrl}?t=${Date.now()}`
+        await supabase.from("candidates").update({
+          cv_pdf_url,
+          cv_template: templateId || "prestige",
+          cv_source: "gps_builder",
+          cv_generated_at: new Date().toISOString(),
+        }).eq("id", candidateId)
+      }
+    }
 
     return NextResponse.json({ cv_pdf_url, cv_pdf_base64: Buffer.from(pdfBuffer).toString("base64") })
   } catch (err: any) {
