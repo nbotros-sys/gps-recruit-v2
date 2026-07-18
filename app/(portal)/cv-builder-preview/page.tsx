@@ -717,7 +717,7 @@ export default function CVBuilderPage() {
         location:form.personal.location, nationality:form.personal.nationality,
         job_function:form.job_function, level:form.level,
         cv_summary:form.summary, skills:form.skills,
-        source:"cv_builder", template_used:selectedTemplate,
+        template_used:selectedTemplate,
         updated_at:new Date().toISOString(),
       }
       let _existingId: string | undefined
