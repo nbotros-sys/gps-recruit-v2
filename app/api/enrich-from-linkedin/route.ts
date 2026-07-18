@@ -254,13 +254,13 @@ export async function POST(req: NextRequest) {
 
       fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/extract-structured`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET || "" },
         body: JSON.stringify({ candidateId: capturedId, cv_text: capturedText }),
       }).catch(() => {})
 
       fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/generate-embedding`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET || "" },
         body: JSON.stringify({ candidateId: capturedId, text: capturedText.slice(0, 8000) }),
       }).catch(() => {})
     }
