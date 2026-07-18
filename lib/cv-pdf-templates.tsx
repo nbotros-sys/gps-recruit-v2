@@ -1,5 +1,4 @@
 import React from "react"
-import { renderToStaticMarkup } from "react-dom/server"
 
 type Exp = { company:string; title:string; startMonth:string; startYear:string; endMonth:string; endYear:string; current:boolean; bullets:string[] }
 type Edu = { institution:string; degree:string; field:string; startYear:string; endYear:string }
@@ -412,19 +411,4 @@ const TEMPLATES = [
   { id:"meridian", name:"Meridian", component:TplMeridian },
 ]
 
-export function renderCvHtml(form: FormData, templateId: string, boost = 1): string {
-  const density = getContentDensity(form)
-  const b = Math.max(1, Math.min(1.7, boost || 1))
-  const d = { ...density,
-    lineHeight: Math.round(density.lineHeight*b*1000)/1000,
-    sectionGapEm: Math.round(density.sectionGapEm*b*1000)/1000,
-    headerPadVEm: Math.round(density.headerPadVEm*b*1000)/1000,
-    bodyPadEm: Math.round(density.bodyPadEm*b*1000)/1000,
-  }
-  const densityFactor = lerp(1.22, 1.0, Math.min(density.t, 1))
-  const basePx = Math.round(9.5 * densityFactor * 10) / 10
-  const tpl = TEMPLATES.find(t => t.id === templateId) || TEMPLATES[0]
-  const Comp = tpl.component as any
-  const inner = renderToStaticMarkup(React.createElement(Comp, { form, d }))
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{width:210mm;height:297mm}#cvpage{width:210mm;height:297mm;font-size:${basePx}px;overflow:hidden;background:#ffffff;font-family:Georgia,serif}</style></head><body><div id="cvpage">${inner}</div></body></html>`
-}
+export { getContentDensity, lerp, TEMPLATES }
