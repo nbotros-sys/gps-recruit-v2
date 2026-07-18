@@ -50,6 +50,23 @@ type FormData = {
   achievements: string
 }
 
+const SAMPLE_FORM: FormData = {
+  personal: { name:"Nader Botros", title:"HR Manager", email:"nbotros@hotmail.com", phone:"+20 100 217 0766", location:"Cairo, Egypt", nationality:"Egyptian", linkedin:"linkedin.com/in/nader-botros", photo:null },
+  summary: "HR Manager with progressive experience across banking, multinational FMCG, and HR consultancy sectors in Egypt and the MENA region. Managed payroll for 800+ employees at 100% accuracy and led a boutique HR consultancy to 15+ corporate accounts, bringing end-to-end expertise across payroll, labour law compliance, talent acquisition, and compensation.",
+  experience: [
+    { company:"GPS", title:"Managing Director", startMonth:"01", startYear:"2015", endMonth:"", endYear:"", current:true, bullets:["Founded and scaled GPS into a top-tier Egyptian HR consultancy, growing the client portfolio to 15+ corporate accounts.","Led executive search mandates across the MENA region, placing senior talent within competitive timelines.","Ensured full regulatory compliance with Egyptian Labour Law, Social Insurance, and income tax frameworks."] },
+    { company:"Multinational FMCG", title:"Senior HR Manager", startMonth:"01", startYear:"2011", endMonth:"12", endYear:"2014", current:false, bullets:["Led end-to-end payroll operations for 800+ employees across 3 legal entities at 100% on-time accuracy.","Managed monthly payroll including salaries, overtime, bonuses, and allowances with zero compliance breaches.","Administered Social Insurance Forms 1, 2, and 6 and executed annual tax reconciliation."] },
+    { company:"Egyptian Banking Group", title:"HR Officer", startMonth:"01", startYear:"2008", endMonth:"12", endYear:"2010", current:false, bullets:["Processed monthly payroll for 350+ employees across Cairo and Alexandria with 99% accuracy.","Managed employee records, contracts, and personnel files ensuring full Labour Law compliance.","Reduced payroll processing time by 25% through automated attendance and deduction tracking."] }
+  ],
+  education: [{ institution:"American University in Cairo", degree:"Bachelor of Business Administration", field:"Human Resources Management", startYear:"2004", endYear:"2008" }],
+  hobbies: "Squash, piano, tennis",
+  skills: ["Talent Acquisition","Performance Management","HRIS","Payroll","Labour Law","Compensation & Benefits","Learning & Development","Onboarding","Employee Relations","Organisation Design"],
+  languages: [{ lang:"Arabic", level:"Native" }, { lang:"English", level:"Fluent" }],
+  job_function: "HR & People",
+  level: "Executive",
+  achievements: "100% on-time payroll accuracy across 800+ staff · Zero compliance gaps over 7 years · Grew consultancy to 15+ corporate accounts"
+}
+
 const INITIAL: FormData = {
   personal: { name:"", title:"", email:"", phone:"", location:"", nationality:"", linkedin:"", photo:null },
   summary: "",
@@ -506,11 +523,12 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
   const TplComponent = tpl.component
 
   // Width factor: ~9.5px at 790px wide, scales proportionally
-  const widthFactor = Math.max(0.6, Math.min(1.2, boxWidth / 790))
+  const A4W = 794, A4H = 1123
+    const scale = Math.min(1, boxWidth / A4W)
   // Density factor: 1.45 when empty → 1.0 when full
   // Clamped so we never go below 1.0 (don't shrink below baseline for full CVs)
   const densityFactor = lerp(1.22, 1.0, Math.min(density.t, 1))
-  const basePx = Math.round(9.5 * widthFactor * densityFactor * 10) / 10
+  const basePx = Math.round(9.5 * densityFactor * 10) / 10
 
   return (
     <div style={{ background:"#1a2228", padding:"14px", borderRadius:"10px", height:"100%" }}>
@@ -519,11 +537,13 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" as const }}>Live preview</span>
         <span style={{ marginLeft:"auto", fontSize:"10px", color:"rgba(255,255,255,0.2)" }}>A4</span>
       </div>
-      <div ref={boxRef} style={{ flex:1, overflow:"hidden" }}>
-        <div id="cv-preview-print" style={{ background:"white", borderRadius:"3px", boxShadow:"0 8px 40px rgba(0,0,0,0.5)", overflow:"hidden", width:"100%", aspectRatio:"210/297", fontSize:`${basePx}px` }}>
-          <TplComponent form={form} d={density} />
+      <div ref={boxRef} style={{ flex:1, overflow:"hidden", display:"flex", justifyContent:"center", alignItems:"flex-start" }}>
+          <div style={{ position:"relative" as const, width:Math.round(A4W*scale)+"px", height:Math.round(A4H*scale)+"px" }}>
+            <div id="cv-preview-print" style={{ position:"absolute" as const, top:0, left:0, width:A4W+"px", height:A4H+"px", background:"white", borderRadius:"3px", boxShadow:"0 6px 24px rgba(0,0,0,0.28)", overflow:"hidden", fontSize:`${basePx}px`, transform:`scale(${scale})`, transformOrigin:"top left", WebkitFontSmoothing:"antialiased" as const }}>
+              <TplComponent form={form} d={density} />
+            </div>
+          </div>
         </div>
-      </div>
     </div>
   )
 }
@@ -569,7 +589,17 @@ export default function CVBuilderPage() {
   },[])
 
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<FormData>(INITIAL)
+  const [form, setForm] = useState<FormData>(() => {
+    if (typeof window !== "undefined") {
+      try { const _s = window.localStorage.getItem("cvbuilder_preview_form"); if (_s) return { ...INITIAL, ...JSON.parse(_s) } } catch (_e) {}
+    }
+    return INITIAL
+  })
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try { window.localStorage.setItem("cvbuilder_preview_form", JSON.stringify(form)) } catch (_e) {}
+    }
+  }, [form])
   const [selectedTemplate, setSelectedTemplate] = useState("prestige")
   const [generating, setGenerating] = useState(false)
   const [generatingBullet, setGeneratingBullet] = useState<number|null>(null)
@@ -660,9 +690,9 @@ export default function CVBuilderPage() {
     const style=document.createElement("style")
     // Use a density-aware font size at print time too
     const printDensity = getContentDensity(form)
-    const printDensityFactor = 1.0 + (1.0 - Math.min(printDensity.t, 1)) * 0.45
+    const printDensityFactor = 1.0 + (1.0 - Math.min(printDensity.t, 1)) * 0.22
     const printBasePx = Math.round(9.5 * printDensityFactor * 10) / 10
-    style.innerHTML=`@media print{body *{visibility:hidden}#cv-preview-print,#cv-preview-print *{visibility:visible}#cv-preview-print{position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;font-size:${printBasePx}px}}`
+    style.innerHTML=`@media print{body *{visibility:hidden}#cv-preview-print,#cv-preview-print *{visibility:visible}#cv-preview-print{position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none;font-size:${printBasePx}px}}`
     document.head.appendChild(style); window.print(); setTimeout(()=>document.head.removeChild(style),1000)
   }
 
@@ -931,6 +961,7 @@ export default function CVBuilderPage() {
                 <div>
                   <h2 style={{ fontSize:"22px", fontWeight:800, color:"#0a1f24", marginBottom:"4px" }}>Personal details</h2>
                   <p style={{ color:"#9ca3af", fontSize:"13px", marginBottom:"24px" }}>Start with the basics. Your photo is strongly recommended for the MENA market.</p>
+            <button type="button" onClick={()=>{ setForm(SAMPLE_FORM); setStep(STEPS.length-1) }} style={{ marginBottom:"18px", padding:"9px 14px", background:"#0a1f24", color:"#fff", border:"none", borderRadius:"8px", fontSize:"12px", fontWeight:600, cursor:"pointer" }}>⚡ Fill test data &amp; jump to preview</button>
                   {/* Photo */}
                   <div style={{ display:"flex", alignItems:"center", gap:"16px", marginBottom:"24px", padding:"16px 20px", background:"#f9fafb", borderRadius:"14px", border:"1px solid #e8ecef" }}>
                     <div style={{ position:"relative", cursor:"pointer", flexShrink:0 }} onClick={()=>photoRef.current?.click()}>
