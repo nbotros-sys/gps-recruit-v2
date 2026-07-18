@@ -189,7 +189,7 @@ export default function MandateDetail() {
   async function rescoreCandidate() {
     if (!selectedApp || !mandate?.job_description) return
     const confirmed = window.confirm(
-      `This will recalculate ${selectedApp.candidate?.name || "this candidate"}'s score for ${mandate.title}, replacing the current score of ${selectedApp.ai_score ?? "â"}. The new score may differ from before â this can affect how they rank against other candidates on this mandate. Continue?`
+      `This will recalculate ${selectedApp.candidate?.name || "this candidate"}'s score for ${mandate.title}, replacing the current score of ${selectedApp.ai_score ?? "—"}. The new score may differ from before — this can affect how they rank against other candidates on this mandate. Continue?`
     )
     if (!confirmed) return
     setScoringCandidate(true)
@@ -292,7 +292,7 @@ export default function MandateDetail() {
             }
           } catch {}
         }
-        // Empty cache is ignored â consultant can run a fresh search
+        // Empty cache is ignored — consultant can run a fresh search
       }
       setEditForm({
         title: m.title || "",
@@ -376,7 +376,7 @@ export default function MandateDetail() {
     return () => { done = true; cancelAnimationFrame(raf) }
   }, [tab, insightData, id])
 
-  // Talent Pool matches don't carry DOB in the scan cache â look up ages so we
+  // Talent Pool matches don't carry DOB in the scan cache — look up ages so we
   // can show them without needing a re-scan.
   useEffect(() => {
     if (!insightData) return
@@ -408,7 +408,7 @@ export default function MandateDetail() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "applications", filter: `mandate_id=eq.${id}` },
         async (payload: any) => {
-          // Realtime payloads carry the raw row only â fetch with the candidate join
+          // Realtime payloads carry the raw row only — fetch with the candidate join
           const { data } = await supabase
             .from("applications")
             .select("*, candidate:candidates(*)")
@@ -429,7 +429,7 @@ export default function MandateDetail() {
       )
       .on(
         "postgres_changes",
-        // DELETE payloads only carry the primary key, so no mandate filter â matching by id is a safe no-op for other mandates
+        // DELETE payloads only carry the primary key, so no mandate filter — matching by id is a safe no-op for other mandates
         { event: "DELETE", schema: "public", table: "applications" },
         (payload: any) => {
           setApplications(prev => prev.filter(a => a.id !== payload.old.id))
@@ -445,7 +445,7 @@ export default function MandateDetail() {
   }, [candidateRoles])
 
   // Auto-load talent pool from cache when switching to insight tab
-  // Depends on [tab, mandate] â waits for mandate to be fully loaded before firing
+  // Depends on [tab, mandate] — waits for mandate to be fully loaded before firing
   useEffect(() => {
     if (tab !== "insight") return
     if (!mandate) return  // wait for mandate to load
@@ -478,12 +478,12 @@ export default function MandateDetail() {
           setScanPolling(false)
           setScanId(null)
           setInsightLoading(false)
-          setScanProgress("No new candidates since last scan â showing cached results")
+          setScanProgress("No new candidates since last scan — showing cached results")
         } else if (data.status === "error") {
           setScanPolling(false)
           setScanId(null)
           setInsightLoading(false)
-          setInsightData({ error: "Scan failed â please try again" })
+          setInsightData({ error: "Scan failed — please try again" })
         }
       } catch { /* keep polling */ }
     }, 3000)
@@ -641,7 +641,7 @@ export default function MandateDetail() {
       } catch {}
     }
 
-    // Trigger scan â runs synchronously on the server, returns result directly
+    // Trigger scan — runs synchronously on the server, returns result directly
     setInsightLoading(true)
     setScanProgress("Scanning talent pool...")
     try {
@@ -668,7 +668,7 @@ export default function MandateDetail() {
         }, { onConflict: "mandate_id" })
       } else if (data.status === "no_new_candidates") {
         setInsightLoading(false)
-        setScanProgress("No new candidates since last scan â showing cached results")
+        setScanProgress("No new candidates since last scan — showing cached results")
         // Load the cached result from DB
         try {
           const cached = await fetch(`/api/talent-pool-scan?mandate_id=${id}`)
@@ -679,7 +679,7 @@ export default function MandateDetail() {
           }
         } catch {}
       } else {
-        setInsightData({ error: data.error || "Scan failed â please try again" })
+        setInsightData({ error: data.error || "Scan failed — please try again" })
         setInsightLoading(false)
       }
     } catch {
@@ -691,7 +691,7 @@ export default function MandateDetail() {
   async function addFromInsight(candidate: any) {
     if (!mandate) return
     try {
-      // Strengths & concerns already generated during talent pool scan â use directly
+      // Strengths & concerns already generated during talent pool scan — use directly
       const { error } = await supabase.from("applications").insert([{
         candidate_id: candidate.id,
         mandate_id: id,
@@ -736,14 +736,14 @@ export default function MandateDetail() {
           link: `/internal/mandates/${id}` }) }).catch(() => {})
       // Auto-task: 2-week post-placement check-in
       fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Post-placement check-in â ${candidateName}`,
+        body: JSON.stringify({ title: `Post-placement check-in — ${candidateName}`,
           description: `Follow up with ${candidateName} 2 weeks after placement on ${mandateTitle}`,
           due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0] })(),
           link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
           auto_generated: true }) }).catch(() => {})
       // Auto-task: notify client
       fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Notify client of placement â ${mandateTitle}`,
+        body: JSON.stringify({ title: `Notify client of placement — ${mandateTitle}`,
           description: `${candidateName} has been placed. Confirm start date and send placement confirmation to client.`,
           due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0] })(),
           link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
@@ -759,7 +759,7 @@ export default function MandateDetail() {
         const shortlisted = applications.filter(a => a.id === appId ? true : a.stage === "shortlisted").length
         if (shortlisted >= 3) {
           fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: `Send shortlist to client â ${mandateTitle}`,
+            body: JSON.stringify({ title: `Send shortlist to client — ${mandateTitle}`,
               description: `${shortlisted} candidates are now shortlisted. Time to send the shortlist to the client.`,
               due_date: (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split("T")[0] })(),
               link: `/internal/mandates/${id}`, link_label: `${mandateTitle}`,
@@ -939,7 +939,7 @@ export default function MandateDetail() {
         </div>
       </div>
 
-      {/* Client section â shows automatically when a client is linked */}
+      {/* Client section — shows automatically when a client is linked */}
       {clientUser && (
         <div className="flex items-center gap-3 bg-teal/5 border border-teal/20 rounded-2xl px-4 py-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
@@ -979,7 +979,7 @@ export default function MandateDetail() {
         ))}
       </div>
 
-      {/* ââ DETAILS tab */}
+      {/* ── DETAILS tab */}
       {tab === "details" && (
         <div className="space-y-6 max-w-2xl">
           <div className="flex items-center justify-between">
@@ -1017,7 +1017,7 @@ export default function MandateDetail() {
               { label: "Job Title", key: "title", placeholder: "e.g. Finance Manager" },
               { label: "Client / Company", key: "client_name", placeholder: "e.g. ABC Corporation" },
               { label: "Location", key: "location", placeholder: "e.g. Cairo, Egypt" },
-              { label: "Salary Range", key: "salary_range", placeholder: "e.g. EGP 25,000 â 35,000" },
+              { label: "Salary Range", key: "salary_range", placeholder: "e.g. EGP 25,000 – 35,000" },
             ].map(({ label, key, placeholder }) => (
               <div key={key}>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</label>
@@ -1051,7 +1051,7 @@ export default function MandateDetail() {
                 <p className="text-xs text-red-500 mt-1 max-w-md">
                   Permanently removes this mandate along with its pipeline candidates,
                   talent pool scans, client commentary, and client portal access. This
-                  cannot be undone â consider setting status to Cancelled instead if you
+                  cannot be undone — consider setting status to Cancelled instead if you
                   just want to close it.
                 </p>
               </div>
@@ -1064,7 +1064,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ JOB DESCRIPTION tab */}
+      {/* ── JOB DESCRIPTION tab */}
       {tab === "jd" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1097,7 +1097,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ PIPELINE with drag & drop ââ */}
+      {/* ── PIPELINE with drag & drop ── */}
       {tab === "pipeline" && (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
@@ -1132,7 +1132,7 @@ export default function MandateDetail() {
                           <button
                             onClick={e => { e.stopPropagation(); setSelectedApp(app); setCandidateNotes((app as any).candidate?.internal_notes || ""); setDrawerTab("overview"); setCandidateRoles([]); loadCandidateRoles((app as any).candidate?.id); loadRoleFeedback(app.id) }}
                             className="font-medium text-sm text-gray-900 hover:text-teal transition-colors truncate block text-left">
-                            {(app as any).candidate?.name || "Unknown"}{ageFromDob((app as any).candidate?.dob) != null && <span className="text-gray-400 font-normal"> Â· {ageFromDob((app as any).candidate?.dob)}</span>}
+                            {(app as any).candidate?.name || "Unknown"}{ageFromDob((app as any).candidate?.dob) != null && <span className="text-gray-400 font-normal"> · {ageFromDob((app as any).candidate?.dob)}</span>}
                           </button>
                           {(app as any).candidate?.current_title && (
                             <div className="text-xs text-gray-400 truncate mt-0.5">{(app as any).candidate.current_title}</div>
@@ -1173,14 +1173,14 @@ export default function MandateDetail() {
                           {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
                             <button key={s} onClick={() => moveStage(app.id, s)}
                               className="text-xs text-gray-300 hover:text-teal transition-colors truncate">
-                              â {STAGE_LABELS[s]}
+                              → {STAGE_LABELS[s]}
                             </button>
                           ))}
                         </div>
                         <button onClick={e => { e.stopPropagation(); removeFromPipeline(app.id) }}
                           className="text-xs text-gray-200 hover:text-red-400 transition-colors ml-2 flex-shrink-0"
                           title="Remove from pipeline">
-                          â
+                          ✕
                         </button>
                       </div>
                     </div>
@@ -1198,7 +1198,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ CANDIDATE MODAL ââ */}
+      {/* ── CANDIDATE MODAL ── */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
           style={{ background: "rgba(0,0,0,0.45)" }}
@@ -1213,7 +1213,7 @@ export default function MandateDetail() {
                   {selectedApp.candidate?.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">{selectedApp.candidate?.name}{ageFromDob(selectedApp.candidate?.dob) != null && <span className="text-gray-400 font-normal text-base"> Â· {ageFromDob(selectedApp.candidate?.dob)}</span>}</h2>
+                  <h2 className="text-lg font-bold text-gray-900">{selectedApp.candidate?.name}{ageFromDob(selectedApp.candidate?.dob) != null && <span className="text-gray-400 font-normal text-base"> · {ageFromDob(selectedApp.candidate?.dob)}</span>}</h2>
                   <p className="text-sm text-gray-500 mt-0.5">
                     {selectedApp.candidate?.current_title}
                     {selectedApp.candidate?.current_company ? ` @ ${selectedApp.candidate.current_company}` : ""}
@@ -1320,7 +1320,7 @@ export default function MandateDetail() {
                           <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths for this role</div>
                           <ul className="space-y-1.5">
                             {selectedApp.ai_strengths.map((s: string, i: number) => (
-                              <li key={i} className="text-xs text-green-800 flex gap-1.5"><span>â¢</span>{s}</li>
+                              <li key={i} className="text-xs text-green-800 flex gap-1.5"><span>•</span>{s}</li>
                             ))}
                           </ul>
                         </div>
@@ -1330,7 +1330,7 @@ export default function MandateDetail() {
                           <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1"><AlertCircle size={11} /> Areas to probe</div>
                           <ul className="space-y-1.5">
                             {selectedApp.ai_concerns.map((c: string, i: number) => (
-                              <li key={i} className="text-xs text-amber-800 flex gap-1.5"><span>â¢</span>{c}</li>
+                              <li key={i} className="text-xs text-amber-800 flex gap-1.5"><span>•</span>{c}</li>
                             ))}
                           </ul>
                         </div>
@@ -1338,7 +1338,7 @@ export default function MandateDetail() {
                       <div className="col-span-2 flex justify-end">
                         <button onClick={rescoreCandidate} disabled={scoringCandidate}
                           className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
-                          {scoringCandidate ? <><Loader2 size={11} className="animate-spin" /> Regeneratingâ¦</> : "âº Re-score for this JD"}
+                          {scoringCandidate ? <><Loader2 size={11} className="animate-spin" /> Regenerating…</> : "↺ Re-score for this JD"}
                         </button>
                       </div>
                     </div>
@@ -1346,7 +1346,7 @@ export default function MandateDetail() {
                     <button onClick={generateStrengthsConcerns} disabled={scoringCandidate}
                       className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-teal hover:text-teal transition-all">
                       {scoringCandidate
-                        ? <><Loader2 size={12} className="animate-spin" /> Analysing against this JDâ¦</>
+                        ? <><Loader2 size={12} className="animate-spin" /> Analysing against this JD…</>
                         : <><Zap size={12} /> Generate strengths & concerns for {mandate?.title}</>}
                     </button>
                   )}
@@ -1364,7 +1364,7 @@ export default function MandateDetail() {
                         {selectedApp.candidate?.cv_source === "gps_builder" ? "GPS-built CV" : `Original CV${selectedApp.candidate?.cv_file_type ? ` (${selectedApp.candidate.cv_file_type.toUpperCase()})` : ""}`}
                       </span>
                       {selectedApp.candidate?.cv_source === "gps_builder" && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">â GPS CV</span>
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-teal/10 text-teal border border-teal/20">★ GPS CV</span>
                       )}
                       <div className="flex gap-2">
                         {(selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_type === "pdf") && (
@@ -1421,7 +1421,7 @@ export default function MandateDetail() {
                                 )}
                               </div>
                               <p className="text-xs text-gray-400 mt-0.5">
-                                {app.mandate?.client_name}{app.mandate?.location ? ` Â· ${app.mandate.location}` : ""}
+                                {app.mandate?.client_name}{app.mandate?.location ? ` · ${app.mandate.location}` : ""}
                               </p>
                             </div>
                             {app.ai_score && (
@@ -1450,7 +1450,7 @@ export default function MandateDetail() {
                                     {LABELS[stage]}
                                   </span>
                                   {idx < arr.length - 1 && (
-                                    <span className={`text-xs mx-0.5 ${isPast || isCurrent ? "text-gray-400" : "text-gray-200"}`}>â</span>
+                                    <span className={`text-xs mx-0.5 ${isPast || isCurrent ? "text-gray-400" : "text-gray-200"}`}>→</span>
                                   )}
                                 </div>
                               )
@@ -1479,7 +1479,7 @@ export default function MandateDetail() {
                                       </div>
                                       <p className="text-xs text-gray-600 leading-relaxed">{fb.feedback_text}</p>
                                       {fb.client_user?.full_name && (
-                                        <p className="text-[10px] text-gray-400 mt-1">â {fb.client_user.full_name}</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">— {fb.client_user.full_name}</p>
                                       )}
                                     </div>
                                   ))}
@@ -1509,7 +1509,7 @@ export default function MandateDetail() {
                       </p>
                     </div>
                   )}
-                  {/* Client feedback â for this mandate */}
+                  {/* Client feedback — for this mandate */}
                   {roleFeedback[selectedApp.id]?.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
@@ -1528,7 +1528,7 @@ export default function MandateDetail() {
                             </div>
                             <p className="text-sm text-gray-600 leading-relaxed">{fb.feedback_text}</p>
                             {fb.client_user?.full_name && (
-                              <p className="text-xs text-gray-400 mt-1.5">â {fb.client_user.full_name}</p>
+                              <p className="text-xs text-gray-400 mt-1.5">— {fb.client_user.full_name}</p>
                             )}
                           </div>
                         ))}
@@ -1537,7 +1537,7 @@ export default function MandateDetail() {
                   )}
                   {/* Manual notes */}
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">Internal notes â only visible to GPS team</p>
+                    <p className="text-xs text-gray-400 mb-2">Internal notes — only visible to GPS team</p>
                     <textarea value={candidateNotes} onChange={e => setCandidateNotes(e.target.value)} rows={8}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none text-gray-700 leading-relaxed"
                       placeholder="Add interview feedback, observations, next steps..." />
@@ -1559,7 +1559,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ BULK UPLOAD ââ */}
+      {/* ── BULK UPLOAD ── */}
       {tab === "bulk" && (
         <div className="grid grid-cols-5 gap-5 items-start">
           <div className="col-span-2 space-y-4">
@@ -1578,7 +1578,7 @@ export default function MandateDetail() {
               </div>
               <p className="text-gray-700 font-semibold">Drop CVs here</p>
               <p className="text-gray-400 text-sm mt-1">or click to browse</p>
-              <p className="text-gray-300 text-xs mt-2">PDF, Word, TXT Â· Multiple files</p>
+              <p className="text-gray-300 text-xs mt-2">PDF, Word, TXT · Multiple files</p>
             </div>
 
             {files.length > 0 && (
@@ -1677,8 +1677,8 @@ export default function MandateDetail() {
                     </div>
                     <div className="text-xs text-gray-300 flex items-center gap-2 mt-0.5">
                       {r.email && <span>{r.email}</span>}
-                      {r.phone && <span>Â· {r.phone}</span>}
-                      {r.location && <span>Â· {r.location}</span>}
+                      {r.phone && <span>· {r.phone}</span>}
+                      {r.location && <span>· {r.location}</span>}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -1687,7 +1687,7 @@ export default function MandateDetail() {
                   </div>
                   <span className={`badge text-xs font-semibold px-2.5 py-1 flex-shrink-0
                     ${r.recommendation === "Proceed" ? "bg-teal/10 text-teal" : r.recommendation === "Maybe" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
-                    {r.recommendation === "Proceed" ? "â Proceed" : r.recommendation === "Maybe" ? "~ Maybe" : "â Pass"}
+                    {r.recommendation === "Proceed" ? "✓ Proceed" : r.recommendation === "Maybe" ? "~ Maybe" : "✕ Pass"}
                   </span>
                   {r.added ? (
                     <span className="flex items-center gap-1 text-teal text-xs font-medium flex-shrink-0"><CheckCircle size={13} /> Added</span>
@@ -1712,7 +1712,7 @@ export default function MandateDetail() {
                     <div className="bg-green-50 rounded-xl p-3">
                       <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5"><CheckCircle size={11} /> Strengths</div>
                       <ul className="space-y-1">
-                        {r.strengths.map((s, j) => <li key={j} className="text-xs text-green-800 flex gap-2"><span className="flex-shrink-0">â¢</span>{s}</li>)}
+                        {r.strengths.map((s, j) => <li key={j} className="text-xs text-green-800 flex gap-2"><span className="flex-shrink-0">•</span>{s}</li>)}
                       </ul>
                     </div>
                   )}
@@ -1720,7 +1720,7 @@ export default function MandateDetail() {
                     <div className="bg-amber-50 rounded-xl p-3">
                       <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5"><AlertCircle size={11} /> Areas to probe</div>
                       <ul className="space-y-1">
-                        {r.concerns.map((c, j) => <li key={j} className="text-xs text-amber-800 flex gap-2"><span className="flex-shrink-0">â¢</span>{c}</li>)}
+                        {r.concerns.map((c, j) => <li key={j} className="text-xs text-amber-800 flex gap-2"><span className="flex-shrink-0">•</span>{c}</li>)}
                       </ul>
                     </div>
                   )}
@@ -1731,7 +1731,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ TALENT POOL INSIGHT ââ */}
+      {/* ── TALENT POOL INSIGHT ── */}
       {tab === "insight" && (
         <div className="space-y-5 max-w-4xl">
           {!insightData && !insightLoading && (
@@ -1739,7 +1739,7 @@ export default function MandateDetail() {
               <Users size={40} className="mx-auto mb-4 text-gray-200" />
               <h3 className="font-semibold text-gray-900 mb-2">Scan your talent pool</h3>
               <p className="text-gray-400 text-sm max-w-md mx-auto mb-6">
-                AI will review every candidate in your database and identify who fits this role â before you post anywhere.
+                AI will review every candidate in your database and identify who fits this role — before you post anywhere.
               </p>
               <button onClick={() => loadInsight()}
                 className="btn-primary flex items-center gap-2 mx-auto">
@@ -1752,7 +1752,7 @@ export default function MandateDetail() {
             <div className="card text-center py-16">
               <Loader2 size={28} className="animate-spin mx-auto mb-3 text-teal" />
               <p className="text-gray-500 text-sm">{scanProgress || "AI is reviewing your talent pool..."}</p>
-              <p className="text-gray-400 text-xs mt-1">This takes 30â60 seconds â please keep this tab open</p>
+              <p className="text-gray-400 text-xs mt-1">This takes 30–60 seconds — please keep this tab open</p>
             </div>
           )}
 
@@ -1781,17 +1781,17 @@ export default function MandateDetail() {
                       <button onClick={() => loadInsight(true)} disabled={deeperSearching}
                         className="text-xs text-gray-400 hover:text-teal transition-colors flex items-center gap-1">
                         {deeperSearching ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />}
-                        {deeperSearching ? "Searching widerâ¦" : "Deeper search"}
+                        {deeperSearching ? "Searching wider…" : "Deeper search"}
                       </button>
                     )}
                     <button
                       onClick={() => loadInsight(false, true)}
                       disabled={insightLoading}
-                      title="Run a fresh AI scan â updates the saved results"
+                      title="Run a fresh AI scan — updates the saved results"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal/10 text-teal border border-teal/20 hover:bg-teal/20 hover:border-teal/40 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {insightLoading
-                        ? <><Loader2 size={11} className="animate-spin" />Scanningâ¦</>
+                        ? <><Loader2 size={11} className="animate-spin" />Scanning…</>
                         : <><RefreshCw size={11} />Rescan</>
                       }
                     </button>
@@ -1833,14 +1833,14 @@ export default function MandateDetail() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-gray-900 text-sm">{c.name}</span>
-                            {c.trajectory === "Rising" && <span className="text-xs text-green-600 font-medium">â Rising</span>}
-                            {c.trajectory === "Lateral" && <span className="text-xs text-gray-400 font-medium">â Lateral</span>}
-                            {c.trajectory === "Declining" && <span className="text-xs text-amber-500 font-medium">â Declining</span>}
-                            {c.avg_tenure && c.avg_tenure < 1.5 && <span className="text-xs text-amber-500 font-medium">â  Avg {c.avg_tenure}yr tenure</span>}
+                            {c.trajectory === "Rising" && <span className="text-xs text-green-600 font-medium">↑ Rising</span>}
+                            {c.trajectory === "Lateral" && <span className="text-xs text-gray-400 font-medium">→ Lateral</span>}
+                            {c.trajectory === "Declining" && <span className="text-xs text-amber-500 font-medium">↓ Declining</span>}
+                            {c.avg_tenure && c.avg_tenure < 1.5 && <span className="text-xs text-amber-500 font-medium">⚠ Avg {c.avg_tenure}yr tenure</span>}
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5">
-                            {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{c.location ? ` Â· ${c.location}` : ""}
-                            {c.total_years ? ` Â· ${c.total_years}yrs exp` : ""}{ageById[c.id] != null ? ` Â· ${ageById[c.id]}y` : ""}
+                            {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{c.location ? ` · ${c.location}` : ""}
+                            {c.total_years ? ` · ${c.total_years}yrs exp` : ""}{ageById[c.id] != null ? ` · ${ageById[c.id]}y` : ""}
                           </div>
                           {c.candidate?.source && (
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mt-1 ${SOURCE_COLORS[c.candidate.source] || "bg-gray-100 text-gray-600"}`}>
@@ -1852,16 +1852,16 @@ export default function MandateDetail() {
                           {c.gaps && (
                             <div className="flex flex-wrap gap-1 mt-2">
                               {c.gaps.present?.slice(0,4).map((p: string, i: number) => (
-                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full font-medium">â {p}</span>
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓ {p}</span>
                               ))}
                               {c.gaps.partial?.slice(0,2).map((p: string, i: number) => (
                                 <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">~ {p}</span>
                               ))}
                               {c.gaps.missing_hard?.slice(0,3).map((p: string, i: number) => (
-                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">â {p}</span>
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">✗ {p}</span>
                               ))}
                               {c.gaps.missing_soft?.slice(0,2).map((p: string, i: number) => (
-                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">â {p}</span>
+                                <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">○ {p}</span>
                               ))}
                             </div>
                           )}
@@ -1883,7 +1883,7 @@ export default function MandateDetail() {
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/30 text-teal text-xs font-medium hover:bg-teal/5 transition-all whitespace-nowrap">
                             <UserPlus size={12} /> Add to pipeline
                           </button>
-                          <a href={`/internal/candidates/${c.id}`} onClick={() => { try { const sc = document.querySelector("main"); sessionStorage.setItem(`mandate-scroll-${id}`, String(sc ? sc.scrollTop : 0)) } catch {} }} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile â</a>
+                          <a href={`/internal/candidates/${c.id}`} onClick={() => { try { const sc = document.querySelector("main"); sessionStorage.setItem(`mandate-scroll-${id}`, String(sc ? sc.scrollTop : 0)) } catch {} }} className="text-xs text-gray-400 hover:text-teal transition-colors">View profile →</a>
                         </div>
                       </div>
                     </div>
@@ -1901,7 +1901,7 @@ export default function MandateDetail() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{ageById[c.id] != null ? ` Â· ${ageById[c.id]}y` : ""}
+                          {c.current_title}{c.current_company ? ` @ ${c.current_company}` : ""}{ageById[c.id] != null ? ` · ${ageById[c.id]}y` : ""}
                         </div>
                         <div className="text-xs text-amber-600 mt-1 italic">{c.reason}</div>
                       </div>
@@ -1929,7 +1929,7 @@ export default function MandateDetail() {
                     {insightData.deeper_search_available && (
                       <button onClick={() => loadInsight(true)} disabled={deeperSearching}
                         className="btn-secondary flex items-center gap-2 text-sm">
-                        {deeperSearching ? <><Loader2 size={13} className="animate-spin" /> Searching widerâ¦</> : <><Search size={13} /> Deeper search</>}
+                        {deeperSearching ? <><Loader2 size={13} className="animate-spin" /> Searching wider…</> : <><Search size={13} /> Deeper search</>}
                       </button>
                     )}
                     <a href="/internal/database" className="btn-primary inline-flex items-center gap-2 text-sm">
@@ -1943,8 +1943,8 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ SINGLE SCORER ââ */}
-      {/* ââ LINKEDIN SOURCE TAB ââ */}
+      {/* ── SINGLE SCORER ── */}
+      {/* ── LINKEDIN SOURCE TAB ── */}
       {tab === "source" && (
         <div className="space-y-5 max-w-3xl">
           {/* Search fields */}
@@ -1955,7 +1955,7 @@ export default function MandateDetail() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">Search LinkedIn</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Pre-filled from mandate â tweak and search. Each search costs ~3 credits.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Pre-filled from mandate — tweak and search. Each search costs ~3 credits.</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -2011,7 +2011,7 @@ export default function MandateDetail() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 text-sm">{linkedinResults.length}{linkedinTotal > linkedinResults.length ? " of " + linkedinTotal : ""} profiles</h3>
-                <span className="text-xs text-gray-400">Click "Add to pipeline" to enrich and save â costs 1 credit each</span>
+                <span className="text-xs text-gray-400">Click "Add to pipeline" to enrich and save — costs 1 credit each</span>
               </div>
               {linkedinResults.map((result, idx) => (
                 <div key={idx} id={"li-card-" + idx} className="card p-4 hover:shadow-sm transition-shadow">
@@ -2039,7 +2039,7 @@ export default function MandateDetail() {
                         <div className="font-semibold text-gray-900 text-sm">{result.name}{typeof result.fit_score === "number" && (<span className={"ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold align-middle " + (result.fit_score >= 70 ? "bg-green-100 text-green-700" : result.fit_score >= 40 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>{result.fit_score}</span>)}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
                           {result.current_title}{result.current_company ? ` @ ${result.current_company}` : ""}
-                          {result.location ? ` Â· ${result.location}` : ""}
+                          {result.location ? ` · ${result.location}` : ""}
                         </div>
                         {result.headline && result.headline !== result.current_title && (
                           <div className="text-xs text-gray-400 mt-1 italic truncate">{result.headline}</div>
@@ -2147,7 +2147,7 @@ export default function MandateDetail() {
             <div className="card border-dashed text-center py-16">
               <Link2 size={36} className="mx-auto mb-3 text-gray-200" />
               <p className="text-gray-400 text-sm">Search LinkedIn to find candidates for this mandate</p>
-              <p className="text-gray-300 text-xs mt-1">Results are cached â you won't be charged twice for the same search</p>
+              <p className="text-gray-300 text-xs mt-1">Results are cached — you won't be charged twice for the same search</p>
             </div>
           )}
         </div>
@@ -2190,13 +2190,13 @@ export default function MandateDetail() {
                   {scoreResult.strengths?.length > 0 && (
                     <div className="bg-green-50 rounded-xl p-4">
                       <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5"><CheckCircle size={12} /> Strengths</div>
-                      <ul className="space-y-1">{scoreResult.strengths.map((s: string, i: number) => <li key={i} className="text-xs text-green-800 flex gap-2"><span>â¢</span>{s}</li>)}</ul>
+                      <ul className="space-y-1">{scoreResult.strengths.map((s: string, i: number) => <li key={i} className="text-xs text-green-800 flex gap-2"><span>•</span>{s}</li>)}</ul>
                     </div>
                   )}
                   {scoreResult.concerns?.length > 0 && (
                     <div className="bg-amber-50 rounded-xl p-4">
                       <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5"><AlertCircle size={12} /> Areas to probe</div>
-                      <ul className="space-y-1">{scoreResult.concerns.map((c: string, i: number) => <li key={i} className="text-xs text-amber-800 flex gap-2"><span>â¢</span>{c}</li>)}</ul>
+                      <ul className="space-y-1">{scoreResult.concerns.map((c: string, i: number) => <li key={i} className="text-xs text-amber-800 flex gap-2"><span>•</span>{c}</li>)}</ul>
                     </div>
                   )}
                 </div>
@@ -2213,7 +2213,7 @@ export default function MandateDetail() {
         </div>
       )}
 
-      {/* ââ Delete mandate confirmation modal ââ */}
+      {/* ── Delete mandate confirmation modal ── */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
