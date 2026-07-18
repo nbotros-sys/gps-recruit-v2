@@ -1,8 +1,35 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireStaff } from "@/lib/require-staff"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
   try {
+    // Access gate. Accepts EITHER:
+    //   1. the internal shared secret - for server-to-server callers such as
+    //      /api/enrich-from-linkedin, which cannot carry a user session
+    //   2. a valid staff session - for browser callers such as the
+    //      internal database page's re-analyse/re-embed action
+    // Everyone else is rejected before any OpenAI spend happens.
+    //
+    // NOTE: candidate (non-staff) sessions are deliberately NOT accepted.
+    // When the CV Builder relaunches, its browser-side calls must go through a
+    // server route that supplies the secret rather than calling this directly.
+    const secret = process.env.INTERNAL_API_SECRET
+    const provided = req.headers.get("x-internal-secret")
+    const viaSecret = Boolean(secret && provided && provided === secret)
+
+    if (!viaSecret) {
+      const gate = await requireStaff()
+      if (!gate.ok) return gate.response
+    }
+
+    // Backstop against runaway cost from a compromised session or a looping
+    // client. Set high enough not to interfere with normal bulk staff work.
+    const ip = clientIp(req)
+    const allowed = await rateLimit(`generate-embedding:${ip}`, { windowSeconds: 3600, limit: 1000 })
+    if (!allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+
     const { candidateId, text } = await req.json()
     if (!candidateId || !text) return NextResponse.json({ error: "Missing data" }, { status: 400 })
 
@@ -35,7 +62,7 @@ export async function POST(req: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Upsert — replace if exists
+    // Upsert - replace if exists
     const { error } = await supabase
       .from("cv_embeddings")
       .upsert({ candidate_id: candidateId, embedding }, { onConflict: "candidate_id" })
