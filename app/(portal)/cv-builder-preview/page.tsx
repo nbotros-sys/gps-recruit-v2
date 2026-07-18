@@ -557,7 +557,7 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
       </div>
       <div ref={boxRef} style={{ flex:1, overflow:"hidden", display:"flex", justifyContent:"center", alignItems:"flex-start" }}>
         <div style={{ position:"relative" as const, width:Math.round(A4W*scale)+"px", height:Math.round(A4H*scale)+"px" }}>
-          <div id="cv-preview-print" style={{ position:"absolute" as const, top:0, left:0, width:A4W+"px", height:A4H+"px", background:"white", borderRadius:"3px", boxShadow:"0 6px 24px rgba(0,0,0,0.28)", overflow:"hidden", fontSize:`${basePx}px`, transform:`scale(${scale})`, transformOrigin:"top left", WebkitFontSmoothing:"antialiased" as const }}>
+          <div id="cv-preview-print" data-boost={boost} style={{ position:"absolute" as const, top:0, left:0, width:A4W+"px", height:A4H+"px", background:"white", borderRadius:"3px", boxShadow:"0 6px 24px rgba(0,0,0,0.28)", overflow:"hidden", fontSize:`${basePx}px`, transform:`scale(${scale})`, transformOrigin:"top left", WebkitFontSmoothing:"antialiased" as const }}>
             <TplComponent form={form} d={dFit} />
           </div>
         </div>
@@ -703,16 +703,6 @@ export default function CVBuilderPage() {
   function toggleSkill(s:string){ setForm(f=>({...f,skills:f.skills.includes(s)?f.skills.filter(x=>x!==s):[...f.skills,s]})) }
   function handlePhoto(e:React.ChangeEvent<HTMLInputElement>){ const file=e.target.files?.[0]; if(!file) return; const r=new FileReader(); r.onload=ev=>setPersonal("photo",ev.target?.result as string); r.readAsDataURL(file) }
 
-  function triggerPDFDownload(){
-    if(typeof window==="undefined") return
-    const style=document.createElement("style")
-    // Use a density-aware font size at print time too
-    const printDensity = getContentDensity(form)
-    const printDensityFactor = 1.0 + (1.0 - Math.min(printDensity.t, 1)) * 0.22
-    const printBasePx = Math.round(9.5 * printDensityFactor * 10) / 10
-    style.innerHTML=`@media print{body *{visibility:hidden}#cv-preview-print,#cv-preview-print *{visibility:visible}#cv-preview-print{position:fixed;left:0;top:0;width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none;font-size:${printBasePx}px}}`
-    document.head.appendChild(style); window.print(); setTimeout(()=>document.head.removeChild(style),1000)
-  }
 
   async function handleSaveAndDownload(){
     const user=(await supabase.auth.getUser()).data.user
@@ -738,10 +728,19 @@ export default function CVBuilderPage() {
         fetch("/api/extract-structured",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,cv_text:cvText})})
           .then(()=>fetch("/api/generate-embedding",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,text:cvText})}))
           .catch(()=>{})
-        fetch("/api/generate-cv-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,form,templateId:selectedTemplate})}).catch(()=>{})
+        const _bEl = typeof document!=="undefined" ? document.getElementById("cv-preview-print") : null
+      const _boost = _bEl ? parseFloat(_bEl.getAttribute("data-boost")||"1") : 1
+      try {
+        const _res = await fetch("/api/generate-cv-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,form,templateId:selectedTemplate,boost:_boost})})
+        const _j = await _res.json()
+        if(_j.cv_pdf_base64){
+          const _bytes = Uint8Array.from(atob(_j.cv_pdf_base64), (c:string)=>c.charCodeAt(0))
+          const _url = URL.createObjectURL(new Blob([_bytes],{type:"application/pdf"}))
+          const _a = document.createElement("a"); _a.href=_url; _a.download=`${(form.personal.name||"CV").replace(/[^a-z0-9]+/gi,"_")}_CV.pdf`
+          document.body.appendChild(_a); _a.click(); _a.remove(); setTimeout(()=>URL.revokeObjectURL(_url),3000)
+        } else if(_j.cv_pdf_url){ window.open(_j.cv_pdf_url,"_blank") }
+      } catch(_e){ console.error(_e) }
       }
-      triggerPDFDownload()
-      window.location.href="/cv-builder/success"
     } catch(err){ console.error(err) }
     setSaving(false)
   }
