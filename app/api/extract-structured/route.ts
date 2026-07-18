@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { requireStaff } from "@/lib/require-staff"
 
 export async function POST(req: NextRequest) {
+  // Access gate. Accepts EITHER the internal shared secret (server-to-server
+  // callers such as /api/enrich-from-linkedin) OR a valid staff session
+  // (browser callers such as the internal database page). Rejects everyone
+  // else before any Anthropic spend happens.
+  const secret = process.env.INTERNAL_API_SECRET
+  const provided = req.headers.get("x-internal-secret")
+  if (!(secret && provided && provided === secret)) {
+    const gate = await requireStaff()
+    if (!gate.ok) return gate.response
+  }
+
   const { candidateId, cv_text, forceRefresh } = await req.json()
   if (!candidateId || !cv_text) return NextResponse.json({ error: "Missing data" }, { status: 400 })
 
