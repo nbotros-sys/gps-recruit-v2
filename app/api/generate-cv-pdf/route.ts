@@ -542,7 +542,7 @@ function buildCVHtml(form: any, templateId: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const { candidateId, form, templateId, boost } = await req.json()
+    const { candidateId, form, templateId, boost, debug } = await req.json()
     if (!form) return NextResponse.json({ error: "Missing data" }, { status: 400 })
 
     const supabase = createClient(
@@ -565,7 +565,9 @@ export async function POST(req: NextRequest) {
     const _tpl = TEMPLATES.find((t:any)=>t.id===(templateId||"prestige")) || TEMPLATES[0]
     const { renderToStaticMarkup } = await import("react-dom/server")
     const _inner = renderToStaticMarkup(React.createElement(_tpl.component as any, { form, d: _d }))
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{width:210mm;height:297mm}#cvpage{width:210mm;height:297mm;font-size:${_basePx}px;overflow:hidden;background:#ffffff;font-family:Georgia,serif}</style></head><body><div id="cvpage">${_inner}</div></body></html>`
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}html,body{margin:0;padding:0;width:794px;height:1123px;background:#ffffff}#cvpage{position:relative;display:block;width:794px;height:1123px;overflow:hidden;background:#ffffff;font-size:${_basePx}px;font-family:Georgia,serif}#cvpage>*{width:794px !important;height:1123px !important}</style></head><body><div id="cvpage">${_inner}</div></body></html>`
+
+    if (debug) return NextResponse.json({ html })
 
     // Send to Doppio for PDF generation
     const doppioRes = await fetch("https://api.doppio.sh/v1/render/pdf/sync", {
