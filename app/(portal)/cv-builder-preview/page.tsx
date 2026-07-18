@@ -708,8 +708,9 @@ export default function CVBuilderPage() {
     const user=(await supabase.auth.getUser()).data.user
     if(!user){ setShowSignup(true); return }
     setSaving(true)
+    let candidateId: string | undefined
     try {
-      const { data:upserted } = await supabase.from("candidates").upsert({
+      const { data:upserted, error:upErr } = await supabase.from("candidates").upsert({
         user_id:user.id, full_name:form.personal.name,
         email:form.personal.email||user.email, phone:form.personal.phone,
         location:form.personal.location, nationality:form.personal.nationality,
@@ -717,9 +718,13 @@ export default function CVBuilderPage() {
         cv_summary:form.summary, skills:form.skills,
         source:"cv_builder", template_used:selectedTemplate,
         updated_at:new Date().toISOString(),
-      },{ onConflict:"user_id" }).select("id").single()
-      const candidateId=upserted?.id
-      if(candidateId){
+      },{ onConflict:"user_id" }).select("id").maybeSingle()
+      if(upErr) console.error("Candidate save failed:", upErr.message)
+      candidateId = upserted?.id
+    } catch(err){ console.error("Candidate save threw:", err) }
+
+    if(candidateId){
+      try {
         const cvText=[form.personal.name,form.personal.title,form.level,form.job_function,form.summary,
           form.experience.map(e=>`${e.title} at ${e.company}: ${e.bullets.filter(b=>b.trim()).join(". ")}`).join("\n"),
           form.skills.join(", "),form.education.map(e=>`${e.degree} ${e.field} ${e.institution}`).join(", "),
@@ -728,20 +733,24 @@ export default function CVBuilderPage() {
         fetch("/api/extract-structured",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,cv_text:cvText})})
           .then(()=>fetch("/api/generate-embedding",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,text:cvText})}))
           .catch(()=>{})
-        const _bEl = typeof document!=="undefined" ? document.getElementById("cv-preview-print") : null
+      } catch(err){ console.error(err) }
+    }
+
+    try {
+      const _bEl = typeof document!=="undefined" ? document.getElementById("cv-preview-print") : null
       const _boost = _bEl ? parseFloat(_bEl.getAttribute("data-boost")||"1") : 1
-      try {
-        const _res = await fetch("/api/generate-cv-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,form,templateId:selectedTemplate,boost:_boost})})
-        const _j = await _res.json()
-        if(_j.cv_pdf_base64){
-          const _bytes = Uint8Array.from(atob(_j.cv_pdf_base64), (c:string)=>c.charCodeAt(0))
-          const _url = URL.createObjectURL(new Blob([_bytes],{type:"application/pdf"}))
-          const _a = document.createElement("a"); _a.href=_url; _a.download=`${(form.personal.name||"CV").replace(/[^a-z0-9]+/gi,"_")}_CV.pdf`
-          document.body.appendChild(_a); _a.click(); _a.remove(); setTimeout(()=>URL.revokeObjectURL(_url),3000)
-        } else if(_j.cv_pdf_url){ window.open(_j.cv_pdf_url,"_blank") }
-      } catch(_e){ console.error(_e) }
+      const _res = await fetch("/api/generate-cv-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidateId,form,templateId:selectedTemplate,boost:_boost})})
+      const _j = await _res.json()
+      if(_j.cv_pdf_base64){
+        const _bytes = Uint8Array.from(atob(_j.cv_pdf_base64), (c:string)=>c.charCodeAt(0))
+        const _url = URL.createObjectURL(new Blob([_bytes],{type:"application/pdf"}))
+        const _a = document.createElement("a"); _a.href=_url; _a.download=`${(form.personal.name||"CV").replace(/[^a-z0-9]+/gi,"_")}_CV.pdf`
+        document.body.appendChild(_a); _a.click(); _a.remove(); setTimeout(()=>URL.revokeObjectURL(_url),3000)
+      } else {
+        console.error("PDF error:", _j.error)
+        alert("Could not generate the PDF: "+(_j.error||"unknown error"))
       }
-    } catch(err){ console.error(err) }
+    } catch(err){ console.error(err); alert("Could not generate the PDF. Please try again.") }
     setSaving(false)
   }
 
