@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { renderCvHtml } from "../../../lib/cv-pdf-templates"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -540,7 +541,7 @@ function buildCVHtml(form: any, templateId: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const { candidateId, form, templateId } = await req.json()
+    const { candidateId, form, templateId, boost } = await req.json()
     if (!candidateId || !form) return NextResponse.json({ error: "Missing data" }, { status: 400 })
 
     const supabase = createClient(
@@ -550,7 +551,7 @@ export async function POST(req: NextRequest) {
     )
 
     // Build HTML of the CV
-    const html = buildCVHtml(form, templateId || "prestige")
+    const html = renderCvHtml(form, templateId || "prestige", boost || 1)
 
     // Send to Doppio for PDF generation
     const doppioRes = await fetch("https://api.doppio.sh/v1/render/pdf/sync", {
