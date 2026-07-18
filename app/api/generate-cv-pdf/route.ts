@@ -572,7 +572,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Token ${process.env.DOPPIO_API_KEY}`,
+        "Authorization": `Bearer ${process.env.DOPPIO_API_KEY}`,
       },
       body: JSON.stringify({
         page: {
