@@ -578,7 +578,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         page: {
-          setContent: { html, waitUntil: "networkidle0" },
+          setContent: { html: Buffer.from(html, "utf8").toString("base64"), waitUntil: "networkidle0" },
           pdf: {
             format: "A4",
             printBackground: true,
