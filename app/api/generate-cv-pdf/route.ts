@@ -608,7 +608,7 @@ export async function POST(req: NextRequest) {
       cv_generated_at: new Date().toISOString(),
     }).eq("id", candidateId)
 
-    return NextResponse.json({ cv_pdf_url })
+    return NextResponse.json({ cv_pdf_url, cv_pdf_base64: Buffer.from(pdfBuffer).toString("base64") })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
