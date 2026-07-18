@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { renderCvHtml } from "../../../lib/cv-pdf-templates"
+import React from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { getContentDensity, lerp, TEMPLATES } from "../../../lib/cv-pdf-templates"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -551,7 +553,19 @@ export async function POST(req: NextRequest) {
     )
 
     // Build HTML of the CV
-    const html = renderCvHtml(form, templateId || "prestige", boost || 1)
+    const _density = getContentDensity(form)
+    const _b = Math.max(1, Math.min(1.7, (boost || 1)))
+    const _d = { ..._density,
+      lineHeight: Math.round(_density.lineHeight*_b*1000)/1000,
+      sectionGapEm: Math.round(_density.sectionGapEm*_b*1000)/1000,
+      headerPadVEm: Math.round(_density.headerPadVEm*_b*1000)/1000,
+      bodyPadEm: Math.round(_density.bodyPadEm*_b*1000)/1000,
+    }
+    const _df = lerp(1.22, 1.0, Math.min(_density.t, 1))
+    const _basePx = Math.round(9.5 * _df * 10) / 10
+    const _tpl = TEMPLATES.find((t:any)=>t.id===(templateId||"prestige")) || TEMPLATES[0]
+    const _inner = renderToStaticMarkup(React.createElement(_tpl.component as any, { form, d: _d }))
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{width:210mm;height:297mm}#cvpage{width:210mm;height:297mm;font-size:${_basePx}px;overflow:hidden;background:#ffffff;font-family:Georgia,serif}</style></head><body><div id="cvpage">${_inner}</div></body></html>`
 
     // Send to Doppio for PDF generation
     const doppioRes = await fetch("https://api.doppio.sh/v1/render/pdf/sync", {
