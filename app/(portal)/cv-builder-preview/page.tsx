@@ -710,17 +710,32 @@ export default function CVBuilderPage() {
     setSaving(true)
     let candidateId: string | undefined
     try {
-      const { data:upserted, error:upErr } = await supabase.from("candidates").upsert({
+      const _email = form.personal.email || user.email
+      const _payload = {
         user_id:user.id, full_name:form.personal.name,
-        email:form.personal.email||user.email, phone:form.personal.phone,
+        email:_email, phone:form.personal.phone,
         location:form.personal.location, nationality:form.personal.nationality,
         job_function:form.job_function, level:form.level,
         cv_summary:form.summary, skills:form.skills,
         source:"cv_builder", template_used:selectedTemplate,
         updated_at:new Date().toISOString(),
-      },{ onConflict:"user_id" }).select("id").maybeSingle()
-      if(upErr) console.error("Candidate save failed:", upErr.message)
-      candidateId = upserted?.id
+      }
+      let _existingId: string | undefined
+      const { data:_byUser } = await supabase.from("candidates").select("id").eq("user_id", user.id).maybeSingle()
+      _existingId = _byUser?.id
+      if(!_existingId && _email){
+        const { data:_byEmail } = await supabase.from("candidates").select("id").eq("email", _email).maybeSingle()
+        _existingId = _byEmail?.id
+      }
+      if(_existingId){
+        const { error:_uErr } = await supabase.from("candidates").update(_payload).eq("id", _existingId)
+        if(_uErr) console.error("Candidate update failed:", _uErr.message)
+        else candidateId = _existingId
+      } else {
+        const { data:_ins, error:_iErr } = await supabase.from("candidates").insert(_payload).select("id").maybeSingle()
+        if(_iErr) console.error("Candidate insert failed:", _iErr.message)
+        candidateId = _ins?.id
+      }
     } catch(err){ console.error("Candidate save threw:", err) }
 
     if(candidateId){
