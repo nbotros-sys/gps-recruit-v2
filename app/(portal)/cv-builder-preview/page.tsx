@@ -508,7 +508,9 @@ const TEMPLATES = [
 // a candidate with 4 jobs — the type simply breathes more.
 function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
   const [boxWidth, setBoxWidth] = useState(790)
+  const [boost, setBoost] = useState(1)
   const boxRef = useRef<HTMLDivElement>(null)
+  const measureRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = boxRef.current; if(!el) return
@@ -521,14 +523,27 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
   const density = getContentDensity(form)
   const tpl = TEMPLATES.find(t=>t.id===templateId)||TEMPLATES[0]
   const TplComponent = tpl.component
-
-  // Width factor: ~9.5px at 790px wide, scales proportionally
-  const A4W = 794, A4H = 1123
-    const scale = Math.min(1, boxWidth / A4W)
-  // Density factor: 1.45 when empty → 1.0 when full
-  // Clamped so we never go below 1.0 (don't shrink below baseline for full CVs)
   const densityFactor = lerp(1.22, 1.0, Math.min(density.t, 1))
   const basePx = Math.round(9.5 * densityFactor * 10) / 10
+
+  const A4W = 794, A4H = 1123
+  const scale = Math.min(1, boxWidth / A4W)
+
+  useEffect(() => {
+    const m = measureRef.current; if(!m) return
+    const natural = m.getBoundingClientRect().height
+    if(!natural) return
+    let b = A4H / natural
+    b = Math.max(1, Math.min(1.7, b))
+    setBoost(Math.round(b*100)/100)
+  }, [form, templateId, basePx])
+
+  const dFit = { ...density,
+    lineHeight: Math.round(density.lineHeight*boost*1000)/1000,
+    sectionGapEm: Math.round(density.sectionGapEm*boost*1000)/1000,
+    headerPadVEm: Math.round(density.headerPadVEm*boost*1000)/1000,
+    bodyPadEm: Math.round(density.bodyPadEm*boost*1000)/1000,
+  }
 
   return (
     <div style={{ background:"#1a2228", padding:"14px", borderRadius:"10px", height:"100%" }}>
@@ -537,13 +552,16 @@ function CVPreview({ form, templateId }: { form:FormData; templateId:string }) {
         <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.35)", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase" as const }}>Live preview</span>
         <span style={{ marginLeft:"auto", fontSize:"10px", color:"rgba(255,255,255,0.2)" }}>A4</span>
       </div>
+      <div ref={measureRef} aria-hidden={true} style={{ position:"absolute" as const, left:"-99999px", top:0, width:A4W+"px", height:"auto", fontSize:`${basePx}px`, visibility:"hidden" as const, pointerEvents:"none" as const }}>
+        <TplComponent form={form} d={density} />
+      </div>
       <div ref={boxRef} style={{ flex:1, overflow:"hidden", display:"flex", justifyContent:"center", alignItems:"flex-start" }}>
-          <div style={{ position:"relative" as const, width:Math.round(A4W*scale)+"px", height:Math.round(A4H*scale)+"px" }}>
-            <div id="cv-preview-print" style={{ position:"absolute" as const, top:0, left:0, width:A4W+"px", height:A4H+"px", background:"white", borderRadius:"3px", boxShadow:"0 6px 24px rgba(0,0,0,0.28)", overflow:"hidden", fontSize:`${basePx}px`, transform:`scale(${scale})`, transformOrigin:"top left", WebkitFontSmoothing:"antialiased" as const }}>
-              <TplComponent form={form} d={density} />
-            </div>
+        <div style={{ position:"relative" as const, width:Math.round(A4W*scale)+"px", height:Math.round(A4H*scale)+"px" }}>
+          <div id="cv-preview-print" style={{ position:"absolute" as const, top:0, left:0, width:A4W+"px", height:A4H+"px", background:"white", borderRadius:"3px", boxShadow:"0 6px 24px rgba(0,0,0,0.28)", overflow:"hidden", fontSize:`${basePx}px`, transform:`scale(${scale})`, transformOrigin:"top left", WebkitFontSmoothing:"antialiased" as const }}>
+            <TplComponent form={form} d={dFit} />
           </div>
         </div>
+      </div>
     </div>
   )
 }
