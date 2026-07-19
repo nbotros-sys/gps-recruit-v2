@@ -45,15 +45,24 @@ export default function JobsPage() {
         }
       }
       setLoading(false)
-      // After data loads, check if URL has #roles hash and scroll there
-      if (typeof window !== "undefined" && window.location.hash === "#roles") {
-        setTimeout(() => {
-          const el = document.getElementById("roles")
-          if (el) {
-            const top = el.getBoundingClientRect().top + window.scrollY - 80
-            window.scrollTo({ top, behavior: "smooth" })
-          }
-        }, 100)
+      // Scroll behaviour after data loads:
+      //  - a plain refresh always returns to the top (never a stale mid-page spot)
+      //  - arriving via a #roles link from another page scrolls to the roles list
+      if (typeof window !== "undefined") {
+        history.scrollRestoration = "manual"
+        const navEntry = performance.getEntriesByType("navigation")[0] as any
+        const isReload = navEntry?.type === "reload"
+        if (window.location.hash === "#roles" && !isReload) {
+          setTimeout(() => {
+            const el = document.getElementById("roles")
+            if (el) {
+              const top = el.getBoundingClientRect().top + window.scrollY - 80
+              window.scrollTo({ top, behavior: "smooth" })
+            }
+          }, 100)
+        } else {
+          window.scrollTo(0, 0)
+        }
       }
     }
     load()
