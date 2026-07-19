@@ -159,38 +159,80 @@ export async function POST(req: NextRequest) {
 
     if (action === "interview_request") {
       const { preferred_dates, notes } = body
-      const { error } = await admin.from("client_interview_requests").insert([{
-        mandate_id, application_id, client_user_id, preferred_dates, notes, status: "new"
-      }])
-      if (error) {
-        console.error("client_interview_requests insert error:", error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+
+      // One editable request per application: reuse the active one if it exists.
+      const { data: existing } = await admin
+        .from("client_interview_requests")
+        .select("id")
+        .eq("application_id", application_id)
+        .in("status", ["new", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const isEdit = !!existing?.id
+      let requestId: string | null = existing?.id || null
+
+      if (isEdit) {
+        const { error } = await admin.from("client_interview_requests")
+          .update({ preferred_dates, notes, updated_at: new Date().toISOString() })
+          .eq("id", requestId)
+        if (error) {
+          console.error("client_interview_requests update error:", error)
+          return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+      } else {
+        const { data: inserted, error } = await admin.from("client_interview_requests").insert([{
+          mandate_id, application_id, client_user_id, preferred_dates, notes, status: "new"
+        }]).select("id").single()
+        if (error) {
+          console.error("client_interview_requests insert error:", error)
+          return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+        requestId = inserted?.id || null
       }
 
       // Best-effort notification + task — never lets a failure here undo the save above
       notifyBestEffort(admin, async () => {
         const candidateName = await getCandidateName(admin, application_id)
         const mandateTitle = await getMandateTitle(admin, mandate_id)
+        const link = `/internal/clients?client=${client_user_id}&tab=interviews`
+        const taskDesc = preferred_dates ? `Client preferred times: ${preferred_dates}` : null
+
         await admin.from("notifications").insert([{
           type: "interview_requested",
-          title: "Interview requested",
+          title: isEdit ? "Interview times updated" : "Interview requested",
           message: `${candidateName} — ${mandateTitle}`,
-          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
+          link,
         }])
-        await admin.from("tasks").insert([{
-          title: `Schedule interview: ${candidateName}`,
-          description: preferred_dates ? `Client preferred dates: ${preferred_dates}` : null,
-          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
-          link_label: mandateTitle,
-          auto_generated: true,
-        }])
+
+        // Linked task: update the one tied to this request, else create it.
+        if (isEdit && requestId) {
+          const { data: updated } = await admin.from("tasks")
+            .update({ description: taskDesc, done: false })
+            .eq("interview_request_id", requestId)
+            .select("id")
+          if (!updated || updated.length === 0) {
+            await admin.from("tasks").insert([{
+              title: `Schedule interview: ${candidateName}`,
+              description: taskDesc, link, link_label: mandateTitle,
+              auto_generated: true, interview_request_id: requestId,
+            }])
+          }
+        } else if (requestId) {
+          await admin.from("tasks").insert([{
+            title: `Schedule interview: ${candidateName}`,
+            description: taskDesc, link, link_label: mandateTitle,
+            auto_generated: true, interview_request_id: requestId,
+          }])
+        }
+
         await sendStaffInterviewRequest({
-          candidateName, mandateTitle, preferredDates: preferred_dates, notes,
-          link: `/internal/clients?client=${client_user_id}&tab=interviews`,
+          candidateName, mandateTitle, preferredDates: preferred_dates, notes, link,
         })
       })
 
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ success: true, edited: isEdit })
     }
 
     if (action === "reject") {
