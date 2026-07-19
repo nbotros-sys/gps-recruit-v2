@@ -607,7 +607,7 @@ export default function ClientPortal() {
                           style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                           {submitting ? <Loader2 size={12} className="animate-spin" /> : <Calendar size={12} />} Send request
                         </button>
-                        <button type="button" onClick={() => setInterviewApp(null)} className="text-sm text-gray-400 hover:text-gray-600 px-3">Cancel</button>
+                        <button type="button" onClick={() => { setInterviewApp(null); setInterviewSlots([]); setPickerDay(null) }} className="text-sm text-gray-400 hover:text-gray-600 px-3">Cancel</button>
                       </div>
                     </form>
                   ) : null}
@@ -639,13 +639,13 @@ export default function ClientPortal() {
                       </button>
                     )}
                     {!existingInterview(selectedApp.id) ? (
-                      <button onClick={() => setInterviewApp(selectedApp)}
+                      <button onClick={() => { setInterviewApp(selectedApp); setInterviewSlots([]); setPickerDay(null) }}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-white font-semibold transition-all hover:opacity-90"
                         style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                         <Calendar size={14} /> Request interview
                       </button>
                     ) : !existingInterview(selectedApp.id).confirmed_date ? (
-                      <button onClick={() => setInterviewApp(selectedApp)}
+                      <button onClick={() => { setInterviewApp(selectedApp); setInterviewSlots([]); setPickerDay(null) }}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-teal border border-teal/30 font-semibold transition-all hover:bg-teal/5">
                         <Calendar size={14} /> Edit interview times
                       </button>
