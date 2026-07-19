@@ -46,6 +46,34 @@ function NotifIcon({ type }: { type: string }) {
     x: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
     bell: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   }
+  // Items with a date, plotted on the month grid. Reads from tasks (interviews
+  // arrive as auto-generated tasks), so anything dated we add later shows here.
+  const calItems = tasks
+    .filter((t: any) => t.due_date)
+    .map((t: any) => ({ id: t.id, title: t.title, done: t.done, link: t.link || null, date: new Date(t.due_date) }))
+  const calCells = (() => {
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1)
+    // Monday-first offset (getDay: Sun=0..Sat=6)
+    const offset = (first.getDay() + 6) % 7
+    const gridStart = new Date(first)
+    gridStart.setDate(first.getDate() - offset)
+    const today = new Date()
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    const cells: any[] = []
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart)
+      d.setDate(gridStart.getDate() + i)
+      cells.push({
+        day: d.getDate(),
+        inMonth: d.getMonth() === calMonth.getMonth(),
+        isToday: sameDay(d, today),
+        items: calItems.filter((it: any) => sameDay(it.date, d)),
+      })
+    }
+    return cells
+  })()
+
   return (
     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
       {svgs[c.icon]}
@@ -91,6 +119,8 @@ export default function ActivityPage() {
   const [loadingNotifs, setLoadingNotifs] = useState(true)
   const [loadingTasks, setLoadingTasks] = useState(true)
   const [showDone, setShowDone] = useState(false)
+  const [view, setView] = useState<"list" | "calendar">("list")
+  const [calMonth, setCalMonth] = useState<Date>(new Date())
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null)
@@ -250,13 +280,20 @@ export default function ActivityPage() {
           <h1 className="text-2xl font-bold text-gray-900">Activity</h1>
           <p className="text-sm text-gray-400 mt-0.5">Tasks and platform notifications</p>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-xl border border-gray-200 overflow-hidden mr-1">
+            <button onClick={() => setView("list")} className={"px-3 py-2 text-xs font-semibold " + (view === "list" ? "bg-[#0a1f24] text-white" : "text-gray-500")}>List</button>
+            <button onClick={() => setView("calendar")} className={"px-3 py-2 text-xs font-semibold " + (view === "calendar" ? "bg-[#0a1f24] text-white" : "text-gray-500")}>Calendar</button>
+          </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 text-sm font-semibold text-white px-4 py-2.5 rounded-xl transition-all hover:opacity-90"
           style={{ background: "#0a1f24" }}>
           <Plus size={14} /> New task
         </button>
+        </div>
       </div>
 
+      {view === "list" && (
       <div className="grid grid-cols-2 gap-5 items-start">
 
         {/* ── LEFT: Tasks ── */}
@@ -549,5 +586,41 @@ export default function ActivityPage() {
         </div>
       )}
     </div>
+      )}
+
+      {view === "calendar" && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">‹</button>
+              <div className="text-sm font-semibold text-gray-900 w-40 text-center">{calMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</div>
+              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">›</button>
+              <button onClick={() => setCalMonth(new Date())} className="ml-2 text-xs text-teal hover:underline">Today</button>
+            </div>
+            <div className="text-xs text-gray-400">{calItems.length} dated item{calItems.length === 1 ? "" : "s"}</div>
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-lg overflow-hidden">
+            {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
+              <div key={d} className="bg-gray-50 text-[11px] font-semibold text-gray-400 text-center py-2">{d}</div>
+            ))}
+            {calCells.map((cell, ci) => (
+              <div key={ci} className={"bg-white min-h-[92px] p-1.5 " + (cell.inMonth ? "" : "opacity-40")}>
+                <div className={"text-[11px] mb-1 " + (cell.isToday ? "font-bold text-teal" : "text-gray-400")}>{cell.day}</div>
+                <div className="space-y-1">
+                  {cell.items.slice(0, 3).map((it: any) => (
+                    <a key={it.id} href={it.link || undefined} title={it.title}
+                      className={"block text-[10px] leading-tight px-1.5 py-1 rounded truncate " + (it.done ? "bg-gray-100 text-gray-400 line-through" : "bg-teal/10 text-teal hover:bg-teal/20")}>
+                      {it.title}
+                    </a>
+                  ))}
+                  {cell.items.length > 3 && (
+                    <div className="text-[10px] text-gray-400 px-1.5">+{cell.items.length - 3} more</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
   )
 }
