@@ -260,6 +260,7 @@ export default function ClientPortal() {
 
   const { mandate, applications, commentary, feedback, interviews, clientUser } = data
   const existingFeedback = (appId: string) => feedback.find((f: any) => f.application_id === appId)
+  const feedbackList = (appId: string) => feedback.filter((f: any) => f.application_id === appId)
   const existingInterview = (appId: string) => interviews.find((i: any) => i.application_id === appId)
   const scoredApps = applications.filter((a: any) => a.ai_score)
   const topApp = scoredApps.length ? scoredApps.reduce((best: any, a: any) => a.ai_score > best.ai_score ? a : best) : null
@@ -484,15 +485,18 @@ export default function ClientPortal() {
                   )}
 
                   {/* Feedback */}
-                  {existingFeedback(selectedApp.id) ? (
-                    <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1.5">
-                        <MessageSquare size={12} /> Your feedback
-                      </p>
-                      <p className="text-xs text-green-700 leading-relaxed">{existingFeedback(selectedApp.id).feedback_text}</p>
-                    </div>
-                  ) : feedbackApp?.id === selectedApp.id ? (
-                    <form onSubmit={submitFeedback} className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div className="space-y-2">
+                    {feedbackList(selectedApp.id).map((f: any) => (
+                      <div key={f.id} className="bg-green-50 border border-green-100 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1.5">
+                          <MessageSquare size={12} /> Your feedback
+                          <span className="ml-auto font-normal text-green-600">{new Date(f.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                        </p>
+                        <p className="text-xs text-green-700 leading-relaxed">{f.feedback_text}</p>
+                      </div>
+                    ))}
+                    {feedbackApp?.id === selectedApp.id ? (
+                      <form onSubmit={submitFeedback} className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
                       <p className="text-xs font-semibold text-gray-700">Leave feedback on {selectedApp.candidate.name.split(" ")[0]}</p>
                       <select value={feedbackRating} onChange={e => setFeedbackRating(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal/30">
@@ -514,7 +518,13 @@ export default function ClientPortal() {
                         <button type="button" onClick={() => setFeedbackApp(null)} className="text-sm text-gray-400 hover:text-gray-600 px-3">Cancel</button>
                       </div>
                     </form>
-                  ) : null}
+                    ) : (
+                      <button type="button" onClick={() => setFeedbackApp(selectedApp)}
+                        className="w-full flex items-center justify-center gap-1.5 text-sm text-teal border border-teal/30 hover:bg-teal/5 px-4 py-2 rounded-lg font-semibold transition-colors">
+                        <MessageSquare size={12} /> {feedbackList(selectedApp.id).length ? "Add more feedback" : "Leave feedback"}
+                      </button>
+                    )}
+                  </div>
 
                   {/* Interview request */}
                   {existingInterview(selectedApp.id) ? (
