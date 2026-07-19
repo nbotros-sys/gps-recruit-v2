@@ -46,34 +46,6 @@ function NotifIcon({ type }: { type: string }) {
     x: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
     bell: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="2.5" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   }
-  // Items with a date, plotted on the month grid. Reads from tasks (interviews
-  // arrive as auto-generated tasks), so anything dated we add later shows here.
-  const calItems = tasks
-    .filter((t: any) => t.due_date)
-    .map((t: any) => ({ id: t.id, title: t.title, done: t.done, link: t.link || null, date: new Date(t.due_date) }))
-  const calCells = (() => {
-    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1)
-    // Monday-first offset (getDay: Sun=0..Sat=6)
-    const offset = (first.getDay() + 6) % 7
-    const gridStart = new Date(first)
-    gridStart.setDate(first.getDate() - offset)
-    const today = new Date()
-    const sameDay = (a: Date, b: Date) =>
-      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-    const cells: any[] = []
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(gridStart)
-      d.setDate(gridStart.getDate() + i)
-      cells.push({
-        day: d.getDate(),
-        inMonth: d.getMonth() === calMonth.getMonth(),
-        isToday: sameDay(d, today),
-        items: calItems.filter((it: any) => sameDay(it.date, d)),
-      })
-    }
-    return cells
-  })()
-
   return (
     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
       {svgs[c.icon]}
@@ -271,6 +243,34 @@ export default function ActivityPage() {
   const unreadCount = notifications.filter(n => !n.read).length
   const pendingTasks = tasks.filter(t => !t.done)
   const doneTasks = tasks.filter(t => t.done)
+
+  // Items with a date, plotted on the month grid. Reads from tasks (interviews
+  // arrive as auto-generated tasks), so anything dated we add later shows here.
+  const calItems = tasks
+    .filter((t: any) => t.due_date)
+    .map((t: any) => ({ id: t.id, title: t.title, done: t.done, link: t.link || null, date: new Date(t.due_date) }))
+  const calCells = (() => {
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1)
+    // Monday-first offset (getDay: Sun=0..Sat=6)
+    const offset = (first.getDay() + 6) % 7
+    const gridStart = new Date(first)
+    gridStart.setDate(first.getDate() - offset)
+    const today = new Date()
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    const cells: any[] = []
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart)
+      d.setDate(gridStart.getDate() + i)
+      cells.push({
+        day: d.getDate(),
+        inMonth: d.getMonth() === calMonth.getMonth(),
+        isToday: sameDay(d, today),
+        items: calItems.filter((it: any) => sameDay(it.date, d)),
+      })
+    }
+    return cells
+  })()
 
   return (
     <div>
