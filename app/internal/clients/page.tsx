@@ -287,6 +287,8 @@ function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate:
     setInterviews(prev => prev.map(ir => ir.id === id ? { ...ir, ...payload } : ir))
     if (details.confirmed_date) {
       fetch("/api/notify-interview-confirmed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ interview_request_id: id }) }).catch(() => {})
+      // Interview scheduled — auto-complete the linked "Schedule interview" task.
+      supabase.from("tasks").update({ done: true }).eq("interview_request_id", id).then(() => {})
     }
   }
 
@@ -647,6 +649,8 @@ export default function ClientsPage() {
     }).eq("id", id)
     if (details.confirmed_date) {
       fetch("/api/notify-interview-confirmed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ interview_request_id: id }) }).catch(() => {})
+      // Interview scheduled — auto-complete the linked "Schedule interview" task.
+      supabase.from("tasks").update({ done: true }).eq("interview_request_id", id).then(() => {})
     }
     if (selected) loadDetail(selected.id)
   }
