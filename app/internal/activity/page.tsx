@@ -85,6 +85,24 @@ function getDueInfo(date: string | null): DueInfo {
   return { label: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }), cls: "text-gray-400", border: "", cardBorder: "border-gray-100" }
 }
 
+// Builds the 6-week month grid (Monday-first).
+function buildCalendarCells(calMonth: Date, calItems: any[]) {
+  const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1)
+  const offset = (first.getDay() + 6) % 7
+  const gridStart = new Date(first)
+  gridStart.setDate(first.getDate() - offset)
+  const today = new Date()
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  const cells: any[] = []
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart)
+    d.setDate(gridStart.getDate() + i)
+    cells.push({ day: d.getDate(), inMonth: d.getMonth() === calMonth.getMonth(), isToday: sameDay(d, today), items: calItems.filter((it: any) => sameDay(it.date, d)) })
+  }
+  return cells
+}
+
 export default function ActivityPage() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
@@ -244,33 +262,12 @@ export default function ActivityPage() {
   const pendingTasks = tasks.filter(t => !t.done)
   const doneTasks = tasks.filter(t => t.done)
 
-  // Items with a date, plotted on the month grid. Reads from tasks (interviews
-  // arrive as auto-generated tasks), so anything dated we add later shows here.
+  // Dated items for the month grid. Reads from tasks (interviews arrive as
+  // auto-generated tasks), so anything dated we add later appears automatically.
   const calItems = tasks
     .filter((t: any) => t.due_date)
     .map((t: any) => ({ id: t.id, title: t.title, done: t.done, link: t.link || null, date: new Date(t.due_date) }))
-  const calCells = (() => {
-    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1)
-    // Monday-first offset (getDay: Sun=0..Sat=6)
-    const offset = (first.getDay() + 6) % 7
-    const gridStart = new Date(first)
-    gridStart.setDate(first.getDate() - offset)
-    const today = new Date()
-    const sameDay = (a: Date, b: Date) =>
-      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-    const cells: any[] = []
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(gridStart)
-      d.setDate(gridStart.getDate() + i)
-      cells.push({
-        day: d.getDate(),
-        inMonth: d.getMonth() === calMonth.getMonth(),
-        isToday: sameDay(d, today),
-        items: calItems.filter((it: any) => sameDay(it.date, d)),
-      })
-    }
-    return cells
-  })()
+  const calCells = buildCalendarCells(calMonth, calItems)
 
   return (
     <div>
@@ -503,6 +500,39 @@ export default function ActivityPage() {
         </div>
 
       </div>
+      )}
+
+      {view === "calendar" && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">&lsaquo;</button>
+              <div className="text-sm font-semibold text-gray-900 w-40 text-center">{calMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</div>
+              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">&rsaquo;</button>
+              <button onClick={() => setCalMonth(new Date())} className="ml-2 text-xs text-teal hover:underline">Today</button>
+            </div>
+            <div className="text-xs text-gray-400">{calItems.length} dated item{calItems.length === 1 ? "" : "s"}</div>
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-lg overflow-hidden">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+              <div key={d} className="bg-gray-50 text-[11px] font-semibold text-gray-400 text-center py-2">{d}</div>
+            ))}
+            {calCells.map((cell: any, ci: number) => (
+              <div key={ci} className={"bg-white min-h-[92px] p-1.5 " + (cell.inMonth ? "" : "opacity-40")}>
+                <div className={"text-[11px] mb-1 " + (cell.isToday ? "font-bold text-teal" : "text-gray-400")}>{cell.day}</div>
+                <div className="space-y-1">
+                  {cell.items.slice(0, 3).map((it: any) => (
+                    <a key={it.id} href={it.link || undefined} title={it.title} className={"block text-[10px] leading-tight px-1.5 py-1 rounded truncate " + (it.done ? "bg-gray-100 text-gray-400 line-through" : "bg-teal/10 text-teal hover:bg-teal/20")}>{it.title}</a>
+                  ))}
+                  {cell.items.length > 3 && (
+                    <div className="text-[10px] text-gray-400 px-1.5">+{cell.items.length - 3} more</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Task detail modal ── */}
       {selectedTask && (
@@ -586,41 +616,5 @@ export default function ActivityPage() {
         </div>
       )}
     </div>
-      )}
-
-      {view === "calendar" && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">‹</button>
-              <div className="text-sm font-semibold text-gray-900 w-40 text-center">{calMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</div>
-              <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} className="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">›</button>
-              <button onClick={() => setCalMonth(new Date())} className="ml-2 text-xs text-teal hover:underline">Today</button>
-            </div>
-            <div className="text-xs text-gray-400">{calItems.length} dated item{calItems.length === 1 ? "" : "s"}</div>
-          </div>
-          <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-lg overflow-hidden">
-            {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
-              <div key={d} className="bg-gray-50 text-[11px] font-semibold text-gray-400 text-center py-2">{d}</div>
-            ))}
-            {calCells.map((cell, ci) => (
-              <div key={ci} className={"bg-white min-h-[92px] p-1.5 " + (cell.inMonth ? "" : "opacity-40")}>
-                <div className={"text-[11px] mb-1 " + (cell.isToday ? "font-bold text-teal" : "text-gray-400")}>{cell.day}</div>
-                <div className="space-y-1">
-                  {cell.items.slice(0, 3).map((it: any) => (
-                    <a key={it.id} href={it.link || undefined} title={it.title}
-                      className={"block text-[10px] leading-tight px-1.5 py-1 rounded truncate " + (it.done ? "bg-gray-100 text-gray-400 line-through" : "bg-teal/10 text-teal hover:bg-teal/20")}>
-                      {it.title}
-                    </a>
-                  ))}
-                  {cell.items.length > 3 && (
-                    <div className="text-[10px] text-gray-400 px-1.5">+{cell.items.length - 3} more</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
   )
 }
