@@ -179,6 +179,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                             {[
                               { label: "My Dashboard",  href: "/account",         sub: "Applications & activity" },
                               { label: "My Profile",    href: "/account/profile", sub: "Edit your details" },
+                              { label: "Build my CV",   href: "/cv-builder",      sub: "AI-powered CV studio" },
                               { label: "Browse Roles",  href: "/jobs#roles",      sub: "Open mandates" },
                             ].map(({ label, href, sub }) => (
                               <a key={label} href={href} onClick={() => setMenuOpen(false)}
@@ -238,6 +239,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               {[
                 { label: "Open Roles", href: "/jobs#roles" },
                 { label: "How it works", href: "/how-it-works" },
+                { label: "Send your CV", href: "/send-cv" },
                 { label: "Register", href: "/join" },
                 { label: "Sign in", href: "/login" },
               ].map(({ label, href }) => (
