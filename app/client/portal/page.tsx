@@ -68,7 +68,12 @@ export default function ClientPortal() {
   const [rejectApp, setRejectApp] = useState<any>(null)
   const [feedbackRating, setFeedbackRating] = useState("")
   const [feedbackComment, setFeedbackComment] = useState("")
-  const [interviewDates, setInterviewDates] = useState("")
+  const [interviewSlots, setInterviewSlots] = useState<string[]>([])
+  const [pickerDay, setPickerDay] = useState<Date | null>(null)
+  const slotDays = Array.from({ length: 10 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d })
+  const slotTimes = Array.from({ length: 16 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
+  const fmtDay = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+  const toggleSlot = (label: string) => setInterviewSlots(prev => prev.includes(label) ? prev.filter(x => x !== label) : [...prev, label])
   const [interviewNotes, setInterviewNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState("")
@@ -223,7 +228,7 @@ export default function ClientPortal() {
           application_id: interviewApp.id,
           mandate_id: data.mandate.id,
           client_user_id: data.clientUser.id,
-          preferred_dates: interviewDates,
+          preferred_dates: interviewSlots.join(" \u00b7 "),
           notes: interviewNotes,
         }),
       })
@@ -233,7 +238,7 @@ export default function ClientPortal() {
         setSubmitting(false)
         return
       }
-      setInterviewApp(null); setInterviewDates(""); setInterviewNotes("")
+      setInterviewApp(null); setInterviewSlots([]); setPickerDay(null); setInterviewNotes("")
       setSubmitSuccess("Interview request sent to GPS!")
       load()
       setTimeout(() => setSubmitSuccess(""), 4000)
@@ -527,7 +532,7 @@ export default function ClientPortal() {
                   </div>
 
                   {/* Interview request */}
-                  {existingInterview(selectedApp.id) ? (
+                  {existingInterview(selectedApp.id) && interviewApp?.id !== selectedApp.id ? (
                     <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                       {existingInterview(selectedApp.id).confirmed_date ? (
                         <>
@@ -558,14 +563,46 @@ export default function ClientPortal() {
                   ) : interviewApp?.id === selectedApp.id ? (
                     <form onSubmit={submitInterview} className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
                       <p className="text-xs font-semibold text-gray-700">Request interview with {selectedApp.candidate.name.split(" ")[0]}</p>
-                      <input type="text" value={interviewDates} onChange={e => setInterviewDates(e.target.value)}
-                        placeholder="Preferred dates (e.g. Mon 7 Jul afternoon)" required
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal/30" />
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-gray-500">Pick a day, then tap 30-minute slots that suit you. Choose as many as you like.</p>
+                        <div className="flex gap-1 overflow-x-auto pb-1">
+                          {slotDays.map((d) => (
+                            <button type="button" key={d.toISOString()} onClick={() => setPickerDay(d)}
+                              className={"px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap border " + ((pickerDay && pickerDay.toDateString() === d.toDateString()) ? "bg-teal text-white border-teal" : "border-gray-200 text-gray-600")}>
+                              {fmtDay(d)}
+                            </button>
+                          ))}
+                        </div>
+                        {pickerDay && (
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {slotTimes.map((tm) => {
+                              const label = fmtDay(pickerDay) + " " + tm
+                              const on = interviewSlots.includes(label)
+                              return (
+                                <button type="button" key={tm} onClick={() => toggleSlot(label)}
+                                  className={"px-2 py-1.5 rounded-lg text-xs border " + (on ? "bg-teal text-white border-teal" : "border-gray-200 text-gray-600 hover:border-teal/40")}>
+                                  {tm}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {interviewSlots.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {interviewSlots.map((label) => (
+                              <span key={label} className="inline-flex items-center gap-1 text-[11px] bg-teal/10 text-teal px-2 py-1 rounded-lg">
+                                {label}
+                                <button type="button" onClick={() => toggleSlot(label)} className="text-teal/70 hover:text-teal">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <textarea value={interviewNotes} onChange={e => setInterviewNotes(e.target.value)}
                         placeholder="Any notes for GPS (format, duration, location...)" rows={2}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
                       <div className="flex gap-2">
-                        <button type="submit" disabled={submitting}
+                        <button type="submit" disabled={submitting || interviewSlots.length === 0}
                           className="flex items-center gap-1.5 text-sm text-white px-4 py-2 rounded-lg font-semibold"
                           style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                           {submitting ? <Loader2 size={12} className="animate-spin" /> : <Calendar size={12} />} Send request
@@ -601,13 +638,18 @@ export default function ClientPortal() {
                         <MessageSquare size={14} /> Leave feedback
                       </button>
                     )}
-                    {!existingInterview(selectedApp.id) && (
+                    {!existingInterview(selectedApp.id) ? (
                       <button onClick={() => setInterviewApp(selectedApp)}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-white font-semibold transition-all hover:opacity-90"
                         style={{ background: "linear-gradient(135deg, #028090, #025f6b)" }}>
                         <Calendar size={14} /> Request interview
                       </button>
-                    )}
+                    ) : !existingInterview(selectedApp.id).confirmed_date ? (
+                      <button onClick={() => setInterviewApp(selectedApp)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-teal border border-teal/30 font-semibold transition-all hover:bg-teal/5">
+                        <Calendar size={14} /> Edit interview times
+                      </button>
+                    ) : null}
                     <button onClick={() => setRejectApp(selectedApp)}
                       className="flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-200 rounded-xl text-sm text-red-500 hover:border-red-200 hover:bg-red-50 transition-all">
                       <X size={14} /> Reject
