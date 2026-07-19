@@ -1,6 +1,6 @@
 "use client"
-import { useState } from "react"
-import { Loader2, Database, Zap, Sparkles, Users, Plus, Trash2, Mail, CheckCircle, KeyRound } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Loader2, Database, Zap, Sparkles, Users, Plus, Trash2, Mail, CheckCircle, KeyRound, Wallet } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 interface StaffMember {
@@ -14,6 +14,9 @@ interface StaffMember {
 
 export default function SettingsClient({ initialStaff, isAdmin, currentEmail }: { initialStaff: StaffMember[]; isAdmin: boolean; currentEmail: string }) {
   const supabase = createClient()
+  const [credits, setCredits] = useState<number | null>(null)
+  const [creditsLoading, setCreditsLoading] = useState(false)
+  const [creditsError, setCreditsError] = useState("")
   const [embedding, setEmbedding] = useState(false)
   const [embedResult, setEmbedResult] = useState<any>(null)
   const [extractingStructured, setExtractingStructured] = useState(false)
@@ -142,11 +145,64 @@ export default function SettingsClient({ initialStaff, isAdmin, currentEmail }: 
     setExtractingStructured(false)
   }
 
+  async function loadCredits() {
+    setCreditsLoading(true)
+    setCreditsError("")
+    try {
+      const res = await fetch("/api/enrich-credits")
+      const data = await res.json()
+      if (data.error) setCreditsError(data.error)
+      else setCredits(typeof data.credit_balance === "number" ? data.credit_balance : null)
+    } catch {
+      setCreditsError("Could not load balance")
+    }
+    setCreditsLoading(false)
+  }
+
+  useEffect(() => {
+    loadCredits()
+  }, [])
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-400 text-sm mt-0.5">Platform configuration and maintenance tools.</p>
+      </div>
+
+      {/* Enrich Layer credits */}
+      <div className="card p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-teal/10 flex items-center justify-center flex-shrink-0">
+              <Wallet size={18} className="text-teal" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">LinkedIn sourcing credits</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Enrich Layer balance used for LinkedIn search &amp; enrichment.</p>
+              <div className="mt-3">
+                {creditsLoading ? (
+                  <span className="inline-flex items-center gap-2 text-sm text-gray-400"><Loader2 size={14} className="animate-spin" /> Checking…</span>
+                ) : creditsError ? (
+                  <span className="text-sm text-red-500">{creditsError}</span>
+                ) : credits !== null ? (
+                  <span className="text-2xl font-bold text-gray-900">{credits.toLocaleString()} <span className="text-sm font-medium text-gray-400">credits left</span></span>
+                ) : (
+                  <span className="text-sm text-gray-400">Not available</span>
+                )}
+              </div>
+              {credits !== null && !creditsLoading && credits < 300 && (
+                <p className="text-xs text-amber-600 mt-2 font-medium">Running low — consider topping up.</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <button onClick={loadCredits} disabled={creditsLoading}
+              className="text-xs text-teal hover:underline disabled:opacity-50">Refresh</button>
+            <a href="https://enrichlayer.com/pricing" target="_blank" rel="noopener noreferrer"
+              className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg" style={{ background: "#028090" }}>Top up</a>
+          </div>
+        </div>
       </div>
 
       {/* Team */}
