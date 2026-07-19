@@ -712,7 +712,7 @@ export default function ClientsPage() {
         // Check if API returned an existing client (duplicate email caught server-side)
         if (data.existing_client || data.error.includes("already been registered") || data.error.includes("already registered")) {
           const existingInfo = data.existing_client || existingCheck
-          if (existingInfo) {
+          if (existingInfo && (existingInfo.full_name || existingInfo.company_name)) {
             setPendingMandates(createdIds.map((mid: string, i: number) => ({ id: mid, title: mandateRows[i]?.title })))
             setDuplicateClient(existingInfo)
             setCreating(false)
@@ -722,7 +722,7 @@ export default function ClientsPage() {
         for (const mid of createdIds) {
           await supabase.from("mandates").delete().eq("id", mid)
         }
-        setCreateError("Something went wrong. Please check your details and try again.")
+        setCreateError("Could not create the client. If this email is already registered, try a different one.")
         setCreating(false)
         return
       }
