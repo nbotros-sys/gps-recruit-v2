@@ -348,7 +348,7 @@ export default function JobsPage() {
       <section style={{ maxWidth:"1100px", margin:"0 auto", padding:"0 40px 80px" }}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
           <div style={{ background:"linear-gradient(135deg, #028090 0%, #3D5A4E 100%)", borderRadius:"20px", padding:"36px 36px", position:"relative", overflow:"hidden" }}>
-            <div style={{ position:"absolute", inset:0, opacity:0.06, backgroundImage:`url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25 3 L47 16 L47 34 L25 47 L3 34 L3 16 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize:"50px 50px" }} />
+            <div style={{ position:"absolute", inset:0, opacity:0.06, pointerEvents:"none", backgroundImage:`url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25 3 L47 16 L47 34 L25 47 L3 34 L3 16 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize:"50px 50px" }} />
             <Zap size={24} color="rgba(255,255,255,0.6)" style={{ marginBottom:"12px" }} />
             <h3 style={{ fontSize:"20px", fontWeight:800, color:"white", marginBottom:"8px" }}>Don't see the right role?</h3>
             <p style={{ color:"rgba(255,255,255,0.65)", fontSize:"13px", lineHeight:1.6, marginBottom:"20px" }}>Join our network. GPS reaches out to our talent pool first — before roles are posted publicly.</p>
