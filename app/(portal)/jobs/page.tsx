@@ -352,7 +352,7 @@ export default function JobsPage() {
             <Zap size={24} color="rgba(255,255,255,0.6)" style={{ marginBottom:"12px" }} />
             <h3 style={{ fontSize:"20px", fontWeight:800, color:"white", marginBottom:"8px" }}>Don't see the right role?</h3>
             <p style={{ color:"rgba(255,255,255,0.65)", fontSize:"13px", lineHeight:1.6, marginBottom:"20px" }}>Join our network. GPS reaches out to our talent pool first — before roles are posted publicly.</p>
-            <Link href="/join" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"white", color:"#028090", padding:"12px 22px", borderRadius:"10px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
+            <Link href="/send-cv" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"white", color:"#028090", padding:"12px 22px", borderRadius:"10px", fontWeight:700, fontSize:"14px", textDecoration:"none" }}>
               Join GPS Talent <ArrowRight size={14} />
             </Link>
           </div>
