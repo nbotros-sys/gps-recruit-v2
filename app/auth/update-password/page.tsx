@@ -51,7 +51,9 @@ function UpdatePasswordPage() {
     const { error: authError } = await supabase.auth.updateUser({ password })
     if (authError) { setError("Could not update password. Please try again."); setLoading(false); return }
     setDone(true)
-    setTimeout(() => { window.location.href = "/internal/dashboard" }, 2000)
+    const { data: __staffRow } = await supabase.from("staff_users").select("id").limit(1)
+    const __dest = (__staffRow && __staffRow.length > 0) ? "/internal/dashboard" : "/account"
+    setTimeout(() => { window.location.href = __dest }, 2000)
     setLoading(false)
   }
 
