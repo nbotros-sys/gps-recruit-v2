@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     cv_text: cvText,
     tags,
     notes,
-    source: body?.source || "direct",
+    source: body?.source || "portal",
   }
 
   const { data: created, error: insErr } = await supabase
