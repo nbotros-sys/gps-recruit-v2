@@ -93,7 +93,7 @@ Return ONLY valid JSON (no markdown):
         }),
       })
       const data = await res.json()
-      recordUsage("anthropic", "claude-sonnet-4-6", "bulk-extract", data?.usage).catch(() => {})
+      await recordUsage("anthropic", "claude-sonnet-4-6", "bulk-extract", data?.usage)
       const text = data.content?.[0]?.text || "{}"
       const cv_structured = JSON.parse(text.replace(/```json|```/g, "").trim())
 
