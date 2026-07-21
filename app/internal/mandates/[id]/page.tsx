@@ -1368,18 +1368,33 @@ export default function MandateDetail() {
                       )}
                       <div className="flex gap-2">
                         {(selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_type === "pdf") && (
-                          <a href={selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_url}
-                            target="_blank" rel="noopener noreferrer"
+                          <button
+                            onClick={async () => {
+                              const v = (selectedApp.candidate as any)?.cv_pdf_url || (selectedApp.candidate as any)?.cv_file_url
+                              if (!v) return
+                              let href = v
+                              if (!/^https?:\/\//.test(v)) {
+                                try { const r = await fetch("/api/file-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bucket: "cv-files", path: v }) }); const d = await r.json(); if (!d.url) return; href = d.url } catch { return }
+                              }
+                              window.open(href, "_blank", "noopener,noreferrer")
+                            }}
                             className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal hover:text-teal transition-all">
                             <Eye size={11} /> Preview
-                          </a>
+                          </button>
                         )}
-                        <a href={selectedApp.candidate?.cv_pdf_url || selectedApp.candidate?.cv_file_url}
-                          target="_blank" rel="noopener noreferrer"
-                          download={`${selectedApp.candidate?.name || "CV"}.${selectedApp.candidate?.cv_pdf_url ? "pdf" : selectedApp.candidate?.cv_file_type || "pdf"}`}
+                        <button
+                          onClick={async () => {
+                            const v = (selectedApp.candidate as any)?.cv_pdf_url || (selectedApp.candidate as any)?.cv_file_url
+                            if (!v) return
+                            let href = v
+                            if (!/^https?:\/\//.test(v)) {
+                              try { const r = await fetch("/api/file-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bucket: "cv-files", path: v }) }); const d = await r.json(); if (!d.url) return; href = d.url } catch { return }
+                            }
+                            window.open(href, "_blank", "noopener,noreferrer")
+                          }}
                           className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-teal text-white text-xs font-semibold hover:opacity-90 transition-all">
                           <Download size={11} /> Download
-                        </a>
+                        </button>
                       </div>
                     </div>
                   )}
