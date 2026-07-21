@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const embeddingData = await embeddingRes.json()
     const embedding = embeddingData.data[0].embedding
-    recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage, { candidateId }).catch(() => {})
+    await recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage, { candidateId })
 
     // Store in Supabase
     const supabase = createClient(
