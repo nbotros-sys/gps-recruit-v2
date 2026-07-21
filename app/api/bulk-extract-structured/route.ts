@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
@@ -92,6 +93,7 @@ Return ONLY valid JSON (no markdown):
         }),
       })
       const data = await res.json()
+      recordUsage("anthropic", "claude-sonnet-4-6", "bulk-extract", data?.usage).catch(() => {})
       const text = data.content?.[0]?.text || "{}"
       const cv_structured = JSON.parse(text.replace(/```json|```/g, "").trim())
 
