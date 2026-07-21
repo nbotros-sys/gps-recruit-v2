@@ -65,13 +65,15 @@ export default function JobDetailPage() {
     setSubmitError("")
     try {
       let cvText = candidate?.cv_text || ""
+      let cvFilePath: string | null = null
 
       // Only extract from a newly uploaded file
       if (file) {
         const fd = new FormData()
         fd.append("file", file)
         const extractRes = await fetch("/api/extract-cv", { method: "POST", body: fd })
-        const { text } = await extractRes.json()
+        const { text, file_path } = await extractRes.json()
+        cvFilePath = file_path || null
         cvText = text || ""
       }
 
@@ -90,6 +92,7 @@ export default function JobDetailPage() {
           cv_text: cvText,
           filename: file?.name || "profile",
           cv_is_new: !!file,
+          cv_file_path: cvFilePath,
           job_description: mandate.job_description,
           mandate_title: mandate.title,
           client_name: mandate.client_name,
