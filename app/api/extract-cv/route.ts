@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
 // Fallback text recovery for older/odd .doc files that word-extractor can't parse.
 // Pulls readable printable runs out of the raw bytes and keeps only the runs that
@@ -94,5 +95,13 @@ export async function POST(req: NextRequest) {
     text = ""
   }
 
-  return NextResponse.json({ text: text.trim(), filename: file.name })
+  let file_path: string | null = null
+  try {
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } })
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+    const pendingPath = "_incoming/" + Date.now() + "-" + safeName
+    const up = await sb.storage.from("cv-files").upload(pendingPath, buffer, { contentType: file.type || "application/octet-stream", upsert: false })
+    if (!up.error) file_path = pendingPath
+  } catch {}
+  return NextResponse.json({ text: text.trim(), filename: file.name, file_path })
 }
