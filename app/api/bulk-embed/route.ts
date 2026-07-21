@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 
       const embeddingData = await embeddingRes.json()
       const embedding = embeddingData.data[0].embedding
-      recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage, { candidateId: candidate.id }).catch(() => {})
+      await recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage, { candidateId: candidate.id })
 
       const { error } = await supabase
         .from("cv_embeddings")
