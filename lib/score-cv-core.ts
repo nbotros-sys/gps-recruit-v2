@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 // Shared CV-scoring logic used by both the staff score-cv route and the public
 // job-application route. Server-side only (uses the Anthropic API key).
 
@@ -49,6 +50,7 @@ Respond ONLY with valid JSON in this exact format (no markdown, no backticks):
       }),
     })
     const data = await response.json()
+    recordUsage("anthropic", "claude-sonnet-4-6", "score-cv", data?.usage).catch(() => {})
     const text = data.content?.[0]?.text || ""
     const clean = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(clean)
