@@ -37,7 +37,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   })
 
   const data = await response.json()
-  recordUsage("anthropic", "claude-sonnet-4-6", "extract-candidate", data?.usage).catch(() => {})
+  await recordUsage("anthropic", "claude-sonnet-4-6", "extract-candidate", data?.usage)
   const text = data.content?.[0]?.text || "{}"
   try {
     const clean = text.replace(/```json|```/g, "").trim()
