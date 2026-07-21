@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireStaff } from "@/lib/require-staff"
@@ -87,6 +88,7 @@ Return ONLY valid JSON (no markdown) with this exact structure:
       }),
     })
     const data = await res.json()
+    recordUsage("anthropic", "claude-sonnet-4-6", "extract-structured", data?.usage).catch(() => {})
     const text = data.content?.[0]?.text || "{}"
     const clean = text.replace(/```json|```/g, "").trim()
     const cv_structured = JSON.parse(clean)
