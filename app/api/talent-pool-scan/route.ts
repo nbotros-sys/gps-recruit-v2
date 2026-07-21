@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { createNotification } from "@/lib/activity"
 import { sendSystemErrorAlert } from "@/lib/emails"
 import { NextRequest, NextResponse } from "next/server"
@@ -24,6 +25,7 @@ async function parseJD(mandate_title: string, job_description: string) {
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
     })
     const data = await res.json()
+    await recordUsage("anthropic", "claude-haiku-4-5-20251001", "talent-pool-scan", data?.usage)
     const text = data.content?.[0]?.text || "{}"
     return JSON.parse(text.replace(/```json|```/g, "").trim())
   } catch { return { candidate_description: job_description.slice(0, 500), hard_requirements: {}, soft_preferences: {} } }
@@ -107,6 +109,7 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
       })
       if (embRes.ok) {
         const embData = await embRes.json()
+        await recordUsage("openai", "text-embedding-3-small", "embedding", embData.usage)
         const { data: vecResults } = await adminSupabase.rpc("match_candidates", {
           query_embedding: embData.data[0].embedding,
           match_threshold: 0.0,
@@ -214,6 +217,7 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
           body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
         })
         const data = await res.json()
+        await recordUsage("anthropic", "claude-sonnet-4-6", "talent-pool-scan", data?.usage)
         const text = data.content?.[0]?.text || "[]"
         return JSON.parse(text.replace(/```json|```/g, "").trim())
       } catch { return [] }
@@ -252,6 +256,7 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
             body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: deepPrompt }] }),
           })
           const data = await res.json()
+          await recordUsage("anthropic", "claude-sonnet-4-6", "talent-pool-scan", data?.usage)
           const parsed = JSON.parse((data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim())
           if (parsed.score) {
             deepScore = parsed.score
@@ -307,6 +312,7 @@ async function runScan(scanId: string, mandateId: string, jobDescription: string
         })
       })
       const data = await res.json()
+      await recordUsage("anthropic", "claude-sonnet-4-6", "talent-pool-scan", data?.usage)
       summary = data.content?.[0]?.text?.trim() || ""
     } catch {}
 
