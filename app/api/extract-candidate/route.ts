@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -36,6 +37,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
   })
 
   const data = await response.json()
+  recordUsage("anthropic", "claude-sonnet-4-6", "extract-candidate", data?.usage).catch(() => {})
   const text = data.content?.[0]?.text || "{}"
   try {
     const clean = text.replace(/```json|```/g, "").trim()
