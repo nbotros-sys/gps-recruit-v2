@@ -62,7 +62,7 @@ Respond ONLY with valid JSON (no markdown):
   })
 
   const data = await response.json()
-  recordUsage("anthropic", "claude-sonnet-4-6", "generate-outreach", data?.usage).catch(() => {})
+  await recordUsage("anthropic", "claude-sonnet-4-6", "generate-outreach", data?.usage)
   const text = data.content?.[0]?.text || ""
 
   try {
