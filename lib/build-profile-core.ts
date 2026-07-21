@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 // Shared CV-reading logic used by both the staff build-profile route and the
 // public candidate registration route. Runs server-side only (uses the Anthropic
 // API key), so it is never exposed directly to anonymous callers.
@@ -100,6 +101,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     })
 
     const data = await response.json()
+    recordUsage("anthropic", "claude-sonnet-4-6", "build-profile", data?.usage).catch(() => {})
     const text = data.content?.[0]?.text || "{}"
     const clean = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(clean)
