@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 
@@ -48,6 +49,7 @@ Return ONLY the summary paragraph. No preamble, no heading, no quotes.`
         max_tokens: 400,
         messages: [{ role: "user", content: prompt }]
       })
+      await recordUsage("anthropic", "claude-sonnet-4-6", "generate-cv", msg.usage)
       const text = msg.content[0].type === "text" ? msg.content[0].text.trim() : ""
       return NextResponse.json({ text })
     }
@@ -79,6 +81,7 @@ No preamble, no markdown, no code blocks.`
         max_tokens: 500,
         messages: [{ role: "user", content: prompt }]
       })
+      await recordUsage("anthropic", "claude-sonnet-4-6", "generate-cv", msg.usage)
 
       let text = msg.content[0].type === "text" ? msg.content[0].text.trim() : "[]"
       text = text.replace(/```json|```/g, "").trim()
@@ -111,6 +114,7 @@ Return ONLY the achievement string. No preamble, no quotes.`
         max_tokens: 150,
         messages: [{ role: "user", content: prompt }]
       })
+      await recordUsage("anthropic", "claude-sonnet-4-6", "generate-cv", msg.usage)
       const text = msg.content[0].type === "text" ? msg.content[0].text.trim() : ""
       return NextResponse.json({ text })
     }
@@ -142,6 +146,7 @@ Focus on: quantified achievements, MENA market relevance, ATS optimisation, phot
         max_tokens: 600,
         messages: [{ role: "user", content: prompt }]
       })
+      await recordUsage("anthropic", "claude-sonnet-4-6", "generate-cv", msg.usage)
 
       let text = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}"
       text = text.replace(/```json|```/g, "").trim()
