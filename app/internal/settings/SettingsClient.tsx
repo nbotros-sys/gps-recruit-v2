@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { Loader2, Database, Zap, Sparkles, Users, Plus, Trash2, Mail, CheckCircle, KeyRound, Wallet } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import AiUsageCost from "./AiUsageCost"
 
 interface StaffMember {
   id: string
@@ -169,6 +170,8 @@ export default function SettingsClient({ initialStaff, isAdmin, currentEmail }: 
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-400 text-sm mt-0.5">Platform configuration and maintenance tools.</p>
       </div>
+
+      <AiUsageCost />
 
       {/* Enrich Layer credits */}
       <div className="card p-6">
