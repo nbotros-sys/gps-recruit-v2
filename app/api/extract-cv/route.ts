@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         })
       })
       const data = await response.json()
-      recordUsage("anthropic", "claude-sonnet-4-6", "extract-cv", data?.usage).catch(() => {})
+      await recordUsage("anthropic", "claude-sonnet-4-6", "extract-cv", data?.usage)
       text = data.content?.[0]?.text || ""
     }
   } catch (e) {
