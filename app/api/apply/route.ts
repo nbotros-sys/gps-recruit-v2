@@ -19,6 +19,7 @@ function getAdmin() {
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({} as any))
   const mandateId = body?.mandate_id
+  const cvFilePath = body?.cv_file_path
   const email = (body?.email || "").trim()
   const cvText: string = body?.cv_text || ""
   if (!mandateId || !email || !cvText.trim()) {
@@ -74,6 +75,16 @@ export async function POST(req: NextRequest) {
     }
     candidateId = created.id
     cand = created
+  }
+
+  // Save the original CV file under the candidate folder (for recruiter and client download).
+  if (cvFilePath && candidateId) {
+    try {
+      const safe = String(body?.filename || "cv").replace(/[^a-zA-Z0-9._-]/g, "_")
+      const dest = candidateId + "/" + Date.now() + "-" + safe
+      const mv = await supabase.storage.from("cv-files").move(cvFilePath, dest)
+      if (!mv.error) await supabase.from("candidates").update({ cv_file_url: dest }).eq("id", candidateId)
+    } catch {}
   }
 
   // Record the application once.
