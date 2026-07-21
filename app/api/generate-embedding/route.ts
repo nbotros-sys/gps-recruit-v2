@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { requireStaff } from "@/lib/require-staff"
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
 
     const embeddingData = await embeddingRes.json()
     const embedding = embeddingData.data[0].embedding
+    recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage, { candidateId }).catch(() => {})
 
     // Store in Supabase
     const supabase = createClient(
