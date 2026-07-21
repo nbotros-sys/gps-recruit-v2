@@ -1123,10 +1123,10 @@ export default function MandateDetail() {
                       draggable
                       onDragStart={() => setDraggingApp(app.id)}
                       onDragEnd={() => setDraggingApp(null)}
-                      className={`bg-white rounded-xl p-3 border transition-all
+                      className={`bg-white rounded-xl p-3 border overflow-hidden transition-all
                         ${draggingApp === app.id ? "opacity-40 shadow-lg scale-95 cursor-grabbing" : "border-gray-100 shadow-sm hover:shadow-md hover:border-teal/20"}`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
                         <GripVertical size={12} className="text-gray-300 mt-0.5 flex-shrink-0 cursor-grab" />
                         <div className="min-w-0 flex-1">
                           <button
