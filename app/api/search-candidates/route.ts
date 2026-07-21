@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
@@ -49,6 +50,7 @@ Write as a description of a person, not a job spec. Return ONLY the paragraph.`
       }),
     })
     const data = await res.json()
+    await recordUsage("anthropic", "claude-sonnet-4-6", "ai-search", data?.usage)
     const expanded = data.content?.[0]?.text?.trim() || ""
     if (expanded.length > 80) return `${query}\n${expanded}`
   } catch {}
@@ -104,6 +106,7 @@ Return ONLY a JSON array (no markdown):
       }),
     })
     const data = await res.json()
+    await recordUsage("anthropic", "claude-sonnet-4-6", "ai-search", data?.usage)
     const text = data.content?.[0]?.text || "[]"
     const clean = text.replace(/```json|```/g, "").trim()
     return JSON.parse(clean)
@@ -182,6 +185,7 @@ export async function POST(req: NextRequest) {
 
     if (embeddingRes.ok) {
       const embeddingData = await embeddingRes.json()
+      await recordUsage("openai", "text-embedding-3-small", "embedding", embeddingData.usage)
       const queryVector = embeddingData.data[0].embedding
 
       // Search entire DB — no cap on match_count, threshold 0.25 for maximum recall
