@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { requireStaff } from "@/lib/require-staff"
@@ -61,6 +62,7 @@ Respond ONLY with valid JSON (no markdown):
   })
 
   const data = await response.json()
+  recordUsage("anthropic", "claude-sonnet-4-6", "generate-outreach", data?.usage).catch(() => {})
   const text = data.content?.[0]?.text || ""
 
   try {
