@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity, BarChart3 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 const nav = [
@@ -16,6 +16,7 @@ const nav = [
   { href: "/internal/clients", icon: Building2, label: "Clients" },
   { href: "/internal/sourcing", icon: Zap, label: "AI Sourcing" },
   { href: "/internal/activity", icon: Activity, label: "Activity" },
+  { href: "/internal/reports", icon: BarChart3, label: "Reports" },
   { href: "/internal/settings", icon: Settings, label: "Settings" },
 ]
 
