@@ -66,7 +66,7 @@ Respond ONLY with valid JSON (no markdown, no backticks):
         if (!response.ok) throw new Error(`API ${response.status}`)
 
         const data = await response.json()
-        recordUsage("anthropic", "claude-sonnet-4-6", "bulk-score", data?.usage).catch(() => {})
+        await recordUsage("anthropic", "claude-sonnet-4-6", "bulk-score", data?.usage)
         const text = data.content?.[0]?.text || "{}"
         const clean = text.replace(/```json|```/g, "").trim()
         const parsed = JSON.parse(clean)
