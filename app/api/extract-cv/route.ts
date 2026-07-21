@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
         })
       })
       const data = await response.json()
+      recordUsage("anthropic", "claude-sonnet-4-6", "extract-cv", data?.usage).catch(() => {})
       text = data.content?.[0]?.text || ""
     }
   } catch (e) {
