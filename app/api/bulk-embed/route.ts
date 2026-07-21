@@ -41,6 +41,7 @@ ${(candidate.cv_text || "").slice(0, 6000)}`
         }),
       })
       const data = await res.json()
+      await recordUsage("anthropic", "claude-sonnet-4-6", "bulk-embed", data?.usage)
       const summary = data.content?.[0]?.text?.trim() || ""
       if (summary.length > 100) {
         // Prepend structured fields so exact lookups still work
