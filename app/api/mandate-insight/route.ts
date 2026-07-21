@@ -1,3 +1,4 @@
+import { recordUsage } from "@/lib/ai-usage"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { setSentryUser, withSpan, captureError } from "@/lib/sentry"
@@ -50,6 +51,7 @@ Return ONLY valid JSON (no markdown):
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
     })
     const data = await res.json()
+    await recordUsage("anthropic", "claude-haiku-4-5-20251001", "mandate-insight", data?.usage)
     const text = data.content?.[0]?.text || "{}"
     return JSON.parse(text.replace(/```json|```/g, "").trim())
   } catch { return { candidate_description: job_description.slice(0, 500), hard_requirements: {}, soft_preferences: {} } }
@@ -135,6 +137,7 @@ export async function POST(req: NextRequest) {
       })
       if (embRes.ok) {
         const embData = await embRes.json()
+        await recordUsage("openai", "text-embedding-3-small", "embedding", embData.usage)
         const { data: vecResults } = await adminSupabase.rpc("match_candidates", {
           query_embedding: embData.data[0].embedding,
           match_threshold: vectorThreshold,
@@ -241,6 +244,7 @@ Return ONLY JSON array:
           body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
         })
         const data = await res.json()
+        await recordUsage("anthropic", "claude-sonnet-4-6", "mandate-insight", data?.usage)
         const text = data.content?.[0]?.text || "[]"
         const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
         phase1Scores.push(...parsed)
@@ -300,6 +304,7 @@ Return ONLY JSON:
             body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: deepPrompt }] }),
           })
           const data = await res.json()
+          await recordUsage("anthropic", "claude-sonnet-4-6", "mandate-insight", data?.usage)
           const parsed = JSON.parse((data.content?.[0]?.text || "{}").replace(/```json|```/g, "").trim())
           if (parsed.score) {
             deepScore = parsed.score
@@ -356,6 +361,7 @@ Return ONLY JSON:
         })
       })
       const data = await res.json()
+      await recordUsage("anthropic", "claude-sonnet-4-6", "mandate-insight", data?.usage)
       summary = data.content?.[0]?.text?.trim() || ""
     } catch {}
 
