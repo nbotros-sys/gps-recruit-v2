@@ -8,6 +8,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<any>(null)
   const [candidate, setCandidate] = useState<any>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
   const pathname = usePathname()
@@ -74,8 +75,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen" style={{ background: "#F4F8F7" }}>
+      <style>{`
+        .pnav-mobile { display: none; }
+        @media (max-width: 820px) {
+          .pnav-desktop { display: none !important; }
+          .pnav-mobile { display: flex !important; }
+          .phead-inner { padding: 0 16px !important; }
+          .pfoot-row { flex-wrap: wrap !important; gap: 16px !important; }
+          .pfoot-pad { padding: 32px 20px !important; }
+        }
+      `}</style>
       <header style={{ background: "#0a1f24", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 32px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="phead-inner" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 32px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
           {/* Logo */}
           <a href="/jobs" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
@@ -86,7 +97,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </a>
 
           {/* Nav */}
-          <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
+          <nav className="pnav-desktop" style={{ display: "flex", alignItems: "center", gap: "28px" }}>
             {/* Open Roles — smooth scrolls to #roles if already on /jobs, otherwise navigates */}
             <a
               href="/jobs#roles"
@@ -223,14 +234,65 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               )
             )}
           </nav>
+
+          {/* Mobile: hamburger + quick Register */}
+          <div className="pnav-mobile" style={{ alignItems: "center", gap: "10px" }}>
+            {!loading && !user && (
+              <a href="/join" onClick={() => setMobileNavOpen(false)} style={{ padding: "7px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: 700, color: "white", textDecoration: "none", background: "#028090", whiteSpace: "nowrap" }}>
+                Register →
+              </a>
+            )}
+            {!loading && user && (
+              <CandidateAvatar name={candidate?.name || user?.email || "?"} avatarUrl={candidate?.avatar_url} size={28} />
+            )}
+            <button aria-label="Menu" onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              style={{ width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", background: mobileNavOpen ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: "10px", cursor: "pointer", flexShrink: 0 }}>
+              <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                {mobileNavOpen
+                  ? <path d="M2 1l14 12M16 1L2 13" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                  : <path d="M1 1h16M1 7h16M1 13h16" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>}
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile dropdown panel */}
+        {mobileNavOpen && (
+          <>
+            <div style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.45)" }} onClick={() => setMobileNavOpen(false)} />
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#0d262c", borderBottom: "1px solid rgba(255,255,255,0.08)", zIndex: 50, padding: "8px 12px 14px", boxShadow: "0 24px 48px rgba(0,0,0,0.45)" }}>
+              {(user ? [
+                { label: "My Dashboard", href: "/account" },
+                { label: "My Profile", href: "/account/profile" },
+                { label: "Open Roles", href: "/jobs#roles" },
+                { label: "How it works", href: "/how-it-works" },
+              ] : [
+                { label: "Open Roles", href: "/jobs#roles" },
+                { label: "How it works", href: "/how-it-works" },
+                { label: "Sign in", href: "/login" },
+                { label: "Register →", href: "/join" },
+              ]).map(({ label, href }) => (
+                <a key={label} href={href} onClick={() => setMobileNavOpen(false)}
+                  style={{ display: "block", padding: "13px 12px", borderRadius: "10px", color: "rgba(255,255,255,0.88)", fontSize: "15px", fontWeight: 600, textDecoration: "none" }}>
+                  {label}
+                </a>
+              ))}
+              {user && (
+                <button onClick={signOut}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "13px 12px", background: "none", border: "none", color: "#f87171", fontSize: "15px", fontWeight: 600, cursor: "pointer", borderRadius: "10px" }}>
+                  Sign out
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </header>
 
       <main>{children}</main>
 
       <footer style={{ background: "#0a1f24", marginTop: "80px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 32px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+        <div className="pfoot-pad" style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 32px" }}>
+          <div className="pfoot-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img src="/gps-logo.png" alt="GPS" style={{ width: "30px", height: "30px", objectFit: "contain", opacity: 0.6 }} />
               <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 600 }}>Talent Network</div>
@@ -251,7 +313,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               ))}
             </div>
           </div>
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="pfoot-row" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", margin: 0 }}>© 2026 GPS — Your Trusted HR Partner. Egypt.</p>
             <p style={{ color: "rgba(255,255,255,0.12)", fontSize: "12px", margin: 0 }}>AI-Matched Recruitment · GPS Talent Network</p>
           </div>
