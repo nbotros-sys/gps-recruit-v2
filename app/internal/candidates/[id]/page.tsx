@@ -311,8 +311,8 @@ export default function CandidateProfile() {
 
       {/* Hero card */}
       <div className="card">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-5">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex items-start gap-4 sm:gap-5 min-w-0">
             {/* Avatar — shows photo if available, otherwise monogram. Click to upload. */}
             <div className="relative group flex-shrink-0" style={{ cursor: "pointer" }} onClick={() => photoRef.current?.click()}>
               <CandidateAvatar
@@ -332,7 +332,7 @@ export default function CandidateProfile() {
             <div>
               {editing ? (
                 <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="text-2xl font-bold text-gray-900 border-b-2 border-teal outline-none bg-transparent w-80" />
+                  className="text-2xl font-bold text-gray-900 border-b-2 border-teal outline-none bg-transparent w-80 max-w-full" />
               ) : (
                 <h1 className="text-2xl font-bold text-gray-900">{candidate.name}{ageFromDob(candidate.dob) != null && <span className="text-gray-400 font-normal text-xl"> · {ageFromDob(candidate.dob)}</span>}</h1>
               )}
@@ -489,7 +489,7 @@ export default function CandidateProfile() {
           ) : (
             applications.map(app => (
               <div key={app.id} className="card">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
                   <div>
                     <Link href={`/internal/mandates/${app.mandate?.id}`}
                       className="font-semibold text-gray-900 hover:text-teal transition-colors flex items-center gap-1.5">
@@ -527,7 +527,7 @@ export default function CandidateProfile() {
 
                 {/* Strengths + Concerns */}
                 {(app.ai_strengths?.length > 0 || app.ai_concerns?.length > 0) && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {app.ai_strengths?.length > 0 && (
                       <div className="bg-green-50 rounded-xl p-3">
                         <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
@@ -588,7 +588,7 @@ export default function CandidateProfile() {
       {/* CV tab */}
       {activeTab === "cv" && (
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <FileText size={16} className="text-teal" /> CV Text
             </h3>
@@ -604,7 +604,7 @@ export default function CandidateProfile() {
           </div>
           {reanalyzeMsg && <p className="text-xs text-gray-500 mb-3">{reanalyzeMsg}</p>}
           {candidate.cv_text ? (
-            <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-xl p-5 max-h-[600px] overflow-y-auto">
+            <pre className="text-sm text-gray-600 whitespace-pre-wrap break-words font-sans leading-relaxed bg-gray-50 rounded-xl p-3 sm:p-5 max-h-[600px] overflow-y-auto">
               {cleanCvText(candidate.cv_text)}
             </pre>
           ) : (
@@ -620,7 +620,7 @@ export default function CandidateProfile() {
       {/* Notes tab */}
       {activeTab === "notes" && (
         <div className="card space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <MessageSquare size={16} className="text-teal" /> Recruiter Notes
             </h3>
