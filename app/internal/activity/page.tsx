@@ -272,7 +272,7 @@ export default function ActivityPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-start justify-between mb-7">
+      <div className="flex items-start justify-between mb-7 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Activity</h1>
           <p className="text-sm text-gray-400 mt-0.5">Tasks and platform notifications</p>
@@ -291,7 +291,7 @@ export default function ActivityPage() {
       </div>
 
       {view === "list" && (
-      <div className="grid grid-cols-2 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
         {/* ── LEFT: Tasks ── */}
         <div className="min-w-0">
@@ -323,7 +323,7 @@ export default function ActivityPage() {
               <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)}
                 placeholder="Description (optional)" rows={2}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 resize-none" />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Assign to</label>
                   <select value={newAssignee} onChange={e => setNewAssignee(e.target.value)}
