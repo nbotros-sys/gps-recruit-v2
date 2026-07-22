@@ -44,7 +44,7 @@ function timeShort(iso?: string | null) {
     : d.toLocaleDateString([], { day: "2-digit", month: "short" })
 }
 const sessionOpen = (c?: Convo | null) => !!(c?.session_expires_at && new Date(c.session_expires_at) > new Date())
-const convoName = (c: Convo) => c.candidate?.name || c.wa_profile_name || c.phone
+const convoName = (c: Convo) => c.candidate?.name || c.phone
 const folderLabel = (a?: App | null) => (a?.mandate ? `${a.mandate.title || "Mandate"} · ${a.mandate.client_name || "—"}` : null)
 
 export default function MessagesPage() {
