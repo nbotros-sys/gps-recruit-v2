@@ -918,10 +918,10 @@ export default function MandateDetail() {
         <Link href="/internal/mandates" className="text-gray-400 hover:text-teal text-sm flex items-center gap-1 mb-3 w-fit">
           <ArrowLeft size={14} /> Back to Mandates
         </Link>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{mandate.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+            <div className="flex items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1 flex-wrap">
               {mandate.client_name && <span>{mandate.client_name}</span>}
               {mandate.location && <span className="flex items-center gap-1"><MapPin size={13} />{mandate.location}</span>}
               {mandate.salary_range && <span className="flex items-center gap-1"><DollarSign size={13} />{mandate.salary_range}</span>}
@@ -941,7 +941,7 @@ export default function MandateDetail() {
 
       {/* Client section — shows automatically when a client is linked */}
       {clientUser && (
-        <div className="flex items-center gap-3 bg-teal/5 border border-teal/20 rounded-2xl px-4 py-3">
+        <div className="flex items-center gap-3 bg-teal/5 border border-teal/20 rounded-2xl px-4 py-3 flex-wrap">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
             {clientUser.full_name?.charAt(0)?.toUpperCase()}
           </div>
@@ -961,7 +961,7 @@ export default function MandateDetail() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
         {[
           { id: "details", icon: Settings2, label: "Details" },
           { id: "jd", icon: FileText, label: "Job Description" },
@@ -972,7 +972,7 @@ export default function MandateDetail() {
           { id: "source", icon: Link2, label: "Source on LinkedIn" },
         ].map(({ id: tid, icon: Icon, label }) => (
           <button key={tid} onClick={() => setTab(tid as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0
               ${tab === tid ? "bg-white shadow-sm text-teal" : "text-gray-500 hover:text-gray-700"}`}>
             <Icon size={14} /> {label}
           </button>
@@ -1200,13 +1200,13 @@ export default function MandateDetail() {
 
       {/* ── CANDIDATE MODAL ── */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
           style={{ background: "rgba(0,0,0,0.45)" }}
           onClick={e => { if (e.target === e.currentTarget) setSelectedApp(null) }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
 
             {/* Header */}
-            <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+            <div className="flex items-start justify-between px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-100 flex-shrink-0 gap-2">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
                   style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
@@ -1314,7 +1314,7 @@ export default function MandateDetail() {
                     </div>
                   )}
                   {(selectedApp.ai_strengths?.length > 0 || selectedApp.ai_concerns?.length > 0) ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {selectedApp.ai_strengths?.length > 0 && (
                         <div className="bg-green-50 rounded-xl p-4">
                           <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1"><CheckCircle size={11} /> Strengths for this role</div>
@@ -1576,8 +1576,8 @@ export default function MandateDetail() {
 
       {/* ── BULK UPLOAD ── */}
       {tab === "bulk" && (
-        <div className="grid grid-cols-5 gap-5 items-start">
-          <div className="col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+          <div className="lg:col-span-2 space-y-4">
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
@@ -1722,7 +1722,7 @@ export default function MandateDetail() {
                 <div className="px-4 pb-3">
                   <p className="text-sm text-gray-600 leading-relaxed">{r.summary}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 pb-4">
                   {r.strengths?.length > 0 && (
                     <div className="bg-green-50 rounded-xl p-3">
                       <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5"><CheckCircle size={11} /> Strengths</div>
@@ -1973,7 +1973,7 @@ export default function MandateDetail() {
                 <p className="text-xs text-gray-400 mt-0.5">Pre-filled from mandate — tweak and search. Each search costs ~3 credits.</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs font-medium text-gray-500 mb-1 block">Job Title</label>
                 <input
@@ -2169,7 +2169,7 @@ export default function MandateDetail() {
       )}
 
       {tab === "ai" && (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="card space-y-4">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Brain size={16} className="text-teal" /> Score a single CV</h3>
             <div>
@@ -2201,7 +2201,7 @@ export default function MandateDetail() {
                   <div className="h-full rounded-full" style={{ width: `${scoreResult.score}%`, background: scoreColor(scoreResult.score) }} />
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">{scoreResult.summary}</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {scoreResult.strengths?.length > 0 && (
                     <div className="bg-green-50 rounded-xl p-4">
                       <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5"><CheckCircle size={12} /> Strengths</div>
