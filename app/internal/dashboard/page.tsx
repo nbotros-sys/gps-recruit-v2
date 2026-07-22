@@ -87,7 +87,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-400 text-sm mt-0.5">GPS Recruitment — live overview</p>
@@ -98,7 +98,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {statCards.map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href} className="card flex items-center gap-4 hover:shadow-md transition-shadow">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}><Icon size={20} /></div>
@@ -115,7 +115,7 @@ export default function Dashboard() {
           <h2 className="font-semibold text-gray-900">Pipeline Overview</h2>
           <span className="text-xs text-gray-400">{total} candidates in pipeline</span>
         </div>
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {stages.map(stage => {
             const count = pipeline[stage] || 0
             const pct = total > 0 ? Math.round((count / total) * 100) : 0
@@ -163,7 +163,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Mandates</h2>
