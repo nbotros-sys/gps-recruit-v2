@@ -48,7 +48,7 @@ export default function SendCVPage() {
       const formData = new FormData()
       formData.append("file", file)
       const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
-      const { text: cvText } = await extractRes.json()
+      const { text: cvText, file_path: cvFilePath } = await extractRes.json()
 
       // Save the candidate via the safe server-side endpoint (service role) —
       // this writes to the database reliably even with the candidates table locked.
@@ -61,6 +61,7 @@ export default function SendCVPage() {
           phone: phone !== "+20 " ? phone : "",
           cv_text: cvText || "",
           filename: file.name,
+          cv_file_path: cvFilePath || null,
         }),
       })
       if (!regRes.ok) {

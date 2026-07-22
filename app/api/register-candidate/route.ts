@@ -75,5 +75,22 @@ export async function POST(req: NextRequest) {
   if (insErr || !created) {
     return NextResponse.json({ error: insErr?.message || "Could not save profile" }, { status: 500 })
   }
+
+  // Always keep a copy of the uploaded CV: move the extracted file into the
+  // candidate's folder and record its URL — same as the job-application flow,
+  // so registrants (not just applicants) get Preview/Download too.
+  const cvFilePath: string = (body?.cv_file_path || "").trim()
+  if (cvFilePath) {
+    try {
+      const safe = String(body?.filename || "cv").replace(/[^a-zA-Z0-9._-]/g, "_")
+      const ext = (safe.split(".").pop() || "").toLowerCase()
+      const dest = created.id + "/" + Date.now() + "-" + safe
+      const mv = await supabase.storage.from("cv-files").move(cvFilePath, dest)
+      if (!mv.error) {
+        await supabase.from("candidates").update({ cv_file_url: dest, cv_file_type: ext || null }).eq("id", created.id)
+      }
+    } catch {}
+  }
+
   return NextResponse.json({ id: created.id, existing: false, is_cv: profile.is_cv })
 }

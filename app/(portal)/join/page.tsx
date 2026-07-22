@@ -58,7 +58,7 @@ export default function JoinPage() {
       const formData = new FormData()
       formData.append("file", file)
       const extractRes = await fetch("/api/extract-cv", { method: "POST", body: formData })
-      const { text: cvText } = await extractRes.json()
+      const { text: cvText, file_path: cvFilePath } = await extractRes.json()
 
       // Save candidate (server reads the CV and fills title/company/summary/tags).
       const regRes = await fetch("/api/register-candidate", {
@@ -73,6 +73,7 @@ export default function JoinPage() {
           level: form.level,
           cv_text: cvText || "",
           filename: file.name,
+          cv_file_path: cvFilePath || null,
           source: "direct",
         }),
       })
