@@ -88,7 +88,7 @@ export default function MandatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mandates</h1>
           <p className="text-gray-500 text-sm mt-0.5">{mandates.length} total</p>
@@ -140,7 +140,7 @@ export default function MandatesPage() {
                 <div className="flex items-center gap-4 flex-shrink-0">
                   {/* Pipeline mini counts */}
                   {total > 0 && (
-                    <div className="flex items-center gap-3">
+                    <div className="hidden lg:flex items-center gap-3">
                       {STAGE_COLS.map((s, i) => (
                         <div key={s.key} className="flex items-center gap-3">
                           <div className="text-center min-w-[28px]">
@@ -152,7 +152,7 @@ export default function MandatesPage() {
                       ))}
                     </div>
                   )}
-                  {total === 0 && <span className="text-xs text-gray-300">No candidates yet</span>}
+                  {total === 0 && <span className="hidden lg:inline text-xs text-gray-300">No candidates yet</span>}
                   <span className={`badge ${STATUS_COLORS[m.status]} text-xs`}>{m.status}</span>
                   <ChevronRight size={15} className="text-gray-300 group-hover:text-teal transition-colors" />
                 </div>
@@ -171,7 +171,7 @@ export default function MandatesPage() {
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <form onSubmit={createMandate} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
                   <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})}
