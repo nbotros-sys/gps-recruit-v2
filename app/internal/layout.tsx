@@ -3,13 +3,14 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity, BarChart3, MessageSquare } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 const nav = [
   { href: "/internal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/internal/mandates", icon: Briefcase, label: "Mandates" },
   { href: "/internal/candidates", icon: Users, label: "Candidates" },
+  { href: "/internal/messages", icon: MessageSquare, label: "Messages" },
   { href: "/internal/database", icon: Database, label: "Import CVs" },
   { href: "/internal/candidates/duplicates", icon: GitMerge, label: "Duplicates" },
   { href: "/internal/search", icon: Search, label: "AI Search" },
