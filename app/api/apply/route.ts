@@ -87,6 +87,24 @@ export async function POST(req: NextRequest) {
     } catch {}
   }
 
+
+  // Index the candidate for semantic + structured search the moment they apply
+  // (only when they're new or uploaded a fresh CV), so no online applicant falls
+  // through the cracks waiting for a manual re-index.
+  if ((!existing || body?.cv_is_new) && cvText && cvText.trim()) {
+    const secret = process.env.INTERNAL_API_SECRET || ""
+    const hdr = { "Content-Type": "application/json", "x-internal-secret": secret }
+    const idxText = cvText.slice(0, 8000)
+    try {
+      await fetch(new URL("/api/generate-embedding", req.url).toString(),
+        { method: "POST", headers: hdr, body: JSON.stringify({ candidateId, text: idxText }) })
+    } catch {}
+    try {
+      await fetch(new URL("/api/extract-structured", req.url).toString(),
+        { method: "POST", headers: hdr, body: JSON.stringify({ candidateId, cv_text: idxText }) })
+    } catch {}
+  }
+
   // Record the application once.
   const { data: existingApp } = await supabase
     .from("applications").select("id")

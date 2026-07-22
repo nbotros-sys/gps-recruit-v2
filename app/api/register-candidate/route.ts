@@ -92,5 +92,23 @@ export async function POST(req: NextRequest) {
     } catch {}
   }
 
+
+  // Index the new candidate for semantic search + structured matching right away,
+  // so they're findable immediately and never sit unsearchable waiting for a
+  // manual re-index (mirrors the LinkedIn-enrich flow).
+  const cvForIndex = (cvText || "").slice(0, 8000)
+  if (cvForIndex.trim()) {
+    const secret = process.env.INTERNAL_API_SECRET || ""
+    const hdr = { "Content-Type": "application/json", "x-internal-secret": secret }
+    try {
+      await fetch(new URL("/api/generate-embedding", req.url).toString(),
+        { method: "POST", headers: hdr, body: JSON.stringify({ candidateId: created.id, text: cvForIndex }) })
+    } catch {}
+    try {
+      await fetch(new URL("/api/extract-structured", req.url).toString(),
+        { method: "POST", headers: hdr, body: JSON.stringify({ candidateId: created.id, cv_text: cvForIndex }) })
+    } catch {}
+  }
+
   return NextResponse.json({ id: created.id, existing: false, is_cv: profile.is_cv })
 }
