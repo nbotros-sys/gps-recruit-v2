@@ -9,7 +9,7 @@ import { openSecureFile } from "@/lib/secure-file"
 import {
   MessageSquare, Send, Phone, Mail, MapPin, ExternalLink, Search, Loader2, CheckCheck,
   X, FileText, Briefcase, Star, ArrowRight, CalendarClock, StickyNote, Archive,
-  Download, Users, Building2, Link2, Plus,
+  Download, Users, Building2, Link2, Plus, Clock,
 } from "lucide-react"
 
 const STAGE_ORDER = ["new", "screening", "interview", "shortlisted", "offered", "placed"]
@@ -177,6 +177,13 @@ export default function MessagesPage() {
     loadMsgs(c.id); flash("Register invite sent")
   }
 
+  async function sendTemplate(c: Convo) {
+    const first = (c.candidate?.name || "").split(" ")[0] || "there"
+    await fetch("/api/whatsapp/send", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: c.id, body: `Hi ${first}, following up on the role we discussed — are you still interested in moving forward?` }) })
+    loadMsgs(c.id); flash("Template sent · session reopens when they reply")
+  }
+
   const sel = convos.find(c => c.id === selId) || null
 
   const folders: { id: string; label: string }[] = []
@@ -187,7 +194,7 @@ export default function MessagesPage() {
     if (filter === "archived") { if (!c.archived) return false } else if (c.archived) return false
     if (filter === "unread" && c.unread_count === 0) return false
     if (filter === "unlinked" && c.candidate_id) return false
-    if (folder !== "all" && c.app?.mandate?.id !== folder) return false
+    if (folder === "unlinked") { if (c.candidate_id) return false } else if (folder !== "all" && c.app?.mandate?.id !== folder) return false
     if (q) { const s = q.toLowerCase(); if (!(c.phone.toLowerCase().includes(s) || convoName(c).toLowerCase().includes(s))) return false }
     return true
   })
@@ -201,12 +208,11 @@ export default function MessagesPage() {
             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search" className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-teal" />
           </div>
-          {folders.length > 0 && (
-            <select value={folder} onChange={e => setFolder(e.target.value)} className="w-full mt-2 px-2 py-1.5 text-xs bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-teal text-gray-600">
-              <option value="all">📥 All conversations</option>
-              {folders.map(f => <option key={f.id} value={f.id}>📁 {f.label}</option>)}
-            </select>
-          )}
+          <select value={folder} onChange={e => setFolder(e.target.value)} className="w-full mt-2 px-2 py-1.5 text-xs bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-teal text-gray-600">
+            <option value="all">📥 All conversations</option>
+            {folders.map(f => <option key={f.id} value={f.id}>📁 {f.label}</option>)}
+            <option value="unlinked">📁 Unlinked numbers</option>
+          </select>
           <div className="flex gap-1.5 mt-2">
             {(["all", "unread", "unlinked", "archived"] as const).map(f => (
               <button key={f} onClick={() => setFilter(f)} className={`text-[11px] px-2.5 py-1 rounded-full capitalize transition ${filter === f ? "bg-teal/10 text-teal font-medium" : "text-gray-500 hover:bg-gray-50 border border-gray-100"}`}>{f}</button>
@@ -278,11 +284,21 @@ export default function MessagesPage() {
               <div ref={msgEnd} />
             </div>
 
-            <div className="bg-white border-t border-gray-100 p-3 flex items-center gap-2 flex-shrink-0">
-              <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() } }}
-                placeholder={sessionOpen(sel) ? "Type a message" : "Session closed — reply may require a template"} className="flex-1 px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-full outline-none focus:border-teal" />
-              <button onClick={send} disabled={sending || !draft.trim()} className="w-10 h-10 rounded-full bg-teal text-white flex items-center justify-center disabled:opacity-40 hover:bg-teal/90 transition">{sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}</button>
-            </div>
+            {sessionOpen(sel) ? (
+              <div className="bg-white border-t border-gray-100 p-3 flex items-center gap-2 flex-shrink-0">
+                <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() } }}
+                  placeholder="Type a message" className="flex-1 px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-full outline-none focus:border-teal" />
+                <button onClick={send} disabled={sending || !draft.trim()} className="w-10 h-10 rounded-full bg-teal text-white flex items-center justify-center disabled:opacity-40 hover:bg-teal/90 transition">{sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}</button>
+              </div>
+            ) : (
+              <div className="flex-shrink-0">
+                <div className="bg-amber-50 border-t border-gray-100 px-5 py-2 text-[11.5px] text-amber-700 flex items-center gap-2">⚠ 24h window closed — first message must be an approved template.</div>
+                <div className="bg-white border-t border-gray-100 p-3 flex items-center gap-2">
+                  <button onClick={() => sendTemplate(sel)} className="flex-1 text-left px-4 py-2 text-sm bg-gray-50 border border-gray-100 rounded-full text-gray-400 hover:text-teal hover:border-teal transition">Send an approved template to reopen…</button>
+                  <button onClick={() => sendTemplate(sel)} className="w-10 h-10 rounded-full bg-teal text-white flex items-center justify-center hover:bg-teal/90 transition"><Send size={16} /></button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -319,6 +335,7 @@ export default function MessagesPage() {
                 {sel.candidate.phone && <div className="flex items-center gap-2 text-gray-600"><Phone size={14} className="text-gray-400" />{sel.candidate.phone}</div>}
                 {sel.candidate.email && <div className="flex items-center gap-2 text-gray-600 truncate"><Mail size={14} className="text-gray-400" />{sel.candidate.email}</div>}
                 {sel.candidate.source && <div className="flex items-center gap-2 text-gray-600"><Briefcase size={14} className="text-gray-400" />{SOURCE_LABELS[sel.candidate.source] || sel.candidate.source}</div>}
+                {sel.last_message_at && <div className="flex items-center gap-2 text-gray-600"><Clock size={14} className="text-gray-400" />Last activity {timeShort(sel.last_message_at)}</div>}
               </div>
 
               <div className="p-4 space-y-2">
