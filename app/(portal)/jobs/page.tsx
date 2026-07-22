@@ -97,8 +97,8 @@ export default function JobsPage() {
       {/* Hero skeleton */}
       <div style={{ background:"#071f24", padding:"60px 40px 70px", textAlign:"center" }}>
         <div className="skeleton" style={{ width:"180px", height:"14px", margin:"0 auto 20px", opacity:0.15 }} />
-        <div className="skeleton" style={{ width:"420px", height:"48px", margin:"0 auto 12px", opacity:0.12 }} />
-        <div className="skeleton" style={{ width:"320px", height:"48px", margin:"0 auto 24px", opacity:0.12 }} />
+        <div className="skeleton" style={{ width:"420px", maxWidth:"85%", height:"48px", margin:"0 auto 12px", opacity:0.12 }} />
+        <div className="skeleton" style={{ width:"320px", maxWidth:"70%", height:"48px", margin:"0 auto 24px", opacity:0.12 }} />
         <div className="skeleton" style={{ width:"240px", height:"16px", margin:"0 auto 32px", opacity:0.1 }} />
         <div style={{ display:"flex", gap:"12px", justifyContent:"center" }}>
           <div className="skeleton" style={{ width:"160px", height:"46px", borderRadius:"10px", opacity:0.15 }} />
@@ -135,6 +135,14 @@ export default function JobsPage() {
         .gps-hero-secondary:hover{ border-color:rgba(168,213,209,.85)!important; background:rgba(168,213,209,.08)!important; transform:translateY(-2px); }
         .gps-hero-cv:hover       { background:rgba(255,255,255,.12)!important; transform:translateY(-2px); }
         .role-card:hover         { border-color:#028090!important; box-shadow:0 4px 20px rgba(2,128,144,0.08)!important; }
+        @media (max-width: 820px) {
+          .jobs-grid-2 { grid-template-columns: 1fr !important; }
+          .jobs-pad { padding-left: 20px !important; padding-right: 20px !important; }
+          .cv-mini-preview { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .role-active-pill { display: none !important; }
+        }
       `}</style>
 
       {/* ── HERO: RECRUITMENT ── */}
@@ -174,7 +182,7 @@ export default function JobsPage() {
 
       {/* ── CV TOOLS HERO ── big, prominent, its own section ── */}
       <section style={{ background:"#0a1f24", padding:"0 0 0" }}>
-        <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"0 40px 48px" }}>
+        <div className="jobs-pad" style={{ maxWidth:"1200px", margin:"0 auto", padding:"0 40px 48px" }}>
 
           {/* Section label */}
           <div style={{ display:"flex", alignItems:"center", gap:"12px", paddingTop:"20px", marginBottom:"16px" }}>
@@ -184,7 +192,7 @@ export default function JobsPage() {
           </div>
 
           {/* Two big cards side by side */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px", marginBottom:"32px" }}>
+          <div className="jobs-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px", marginBottom:"32px" }}>
 
             {/* Card 1: Build CV */}
             <Link href="/cv-builder" style={{ textDecoration:"none", display:"block" }}>
@@ -194,7 +202,7 @@ export default function JobsPage() {
                 {/* Background pattern */}
                 <div style={{ position:"absolute", inset:0, opacity:0.08, backgroundImage:`url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54 12H6v36h48V12z' fill='none' stroke='white' stroke-width='1'/%3E%3Cpath d='M12 20h36M12 28h28M12 36h20' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize:"60px 60px", pointerEvents:"none" }} />
                 {/* Mini CV preview */}
-                <div style={{ position:"absolute", right:"24px", top:"24px", width:"110px", background:"rgba(255,255,255,0.12)", borderRadius:"10px", padding:"10px", backdropFilter:"blur(4px)" }}>
+                <div className="cv-mini-preview" style={{ position:"absolute", right:"24px", top:"24px", width:"110px", background:"rgba(255,255,255,0.12)", borderRadius:"10px", padding:"10px", backdropFilter:"blur(4px)" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"5px", marginBottom:"7px" }}>
                     <div style={{ width:"14px", height:"14px", borderRadius:"50%", background:"rgba(255,255,255,0.4)" }} />
                     <div style={{ height:"4px", borderRadius:"2px", background:"rgba(255,255,255,0.35)", flex:1 }} />
@@ -238,7 +246,7 @@ export default function JobsPage() {
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(168,213,209,0.2)"; (e.currentTarget as HTMLElement).style.boxShadow="none" }}>
 
                 {/* Score preview */}
-                <div style={{ position:"absolute", right:"24px", top:"24px", width:"100px", background:"rgba(2,128,144,0.2)", border:"1px solid rgba(2,128,144,0.3)", borderRadius:"14px", padding:"12px", textAlign:"center" }}>
+                <div className="cv-mini-preview" style={{ position:"absolute", right:"24px", top:"24px", width:"100px", background:"rgba(2,128,144,0.2)", border:"1px solid rgba(2,128,144,0.3)", borderRadius:"14px", padding:"12px", textAlign:"center" }}>
                   <div style={{ fontSize:"28px", fontWeight:800, color:"#5ecfdb", lineHeight:1 }}>78</div>
                   <div style={{ fontSize:"9px", color:"rgba(168,213,209,0.6)", marginTop:"3px", fontWeight:500 }}>/ 100</div>
                   <div style={{ marginTop:"8px", height:"4px", background:"rgba(255,255,255,0.1)", borderRadius:"99px", overflow:"hidden" }}>
@@ -294,7 +302,7 @@ export default function JobsPage() {
       </section>
 
       {/* ── OPEN ROLES ── */}
-      <section id="roles" style={{ maxWidth:"1100px", margin:"0 auto", padding:"72px 40px" }}>
+      <section id="roles" className="jobs-pad" style={{ maxWidth:"1100px", margin:"0 auto", padding:"72px 40px" }}>
         <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:"28px" }}>
           <div>
             <h2 style={{ fontSize:"28px", fontWeight:800, color:"#0a1f24", scrollMarginTop:"90px", margin:0 }}>Open roles</h2>
@@ -332,7 +340,7 @@ export default function JobsPage() {
                     </div>
                   </div>
                   <div style={{ display:"flex", alignItems:"center", gap:"12px", flexShrink:0 }}>
-                    <span style={{ background:"#e6f5f3", color:"#028090", fontSize:"11px", fontWeight:700, padding:"4px 12px", borderRadius:"99px" }}>Active</span>
+                    <span className="role-active-pill" style={{ background:"#e6f5f3", color:"#028090", fontSize:"11px", fontWeight:700, padding:"4px 12px", borderRadius:"99px" }}>Active</span>
                     <div style={{ width:"32px", height:"32px", background:"#028090", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <ArrowRight size={14} color="white" />
                     </div>
@@ -345,8 +353,8 @@ export default function JobsPage() {
       </section>
 
       {/* ── BOTTOM CTA ── */}
-      <section style={{ maxWidth:"1100px", margin:"0 auto", padding:"0 40px 80px" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
+      <section className="jobs-pad" style={{ maxWidth:"1100px", margin:"0 auto", padding:"0 40px 80px" }}>
+        <div className="jobs-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
           <div style={{ background:"linear-gradient(135deg, #028090 0%, #3D5A4E 100%)", borderRadius:"20px", padding:"36px 36px", position:"relative", overflow:"hidden" }}>
             <div style={{ position:"absolute", inset:0, opacity:0.06, pointerEvents:"none", backgroundImage:`url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25 3 L47 16 L47 34 L25 47 L3 34 L3 16 Z' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E")`, backgroundSize:"50px 50px" }} />
             <Zap size={24} color="rgba(255,255,255,0.6)" style={{ marginBottom:"12px" }} />
@@ -397,7 +405,14 @@ function LoggedInHome({ candidate, applications, mandates }: { candidate: any, a
 
   return (
     <div style={{ background:"#F4F8F7", minHeight:"80vh" }}>
-      <div style={{ background:"linear-gradient(135deg, #0a1f24 0%, #0d2b30 100%)", padding:"40px 40px 48px" }}>
+      <style>{`
+        @media (max-width: 820px) {
+          .li-grid-3 { grid-template-columns: 1fr !important; }
+          .li-grid-main { grid-template-columns: 1fr !important; }
+          .li-pad { padding-left: 20px !important; padding-right: 20px !important; }
+        }
+      `}</style>
+      <div className="li-pad" style={{ background:"linear-gradient(135deg, #0a1f24 0%, #0d2b30 100%)", padding:"40px 40px 48px" }}>
         <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"28px", flexWrap:"wrap", gap:"16px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:"16px" }}>
@@ -414,7 +429,7 @@ function LoggedInHome({ candidate, applications, mandates }: { candidate: any, a
             )}
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"14px" }}>
+          <div className="li-grid-3" style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"14px" }}>
             <a href="/account/profile" style={{ textDecoration:"none" }}>
               <div style={{ background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:"16px", padding:"18px", display:"flex", alignItems:"center", gap:"14px" }}>
                 <div style={{ position:"relative", width:"48px", height:"48px", flexShrink:0 }}>
@@ -454,8 +469,8 @@ function LoggedInHome({ candidate, applications, mandates }: { candidate: any, a
         </div>
       </div>
 
-      <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"36px 40px" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:"28px", alignItems:"start" }}>
+      <div className="li-pad" style={{ maxWidth:"1100px", margin:"0 auto", padding:"36px 40px" }}>
+        <div className="li-grid-main" style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:"28px", alignItems:"start" }}>
           <div>
             <div id="roles" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"18px" }}>
               <div>
