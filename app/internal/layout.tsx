@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity, BarChart3, MessageSquare } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, Building2, Zap, Bell, ChevronRight, Search, Database, GitMerge, Settings, LogOut, Activity, BarChart3, MessageSquare, Menu, X } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 
 const nav = [
@@ -25,6 +25,7 @@ export default function InternalLayout({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -86,7 +87,7 @@ export default function InternalLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="flex h-screen bg-cream overflow-hidden">
-      <aside className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 flex flex-col transition-all duration-200`}
+      <aside className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 hidden md:flex flex-col transition-all duration-200`}
         style={{ background: "#0d2b30" }}>
         <div className={`flex items-center ${collapsed ? "justify-center py-4 px-2" : "px-5 py-4"} border-b border-white/5`}>
           {!collapsed ? (
@@ -131,10 +132,16 @@ export default function InternalLayout({ children }: { children: React.ReactNode
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-6 flex-shrink-0">
-          <p className="text-sm font-medium text-gray-400">
-            {nav.find(n => pathname.startsWith(n.href))?.label}
-          </p>
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileNavOpen(true)} aria-label="Menu"
+              className="md:hidden p-2 -ml-1 rounded-lg text-gray-500 hover:bg-gray-50">
+              <Menu size={20} />
+            </button>
+            <p className="text-sm font-medium text-gray-400">
+              {nav.find(n => pathname.startsWith(n.href))?.label}
+            </p>
+          </div>
           <div className="flex items-center gap-3">
             <Link href="/internal/activity" className="relative p-2 text-gray-400 hover:text-teal rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
               <Bell size={17} />
@@ -165,7 +172,50 @@ export default function InternalLayout({ children }: { children: React.ReactNode
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+
+        {/* Mobile sidebar drawer */}
+        {mobileNavOpen && (
+          <div className="md:hidden fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl" style={{ background: "#0d2b30" }}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-9 h-9 flex-shrink-0">
+                    <Image src="/gps-logo.png" alt="GPS" fill sizes="36px" className="object-contain" />
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm tracking-wide">GPS</div>
+                    <div className="text-white/35 text-[10px] tracking-widest uppercase font-medium">Recruitment</div>
+                  </div>
+                </div>
+                <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu" className="p-2 text-white/50 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+              <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+                {nav.map(({ href, icon: Icon, label }) => {
+                  const active = pathname.startsWith(href)
+                  return (
+                    <Link key={href} href={href} onClick={() => setMobileNavOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-all duration-150
+                        ${active ? "bg-white/10 text-white font-medium" : "text-white/45 hover:text-white/80 hover:bg-white/5"}`}>
+                      <Icon size={16} className="flex-shrink-0" />
+                      <span>{label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+              <div className="p-2 border-t border-white/5">
+                <button onClick={signOut}
+                  className="flex items-center gap-2 px-3 py-3 rounded-lg text-red-300/70 hover:text-red-300 hover:bg-white/5 transition-all w-full text-sm">
+                  <LogOut size={15} /> Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
     </div>
   )
