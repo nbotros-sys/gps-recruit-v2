@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase"
-import {
+import { ArrowLeft,
   Plus, Building2, ExternalLink, Trash2, MessageSquare,
   Send, FileText, CheckCircle, Loader2, Search,
   ThumbsUp, ThumbsDown, Minus, X, AlertTriangle,
@@ -61,7 +61,7 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
 
   return (
     <div className="py-3 border-b border-gray-50 last:border-0">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-semibold text-gray-900 text-sm">{ir.application?.candidate?.name || "Unknown"}</span>
@@ -106,7 +106,7 @@ function InterviewRequestCard({ ir, showMandate, onAssign, onStatus, onConfirmDe
       </div>
 
       {editingDetails && (
-        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2.5">
+        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
             <label className="text-[11px] text-gray-400 block mb-1">Confirmed date</label>
             <input type="date" value={confirmedDate} onChange={e => setConfirmedDate(e.target.value)}
@@ -369,7 +369,7 @@ function MandateCard({ mandate, clientId, onStatusChange, liveTick }: { mandate:
           <div className="p-4">
             {activeTab === "overview" && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {mandate.location && (
                     <div>
                       <div className="text-xs text-gray-400 mb-1">Location</div>
@@ -801,9 +801,9 @@ export default function ClientsPage() {
   ]
 
   return (
-    <div className="flex h-[calc(100vh-64px)] gap-0 -mx-6 -my-6 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] gap-0 -mx-4 -my-4 md:-mx-6 md:-my-6 overflow-hidden">
 
-      <div className="w-72 border-r border-gray-100 flex flex-col bg-white flex-shrink-0 overflow-hidden">
+      <div className={(selected ? "hidden md:flex" : "flex") + " w-full md:w-72 border-r border-gray-100 flex-col bg-white flex-shrink-0 overflow-hidden"}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-900">Clients</h1>
@@ -862,7 +862,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/50">
+      <div className={(selected ? "flex" : "hidden md:flex") + " flex-1 flex-col overflow-hidden bg-gray-50/50"}>
         {!selected ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -874,9 +874,13 @@ export default function ClientsPage() {
           <div className="flex flex-col h-full overflow-hidden">
 
             <div className="flex-shrink-0 bg-white border-b border-gray-100">
-              <div className="px-6 py-4 max-w-3xl mx-auto">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+              <div className="px-4 sm:px-6 py-4 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <button onClick={() => setSelected(null)} aria-label="Back to clients"
+                      className="md:hidden p-1.5 -ml-1 rounded-lg text-gray-400 hover:bg-gray-100 flex-shrink-0">
+                      <ArrowLeft size={16} />
+                    </button>
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-[#3D5A4E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                       {(selected.full_name || "?").charAt(0).toUpperCase()}
                     </div>
@@ -903,12 +907,12 @@ export default function ClientsPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-0 px-6 max-w-3xl mx-auto">
+              <div className="flex gap-0 px-4 sm:px-6 max-w-3xl mx-auto overflow-x-auto">
                 {RIGHT_TABS.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setRightTab(t.id)}
-                    className={"px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px " + (rightTab === t.id ? "text-teal border-teal" : "text-gray-400 border-transparent hover:text-gray-600")}
+                    className={"px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 " + (rightTab === t.id ? "text-teal border-teal" : "text-gray-400 border-transparent hover:text-gray-600")}
                   >
                     {t.label}
                   </button>
@@ -917,7 +921,7 @@ export default function ClientsPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="max-w-3xl mx-auto p-6 space-y-4">
+              <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
 
                 {rightTab === "mandates" && (
                   <div>
@@ -945,8 +949,8 @@ export default function ClientsPage() {
 
                     {showAddMandate && (
                       <div className="card p-4 mb-3 border-teal/20 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="col-span-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="sm:col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
                             <input value={newMandate.title} onChange={e => setNewMandate(p => ({ ...p, title: e.target.value }))} placeholder="e.g. VP Sales" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
                           </div>
@@ -1099,7 +1103,7 @@ export default function ClientsPage() {
 
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Contact details</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name *</label>
                     <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Ahmed Hassan" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30" />
@@ -1135,8 +1139,8 @@ export default function ClientsPage() {
                         <span className="text-xs font-medium text-gray-500">{mandateRows.length > 1 ? "Mandate " + (idx + 1) : "Mandate"}</span>
                         {mandateRows.length > 1 && <button onClick={() => setMandateRows(p => p.filter((_, i) => i !== idx))} className="text-xs text-gray-400 hover:text-red-500">Remove</button>}
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="sm:col-span-2">
                           <label className="block text-xs font-medium text-gray-600 mb-1.5">Job title *</label>
                           <input value={m.title} onChange={e => updateMandateRow(idx, "title", e.target.value)} placeholder="e.g. Chief Financial Officer" className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 bg-white" />
                         </div>
