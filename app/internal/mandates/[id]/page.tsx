@@ -1207,21 +1207,21 @@ export default function MandateDetail() {
 
             {/* Header */}
             <div className="flex items-start justify-between px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-100 flex-shrink-0 gap-2">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
                   style={{ background: "linear-gradient(135deg, #028090, #3D5A4E)" }}>
                   {selectedApp.candidate?.name?.charAt(0)?.toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-lg font-bold text-gray-900">{selectedApp.candidate?.name}{ageFromDob(selectedApp.candidate?.dob) != null && <span className="text-gray-400 font-normal text-base"> · {ageFromDob(selectedApp.candidate?.dob)}</span>}</h2>
                   <p className="text-sm text-gray-500 mt-0.5">
                     {selectedApp.candidate?.current_title}
                     {selectedApp.candidate?.current_company ? ` @ ${selectedApp.candidate.current_company}` : ""}
                   </p>
-                  <div className="flex items-center gap-3 mt-1.5">
+                  <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 flex-wrap">
                     {selectedApp.candidate?.email && (
-                      <a href={`mailto:${selectedApp.candidate.email}`} className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal transition-colors">
-                        <Mail size={11} /> {selectedApp.candidate.email}
+                      <a href={`mailto:${selectedApp.candidate.email}`} className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal transition-colors min-w-0">
+                        <Mail size={11} className="flex-shrink-0" /> <span className="truncate max-w-[230px]">{selectedApp.candidate.email}</span>
                       </a>
                     )}
                     {selectedApp.candidate?.phone && (
@@ -1258,7 +1258,7 @@ export default function MandateDetail() {
             </div>
 
             {/* Tabs */}
-            <div className="flex px-6 flex-shrink-0 border-b border-gray-100">
+            <div className="flex px-4 sm:px-6 flex-shrink-0 border-b border-gray-100 overflow-x-auto">
               {[
                 { id: "overview", label: "Overview" },
                 { id: "cv", label: "CV" },
