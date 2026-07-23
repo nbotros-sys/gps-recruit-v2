@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase"
 import CandidateAvatar from "@/components/CandidateAvatar"
 import { cleanCvText } from "@/lib/clean-cv"
 import { openSecureFile } from "@/lib/secure-file"
-import {
+import { ArrowLeft,
   MessageSquare, Send, Phone, Mail, MapPin, ExternalLink, Search, Loader2, CheckCheck,
   X, FileText, Briefcase, Star, ArrowRight, CalendarClock, StickyNote, Archive,
   Download, Users, Building2, Link2, Plus, Clock,
@@ -201,7 +201,7 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-full bg-cream overflow-hidden">
-      <div className="w-80 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col">
+      <div className={(sel ? "hidden md:flex" : "flex") + " w-full md:w-80 flex-shrink-0 bg-white border-r border-gray-100 flex-col"}>
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2 text-teal"><MessageSquare size={18} /><span className="font-semibold text-gray-800">WhatsApp</span></div>
           <div className="mt-2 relative">
@@ -249,10 +249,14 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0" style={{ background: "#efeae2" }}>
+      <div className={(sel ? "flex" : "hidden md:flex") + " flex-1 flex-col min-w-0"} style={{ background: "#efeae2" }}>
         {!sel ? <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">Select a conversation</div> : (
           <>
-            <div className="h-14 bg-white border-b border-gray-100 flex items-center px-5 gap-3 flex-shrink-0">
+            <div className="h-14 bg-white border-b border-gray-100 flex items-center px-3 sm:px-5 gap-2 sm:gap-3 flex-shrink-0">
+              <button onClick={() => setSelId(null)} aria-label="Back to conversations"
+                className="md:hidden p-1.5 -ml-1 rounded-lg text-gray-400 hover:bg-gray-50 flex-shrink-0">
+                <ArrowLeft size={16} />
+              </button>
               {sel.candidate ? <CandidateAvatar name={sel.candidate.name} avatarUrl={sel.candidate.avatar_url} size={34} />
                 : <div className="w-[34px] h-[34px] rounded-full bg-gray-100 flex items-center justify-center text-gray-400"><Phone size={14} /></div>}
               <div className="min-w-0">
@@ -270,9 +274,9 @@ export default function MessagesPage() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-2">
               {msgs.map(m => (
-                <div key={m.id} className={`max-w-[70%] px-3 py-2 rounded-lg text-sm shadow-sm ${m.direction === "out" ? "ml-auto bg-[#d9fdd3]" : "bg-white"}`}>
+                <div key={m.id} className={`max-w-[85%] sm:max-w-[70%] px-3 py-2 rounded-lg text-sm shadow-sm ${m.direction === "out" ? "ml-auto bg-[#d9fdd3]" : "bg-white"}`}>
                   {m.template_name && <div className="text-[9px] font-semibold uppercase tracking-wide text-green-700 mb-0.5">Template</div>}
                   <div className="text-gray-800 whitespace-pre-wrap break-words">{m.body}</div>
                   <div className="text-[10px] text-gray-400 text-right mt-0.5 flex items-center justify-end gap-1">
@@ -304,7 +308,7 @@ export default function MessagesPage() {
       </div>
 
       {sel && (
-        <div className="w-72 flex-shrink-0 bg-white border-l border-gray-100 overflow-y-auto">
+        <div className="hidden lg:block w-72 flex-shrink-0 bg-white border-l border-gray-100 overflow-y-auto">
           {sel.candidate ? (
             <>
               <div className="p-5 text-center border-b border-gray-100">
