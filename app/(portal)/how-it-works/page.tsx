@@ -4,9 +4,16 @@ import { Brain, Users, Shield, Zap, ArrowRight, CheckCircle, FileText, Sparkles,
 export default function HowItWorksPage() {
   return (
     <div style={{ background: "#f4f8f7" }}>
+      <style>{`
+        @media (max-width: 820px) {
+          .hiw-grid-3 { grid-template-columns: 1fr !important; }
+          .hiw-pad { padding-left: 20px !important; padding-right: 20px !important; }
+          .hiw-cta { padding: 40px 22px !important; }
+        }
+      `}</style>
 
       {/* ── HERO ── */}
-      <div style={{ background: "#071f24", padding: "80px 40px 90px", position: "relative", overflow: "hidden" }}>
+      <div className="hiw-pad" style={{ background: "#071f24", padding: "80px 40px 90px", position: "relative", overflow: "hidden" }}>
         {/* Subtle background dots */}
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(2,128,144,0.07) 1px, transparent 1px)", backgroundSize: "28px 28px", pointerEvents: "none" }} />
         <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center", position: "relative" }}>
@@ -24,7 +31,7 @@ export default function HowItWorksPage() {
       </div>
 
       {/* ── SECTION 1: APPLYING ── */}
-      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "80px 40px 0" }}>
+      <div className="hiw-pad" style={{ maxWidth: "960px", margin: "0 auto", padding: "80px 40px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
           <div style={{ width: "32px", height: "32px", background: "#028090", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FileText size={15} color="white" />
@@ -72,12 +79,12 @@ export default function HowItWorksPage() {
       </div>
 
       {/* ── DIVIDER ── */}
-      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 40px" }}>
+      <div className="hiw-pad" style={{ maxWidth: "960px", margin: "0 auto", padding: "0 40px" }}>
         <div style={{ height: "1px", background: "linear-gradient(to right, transparent, #d1d5db, transparent)" }} />
       </div>
 
       {/* ── SECTION 2: TALENT NETWORK ── */}
-      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "80px 40px 0" }}>
+      <div className="hiw-pad" style={{ maxWidth: "960px", margin: "0 auto", padding: "80px 40px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
           <div style={{ width: "32px", height: "32px", background: "#3D5A4E", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Users size={15} color="white" />
@@ -90,7 +97,7 @@ export default function HowItWorksPage() {
         </p>
 
         {/* Feature cards — 3-col grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "36px" }}>
+        <div className="hiw-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "36px" }}>
           {[
             { icon: Brain, title: "AI profiles you deeply", desc: "We extract your real expertise — specific skills, industry, seniority — not just your job title. The more detail in your CV, the better your matches.", color: "#028090", bg: "#e6f5f3" },
             { icon: Shield, title: "Your profile stays confidential", desc: "Your information is never shared with any employer without your explicit consent. You're always in control.", color: "#3D5A4E", bg: "#eef4f2" },
@@ -114,8 +121,8 @@ export default function HowItWorksPage() {
       </div>
 
       {/* ── GPS PROMISE ── */}
-      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "0 40px 100px" }}>
-        <div style={{ background: "#0a1f24", borderRadius: "24px", padding: "56px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <div className="hiw-pad" style={{ maxWidth: "960px", margin: "0 auto", padding: "0 40px 100px" }}>
+        <div className="hiw-cta" style={{ background: "#0a1f24", borderRadius: "24px", padding: "56px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
           {/* Background accent */}
           <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "240px", height: "240px", borderRadius: "50%", background: "rgba(2,128,144,0.08)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", bottom: "-40px", left: "-40px", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(61,90,78,0.12)", pointerEvents: "none" }} />
