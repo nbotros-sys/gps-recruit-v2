@@ -176,14 +176,14 @@ export default function JobDetailPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-12">
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: JD */}
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
               <h2 className="font-bold text-gray-900 text-lg mb-5">About this role</h2>
               <div className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{mandate.job_description}</div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { icon: Shield, text: "Fully confidential" },
                 { icon: Users, text: "Personally reviewed" },
@@ -199,7 +199,7 @@ export default function JobDetailPage() {
 
           {/* Right: Apply */}
           <div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-24">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:sticky lg:top-24">
               {alreadyApplied ? (
                 <div className="text-center space-y-3 py-4">
                   <CheckCircle size={32} className="mx-auto" style={{ color: "#028090" }} />
