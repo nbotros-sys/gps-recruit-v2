@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase"
 import CandidateAvatar from "@/components/CandidateAvatar"
 import { cleanCvText } from "@/lib/clean-cv"
 import { openSecureFile } from "@/lib/secure-file"
-import { ArrowLeft,
+import { Info, ArrowLeft,
   MessageSquare, Send, Phone, Mail, MapPin, ExternalLink, Search, Loader2, CheckCheck,
   X, FileText, Briefcase, Star, ArrowRight, CalendarClock, StickyNote, Archive,
   Download, Users, Building2, Link2, Plus, Clock,
@@ -51,6 +51,7 @@ export default function MessagesPage() {
   const supabase = createClient()
   const [convos, setConvos] = useState<Convo[]>([])
   const [selId, setSelId] = useState<string | null>(null)
+  const [showInfo, setShowInfo] = useState(false)
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
@@ -253,7 +254,7 @@ export default function MessagesPage() {
         {!sel ? <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">Select a conversation</div> : (
           <>
             <div className="h-14 bg-white border-b border-gray-100 flex items-center px-3 sm:px-5 gap-2 sm:gap-3 flex-shrink-0">
-              <button onClick={() => setSelId(null)} aria-label="Back to conversations"
+              <button onClick={() => { setSelId(null); setShowInfo(false) }} aria-label="Back to conversations"
                 className="md:hidden p-1.5 -ml-1 rounded-lg text-gray-400 hover:bg-gray-50 flex-shrink-0">
                 <ArrowLeft size={16} />
               </button>
@@ -267,7 +268,9 @@ export default function MessagesPage() {
                 </div>
               </div>
               {sel.candidate_id && (
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-1.5 sm:gap-2">
+                  <button onClick={() => setShowInfo(true)} aria-label="Conversation details"
+                    className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:border-teal hover:text-teal transition"><Info size={13} /></button>
                   <button onClick={() => openProfile(sel)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:border-teal hover:text-teal transition"><Users size={13} /> Profile</button>
                   <button onClick={() => advanceStage(sel)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-teal text-white rounded-lg hover:bg-teal/90 transition"><ArrowRight size={13} /> Move stage</button>
                 </div>
@@ -308,7 +311,13 @@ export default function MessagesPage() {
       </div>
 
       {sel && (
-        <div className="hidden lg:block w-72 flex-shrink-0 bg-white border-l border-gray-100 overflow-y-auto">
+        <div className={(showInfo ? "fixed inset-0 z-50 w-full block" : "hidden") + " lg:static lg:block lg:w-72 lg:z-auto flex-shrink-0 bg-white border-l border-gray-100 overflow-y-auto"}>
+          <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+            <span className="font-semibold text-sm text-gray-800">Conversation details</span>
+            <button onClick={() => setShowInfo(false)} aria-label="Close details" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-50">
+              <X size={18} />
+            </button>
+          </div>
           {sel.candidate ? (
             <>
               <div className="p-5 text-center border-b border-gray-100">
