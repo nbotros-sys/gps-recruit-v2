@@ -60,7 +60,7 @@ export default function ScanLabPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-2 mb-1"><Zap size={20} className="text-teal" /><h1 className="text-xl font-bold text-gray-900">Scan Lab — v1 vs v2</h1></div>
-      <p className="text-sm text-gray-500 mb-5">Compares the current capped scan (top-60) against the v2 cascade (whole pool, Haiku wide + Sonnet finalists). Standalone — nothing here is wired into the live app.</p>
+      <p className="text-sm text-gray-500 mb-5">Compares the current capped scan (top-60) against v2 (whole pool, v1&apos;s exact Sonnet rubric, no cap). Standalone — nothing here is wired into the live app.</p>
 
       <div className="flex gap-2 items-center mb-6">
         <select value={sel} onChange={e => setSel(e.target.value)} className="flex-1 max-w-md px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-teal">
@@ -101,13 +101,13 @@ export default function ScanLabPage() {
 
             <Card>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-semibold text-teal">v2 cascade (uncapped)</span>
+                <span className="font-semibold text-teal">v2 (v1 rubric · uncapped)</span>
                 <span className="text-xs text-gray-400">${v2?.cost_usd ?? "?"} · {v2?.ms ? (v2.ms / 1000).toFixed(1) + "s" : ""}</span>
               </div>
               <div className="flex gap-4 mb-3 text-sm">
                 <div><Trophy size={13} className="inline text-teal" /> <b>{v2strong}</b> strong</div>
                 <div className="text-gray-500">{v2poss} possible</div>
-                <div className="text-gray-400">{v2?.wide_scored ?? "?"} wide · {v2?.finalists_deep_read ?? "?"} deep-read</div>
+                <div className="text-gray-400">{v2?.scored ?? "?"} scored · {v2?.deep_read ?? "?"} deep-read</div>
               </div>
               {[...(v2?.strong_matches || []), ...(v2?.possible_matches || [])].slice(0, 25).map((m: any, i: number) => <MatchRow key={i} m={m} badge />)}
             </Card>
