@@ -1832,7 +1832,7 @@ export default function MandateDetail() {
               {/* Strong matches */}
               {insightData.strong_matches?.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <h3 className="font-semibold text-gray-900">Strong matches</h3>
                     {insightData.strong_matches.length > 1 && (
                       <button onClick={() => insightData.strong_matches.forEach((c: any) => addFromInsight(c))}
@@ -1843,7 +1843,7 @@ export default function MandateDetail() {
                   </div>
                   {insightData.strong_matches.map((c: any) => (
                     <div key={c.id} className="card p-4">
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-3 flex-wrap sm:flex-nowrap">
                         <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1889,8 +1889,8 @@ export default function MandateDetail() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          <div className="text-right">
+                        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                          <div className="flex items-baseline gap-1 sm:block sm:text-right">
                             <div className="text-lg font-bold text-teal">{c.score}</div>
                             <div className="text-xs text-gray-400">/100</div>
                           </div>
@@ -1911,7 +1911,7 @@ export default function MandateDetail() {
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-900">Possible matches</h3>
                   {insightData.possible_matches.map((c: any) => (
-                    <div key={c.id} className="card flex items-center gap-4 opacity-90">
+                    <div key={c.id} className="card flex items-center gap-4 opacity-90 flex-wrap sm:flex-nowrap">
                       <CandidateAvatar name={c.name || "?"} avatarUrl={c.avatar_url} size={36} />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 text-sm">{c.name}</div>
@@ -1920,13 +1920,13 @@ export default function MandateDetail() {
                         </div>
                         <div className="text-xs text-amber-600 mt-1 italic">{c.reason}</div>
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <div className="text-right">
+                      <div className="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-start mt-1 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                        <div className="flex items-baseline gap-1 sm:block sm:text-right">
                           <div className="text-lg font-bold text-amber-600">{c.score}</div>
                           <div className="text-xs text-gray-400">/100</div>
                         </div>
                         <button onClick={() => addFromInsight(c)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 text-xs font-medium hover:bg-amber-50 transition-all">
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 text-xs font-medium hover:bg-amber-50 transition-all whitespace-nowrap">
                           <UserPlus size={12} /> Add to pipeline
                         </button>
                       </div>
