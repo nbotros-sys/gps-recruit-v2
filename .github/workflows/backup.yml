@@ -2,8 +2,8 @@ name: Nightly Backup to Dropbox
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC every day
-  workflow_dispatch: {}    # allows manual "Run workflow" button
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
 
 jobs:
   backup:
@@ -20,6 +20,7 @@ jobs:
           echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
           python3 -m pip install --quiet requests
 
       - name: Run backup
