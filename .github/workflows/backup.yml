@@ -1,0 +1,25 @@
+name: Nightly Backup to Dropbox
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC every day
+  workflow_dispatch: {}    # allows manual "Run workflow" button
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          python3 -m pip install --quiet requests
+
+      - name: Run backup
+        env:
+          BACKUP_CONFIG: ${{ secrets.BACKUP_CONFIG }}
+        run: python3 backup.py
